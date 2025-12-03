@@ -220,9 +220,9 @@ namespace PolyFract.Gui
 
         public void UpdateMenuHeaders(int coefficientsCount, double intensity, int order, string presetName)
         {
-            menuCoeffCount.Header = $"Number of coefficients values [{coefficientsCount}]";
+            menuCoeffCount.Header = $"Number of coefficients values (A/S) [{coefficientsCount}]";
             menuIntensity.Header = $"Colors intensity [{(int)System.Math.Round(intensity * 100)}%]";
-            menuOrder.Header = $"Polynomial order [{order}]";
+            menuOrder.Header = $"Polynomial order (Q/W) [{order}]";
             menuPreset.Header = $"Preset [{presetName}]";
         }
 

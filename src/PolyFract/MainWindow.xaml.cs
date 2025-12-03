@@ -47,11 +47,9 @@ namespace PolyFract
 
         private int? draggedCoeffIdx;
 
-        //ffmpeg -f image2 -i frame_%05d.png -r 60 -vcodec libx264 -pix_fmt yuv420p out.mp4 -y
-        //private string dir = "C:/tmp/poly-fract/slow2-vert";
-        private string recordingDir = "";
-
+        //combine PNGs into video: ffmpeg -f image2 -i frame_%05d.png -r 60 -vcodec libx264 -pix_fmt yuv420p out.mp4 -y
         //add audio: ffmpeg -i slow2.mp4 -ss 7 -i tetsuo.mp3 -t 220 -c copy -map 0:v:0 -map 1:a:0 slow2-audio.mp4
+        private string recordingDir = "";
 
         private DateTime lastCheckTime;
 
@@ -108,17 +106,7 @@ namespace PolyFract
                     return;
                 }
 
-                Complex[] newCoeff = new Complex[newCoefficientCount];
-                for (int i = 0; i < newCoeff.Length; i++)
-                {
-                    if (i < coefficients.Length)
-                        newCoeff[i] = coefficients[i];
-                    else
-                        newCoeff[i] = Complex.FromPolarCoordinates(0.8, i * 0.2);
-                }
-
-                coefficients = newCoeff;
-                contextMenu.UpdateMenuHeaders(coefficients.Length, scene.Intensity, order, currentPreset?.Name);
+                ChangeCoefficientsCount(newCoefficientCount);
             };
 
             contextMenu.Reset = () => SetDefaultValues();
@@ -139,7 +127,6 @@ namespace PolyFract
             };
 
             contextMenu.SaveCapture = captFileName => scene.SaveToFile(captFileName);
-
 
             SetDefaultValues();
 
@@ -171,6 +158,21 @@ namespace PolyFract
 
             var solutions = Solver.SolveAll(coefficients, order);
             scene.Draw(solutions, contextMenu.menuShowCoeff.IsChecked ? coefficients : []);
+        }
+
+        private void ChangeCoefficientsCount(int newCoefficientCount)
+        {
+            Complex[] newCoeff = new Complex[newCoefficientCount];
+            for (int i = 0; i < newCoeff.Length; i++)
+            {
+                if (i < coefficients.Length)
+                    newCoeff[i] = coefficients[i];
+                else
+                    newCoeff[i] = Complex.FromPolarCoordinates(0.8, (i * 2 * System.Math.PI / 2) / newCoefficientCount);
+            }
+
+            coefficients = newCoeff;
+            contextMenu.UpdateMenuHeaders(coefficients.Length, scene.Intensity, order, currentPreset?.Name);
         }
 
         private void AttachCoefficiensDragging()
@@ -234,6 +236,40 @@ namespace PolyFract
                 dt = dt*1.1;
             if (e.Key == Key.OemMinus)
                 dt = dt*0.9;
+            if (e.Key == Key.Q)
+            {
+                if (order > 2)
+                    order--;
+                contextMenu.UpdateMenuHeaders(coefficients.Length, scene.Intensity, order, currentPreset?.Name);
+            }
+            
+            if (e.Key == Key.W)
+            {
+                int newOrder = order + 1;
+                if (MathUtil.IntegerPower(coefficients.Length, newOrder) < MaxPixelCount)
+                {
+                    order = newOrder;
+                    contextMenu.UpdateMenuHeaders(coefficients.Length, scene.Intensity, order, currentPreset?.Name);
+                }
+            }
+
+            if (e.Key == Key.A)
+            {
+                if (coefficients.Length > 2)
+                    ChangeCoefficientsCount(coefficients.Length - 1);
+            }
+
+            if (e.Key == Key.S)
+            {
+                int newCoefficientsCount = coefficients.Length + 1;
+                if (MathUtil.IntegerPower(newCoefficientsCount, order) < MaxPixelCount)
+                {
+                    ChangeCoefficientsCount(newCoefficientsCount);
+                }
+            }
+
+            if (e.Key == Key.OemMinus)
+                dt = dt * 0.9;
             if (e.Key == Key.Space)
                 contextMenu.menuPaused.IsChecked = !contextMenu.menuPaused.IsChecked;
         }
@@ -249,7 +285,17 @@ namespace PolyFract
                 var mouseComplex = scene.ToComplexCoordinates(pos.X, pos.Y);
                 var mouseStr = $"r:{mouseComplex.Real.ToString("0.0000")},i:{mouseComplex.Imaginary.ToString("0.0000")}";
                 var originStr = $"r={scene.Origin.Real.ToString("0.0000")},i={scene.Origin.Imaginary.ToString("0.0000")}";
-                Title = $"PolyFract. {(contextMenu.menuPaused.IsChecked ? "[pause] " : "")} pixels:{MathUtil.IntegerPower(coefficients.Length, order)} t:{t.ToString("0.000")} frameCount:{frameCount} fps:{fps.ToString("0.00")} mouse:({mouseStr}) origin:({originStr}) zoom:{scene.Zoom.ToString("0.00")} {(string.IsNullOrWhiteSpace(recordingDir) ? "" : $"recording to:{recordingDir}")}";
+                Title = $"PolyFract. " +
+                        $"{(contextMenu.menuPaused.IsChecked ? "[pause] " : "")} " +
+                        $"pixels:{MathUtil.IntegerPower(coefficients.Length, order)} " +
+                        $"t:{t.ToString("0.000")} " +
+                        $"frameCount:{frameCount} " +
+                        $"fps:{fps.ToString("0.00")} " +
+                        $"mouse:({mouseStr}) origin:({originStr}) " +
+                        $"zoom:{scene.Zoom.ToString("0.00")} " +
+                        $"{(string.IsNullOrWhiteSpace(recordingDir) ? "" : $"recording to:{recordingDir}")} " +
+                        $"order: {order} " +
+                        $"coeffsCount: {coefficients.Length}";
             }
         }
 
