@@ -20,7 +20,9 @@ namespace PolyFract.Gui
 {
     public class RasterScene
     {
-        public int MarkerRadius = 5;
+        public const int MarkerRadius = 5;
+
+        public const double ZoomingSpeed = 0.0002;
         public Image Image { get; set; }
 
         public WriteableBitmap Bitmap { get; set; }
@@ -102,7 +104,7 @@ namespace PolyFract.Gui
         {
             var pos = e.GetPosition(Image);
 
-            double zoomRatio = 1.0 + 0.0005 * e.Delta;
+            double zoomRatio = 1.0 + ZoomingSpeed * e.Delta;
 
             var topLeft1 = ToComplexCoordinates(0, 0);
             var bottomRight1 = ToComplexCoordinates(Image.Width, Image.Height);

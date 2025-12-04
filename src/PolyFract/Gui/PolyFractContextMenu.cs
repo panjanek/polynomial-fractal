@@ -8,6 +8,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using Microsoft.WindowsAPICodePack.Dialogs;
+using PolyFract.Presets;
 using static System.Formats.Asn1.AsnWriter;
 
 namespace PolyFract.Gui
@@ -19,6 +20,8 @@ namespace PolyFract.Gui
         public MenuItem menuPreset = new MenuItem { };
 
         public MenuItem menuCapture = new MenuItem { Header = "Save screen capture" };
+
+        public MenuItem menuRecord = new MenuItem { Header = "Record frames to folder", IsCheckable = true };
 
         public MenuItem menuPaused = new MenuItem { Header = "Paused", IsCheckable = true };
 
@@ -42,7 +45,7 @@ namespace PolyFract.Gui
 
         public Panel placeholder;
 
-        public Action<Preset, string> PresetSelected { get; set; }
+        public Action<BasePreset, string> PresetSelected { get; set; }
 
         public Action<bool> OrientationChanged { get; set; }
 
@@ -56,13 +59,18 @@ namespace PolyFract.Gui
 
         public Action<string> SaveCapture { get; set; }
 
+        public Action<string> ToggleRecording { get; set; }
+
         public Action CopyPosClicked { get; set; }
+
+        public Point LastRightClick { get; set; }
+            
         public PolyFractContextMenu(Panel placeholder)
         {
             this.placeholder = placeholder;
             menu = new ContextMenu();
             menu.Items.Add(menuPreset);
-            foreach (var preset in Preset.GetPresets())
+            foreach (var preset in BasePreset.AllPresets)
             {
                 var submenuPreset = new MenuItem { Header = preset.Name };
                 menuPreset.Items.Add(submenuPreset);
@@ -76,6 +84,7 @@ namespace PolyFract.Gui
 
             menu.Items.Add(menuPaused);
             menu.Items.Add(menuCapture);
+            menu.Items.Add(menuRecord);
             menu.Items.Add(menuAutoCoeff);
             menu.Items.Add(menuAutoPOV);
             menu.Items.Add(menuCopyPos);
@@ -93,7 +102,25 @@ namespace PolyFract.Gui
             menuReset.Click += MenuReset_Click;
             menuVertical.Checked += MenuVertical_Checked;
             menuCapture.Click += MenuCapture_Click;
+            menuRecord.Click += MenuRecord_Click;
             placeholder.PreviewMouseRightButtonDown += Placeholder_PreviewMouseRightButtonDown;
+        }
+
+        private void MenuRecord_Click(object sender, RoutedEventArgs e)
+        {
+            if (menuRecord.IsChecked)
+            {
+                var dialog = new CommonOpenFileDialog { IsFolderPicker = true, Title = "Select folder to save frames as PNG files" };
+                if (dialog.ShowDialog() == CommonFileDialogResult.Ok)
+                {
+                    if (ToggleRecording != null)
+                        ToggleRecording(dialog.FileName);
+                }
+            }
+            else
+            {
+                ToggleRecording(null);
+            }
         }
 
         private void MenuCapture_Click(object sender, RoutedEventArgs e)
@@ -109,6 +136,7 @@ namespace PolyFract.Gui
 
         private void Placeholder_PreviewMouseRightButtonDown(object sender, MouseButtonEventArgs e)
         {
+            LastRightClick = e.GetPosition(placeholder);
             menu.PlacementTarget = placeholder;
             menu.Placement = System.Windows.Controls.Primitives.PlacementMode.MousePoint;
             menu.IsOpen = true;
@@ -118,18 +146,23 @@ namespace PolyFract.Gui
         private void SubmenuPreset_Click(object sender, RoutedEventArgs e)
         {
             var submenu = (MenuItem)sender;
-            var selectedPreset = (Preset)(submenu.Tag);
+            var selectedPreset = (BasePreset)(submenu.Tag);
             if (submenu.Header.ToString().Contains("record", StringComparison.InvariantCultureIgnoreCase))
             {
                 var dialog = new CommonOpenFileDialog { IsFolderPicker = true, Title = "Select folder to save frames as PNG files" };
                 if (dialog.ShowDialog() == CommonFileDialogResult.Ok)
                 {
-                    if (PresetSelected!=null)
+                    menuRecord.IsChecked = true;
+                    if (PresetSelected != null)
+                    {
                         PresetSelected(selectedPreset, dialog.FileName);
+                        
+                    }
                 }
             }
             else
             {
+                menuRecord.IsChecked = false;
                 if (PresetSelected != null)
                     PresetSelected(selectedPreset, null);
             }
