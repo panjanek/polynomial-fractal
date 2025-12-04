@@ -42,7 +42,7 @@ namespace PolyFract.Gui
 
         private DraggingHandler dragging;
 
-        double[,] marker = new double[,]
+        double[,] coeffMarker = new double[,]
             {
                 { 0.0, 0.3, 1.0, 1.0, 1.0, 1.0, 1.0, 0.3, 0.0 },
                 { 0.3, 1.0, 1.0, 0.3, 0.5, 0.3, 1.0, 1.0, 0.3 },
@@ -54,6 +54,17 @@ namespace PolyFract.Gui
                 { 0.3, 1.0, 1.0, 0.3, 0.5, 0.3, 1.0, 1.0, 0.3 },
                 { 0.0, 0.3, 1.0, 1.0, 1.0, 1.0, 1.0, 0.3, 0.0 },
             };
+
+        double[,] rootMarker = new double[,]
+            {
+                { 0.00, 0.02, 0.05, 0.02, 0.00 },
+                { 0.02, 0.10, 0.20, 0.10, 0.02 },
+                { 0.05, 0.20, 1.00, 0.20, 0.05 },
+                { 0.02, 0.10, 0.20, 0.10, 0.02 },
+                { 0.00, 0.02, 0.05, 0.02, 0.00 }
+            };
+
+
         public RasterScene(Panel placeholder)
         {
             CreateImage(placeholder);
@@ -147,56 +158,46 @@ namespace PolyFract.Gui
             for (int i=0;  i< solutions.Count; i++)
             {
                 var solution = solutions[i];
-
                 var h = 0.5 + solution.angle / (2*System.Math.PI);
                 GuiUtil.HsvToRgb(h*360, 1, 1, out var r, out var g, out var b);
-
-                r = (int)System.Math.Round(r * Intensity);
-                g = (int)System.Math.Round(g * Intensity);
-                b = (int)System.Math.Round(b * Intensity);
-
-                int r2 = r / 2;
-                int g2 = g / 2;
-                int b2 = b / 2;
-
                 (int x, int y) = ToPixelCoordinates(solution.root);
-                if (x >= 1 && y >= 1 && x < Width-1 && y < Height-1)
-                {
-                    int coord = y * Width + x << 2;
-                    AddPixel(coord, r, g, b);
-                    AddPixel(coord - 4, r2, g2, b2);
-                    AddPixel(coord + 4, r2, g2, b2);
-                    AddPixel(coord - Width * 4, r2, g2, b2);
-                    AddPixel(coord + Width * 4, r2, g2, b2);
-                }
+                AddGlyph(x, y, rootMarker, r, g, b, Intensity);
             }
 
             foreach (var coef in coefficients)
             {
                 (int cx, int cy) = ToPixelCoordinates(coef);
-                for(int mx=0;mx<marker.GetLength(0); mx++)
-                {
-                    for(int my=0; my<marker.GetLength(1); my++)
-                    {
-                        var strength = marker[mx, my]; 
-                        int x = cx - marker.GetLength(0) / 2 + mx;
-                        int y = cy - marker.GetLength(1) / 2 + my;
-                        if (x >= 2 && y >= 2 && x < Width - 2 && y < Height - 2)
-                        {
-                            int coord = y * Width + x << 2;
-                            var color = System.Windows.Media.Colors.Red;
-
-                            var r = (int)System.Math.Round(color.R * strength);
-                            var g = (int)System.Math.Round(color.G * strength);
-                            var b = (int)System.Math.Round(color.B * strength);
-                            AddPixel(coord, r,g,b);
-                        }
-                    }
-                }
+                AddGlyph(cx, cy, coeffMarker, Colors.Red);
             }
 
             Int32Rect rect = new Int32Rect(0, 0, Width, Height);
             Bitmap.WritePixels(rect, Pixels, Width * 4, 0);
+        }
+
+        private void AddGlyph(int cx, int cy, double[,] map, System.Windows.Media.Color color, double intensity = 1.0)
+        {
+            AddGlyph(cx, cy, map, color.R, color.G, color.B, intensity);
+        }
+
+        private void AddGlyph(int cx, int cy, double[,] map, int r, int g, int b, double intensity = 1.0)
+        {
+            for (int mx = 0; mx < map.GetLength(0); mx++)
+            {
+                for (int my = 0; my < map.GetLength(1); my++)
+                {
+                    var strength = map[mx, my];
+                    int x = cx - map.GetLength(0) / 2 + mx;
+                    int y = cy - map.GetLength(1) / 2 + my;
+                    if (x >= 0 && y >= 0 && x < Width && y < Height)
+                    {
+                        int coord = y * Width + x << 2;
+                        var cr = (int)System.Math.Round(r * strength * intensity);
+                        var cg = (int)System.Math.Round(g * strength * intensity);
+                        var cb = (int)System.Math.Round(b * strength * intensity);
+                        AddPixel(coord, cr, cg, cb);
+                    }
+                }
+            }
         }
 
         private void AddPixel(int coord, System.Windows.Media.Color color)

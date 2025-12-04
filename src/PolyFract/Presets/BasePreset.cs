@@ -15,9 +15,10 @@ namespace PolyFract.Presets
     {
         public static BasePreset[] AllPresets => 
                 [
+                    new PresetAdvanced(),
                     new PresetFast(),
                     new PresetSlow(),
-                    new PresetAdvanced()
+                    
                 ];
         public abstract string Name { get; }
         public abstract int Order { get; }
@@ -45,12 +46,12 @@ namespace PolyFract.Presets
             }
             before--;
 
-            
+            var P0 = (before > 0) ? full[before - 1] : full[full.Count - 1];
             var P1 = full[before % full.Count];
             var P2 = full[(before + 1) % full.Count];
             var P3 = full[(before + 2) % full.Count];
-            var interpolatedOrigin = Interpolation.Interpolate(P1.Origin, P2.Origin, P3.Origin, P1.Time, P2.Time, cycleT);
-            var interpolatedZoom = Interpolation.Interpolate(P1.Zoom, P2.Zoom, P3.Zoom, P1.Time, P2.Time, cycleT);
+            var interpolatedOrigin = Interpolation.Interpolate(P0.Origin, P1.Origin, P2.Origin, P3.Origin, P1.Time, P2.Time, cycleT);
+            var interpolatedZoom = Interpolation.Interpolate(P0.Zoom, P1.Zoom, P2.Zoom, P3.Zoom, P1.Time, P2.Time, cycleT);
             PointOfView result = new PointOfView(interpolatedOrigin, interpolatedZoom, t);
             return result;
         }
@@ -64,18 +65,19 @@ namespace PolyFract.Presets
             while (cycleT > maxT)
                 cycleT -= maxT;
             int before = 0;
-            while (before < full.Count && full[before].Time < cycleT)
+            while (before < full.Count && full[before].Time <= cycleT)
             {
                 before++;
             }
             before--;
 
+            var P0 = (before > 0) ? full[before - 1] : full[full.Count - 1];
             var P1 = full[before % full.Count];
             var P2 = full[(before + 1) % full.Count];
             var P3 = full[(before + 2) % full.Count];
             List<Complex> interpolated = new List<Complex>();
             for (int i= 0; i < P1.Coeffs.Length; i ++)
-                interpolated.Add(Interpolation.Interpolate(P1.Coeffs[i], P2.Coeffs[i], P3.Coeffs[i], P1.Time, P2.Time, cycleT));
+                interpolated.Add(Interpolation.Interpolate(P0.Coeffs[1], P1.Coeffs[i], P2.Coeffs[i], P3.Coeffs[i], P1.Time, P2.Time, cycleT));
             return interpolated.ToArray();
         }
 
@@ -92,11 +94,9 @@ namespace PolyFract.Presets
             }
 
             reversedCopy = reversedCopy.Skip(1).ToList();
-
             var full = new List<PointOfView>();
             full.AddRange(list);
             full.AddRange(reversedCopy);
-
             return full;
         }
 
@@ -113,12 +113,23 @@ namespace PolyFract.Presets
             }
 
             reversedCopy = reversedCopy.Skip(1).ToList();
-
             var full = new List<CoefficientTimePoint>();
             full.AddRange(list);
             full.AddRange(reversedCopy);
-
             return full;
         }
+    }
+
+    public class CoefficientTimePoint
+    {
+        public CoefficientTimePoint(Complex[] coeffs, double t)
+        {
+            Coeffs = coeffs;
+            Time = t;
+        }
+
+        public Complex[] Coeffs;
+
+        public double Time;
     }
 }

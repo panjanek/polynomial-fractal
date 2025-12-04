@@ -29,7 +29,7 @@ namespace PolyFract.Gui
 
         public MenuItem menuAutoPOV = new MenuItem { Header = "Automatic POV movement", IsCheckable = true };
 
-        public MenuItem menuCopyPos = new MenuItem { Header = "Copy coordinates" };
+        public MenuItem menuCopyPos = new MenuItem { Header = "Copy coordinates (C)" };
 
         public MenuItem menuCoeffCount = new MenuItem { };
 
@@ -254,7 +254,7 @@ namespace PolyFract.Gui
         public void UpdateMenuHeaders(int coefficientsCount, double intensity, int order, string presetName)
         {
             menuCoeffCount.Header = $"Number of coefficients values (A/S) [{coefficientsCount}]";
-            menuIntensity.Header = $"Colors intensity [{(int)System.Math.Round(intensity * 100)}%]";
+            menuIntensity.Header = $"Colors intensity (O/P)  [{(int)System.Math.Round(intensity * 100)}%]";
             menuOrder.Header = $"Polynomial order (Q/W) [{order}]";
             menuPreset.Header = $"Preset [{presetName}]";
         }

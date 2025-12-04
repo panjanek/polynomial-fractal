@@ -53,17 +53,4 @@ namespace PolyFract.Presets
 
         public override Complex[] GetCoefficients(double t) => GetInterpolated(coeffMovement, t);
     }
-
-    public class CoefficientTimePoint
-    {
-        public CoefficientTimePoint(Complex[] coeffs, double t)
-        {
-            Coeffs = coeffs;
-            Time = t;
-        }
-
-        public Complex[] Coeffs;
-
-        public double Time;
-    }
 }

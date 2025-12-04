@@ -265,17 +265,20 @@ namespace PolyFract
             if (e.Key == Key.C)
                 CopyCoordinatesToClipboard(Mouse.GetPosition(scene.Image));
 
-            if (e.Key == Key.Z)
+            if (e.Key == Key.O && scene.Intensity > 0.01)
+                scene.Intensity -= 0.01;
+
+            if (e.Key == Key.P && scene.Intensity < 1.0)
+                scene.Intensity += 0.01;
+
+            if (e.Key == Key.Z && redo.Count > 0)
             {
-                if (redo.Count > 0)
-                {
-                    var last = redo.Last();
-                    redo = redo.Take(redo.Count - 1).ToList();
-                    scene.Origin = last.Pov.Origin;
-                    scene.Zoom = last.Pov.Zoom;
-                    coefficients = last.Coeffs;
-                    t = last.Pov.Time;
-                }
+                var last = redo.Last();
+                redo = redo.Take(redo.Count - 1).ToList();
+                scene.Origin = last.Pov.Origin;
+                scene.Zoom = last.Pov.Zoom;
+                coefficients = last.Coeffs;
+                t = last.Pov.Time;
             }
 
             if (e.Key == Key.OemMinus)
