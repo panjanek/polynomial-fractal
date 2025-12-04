@@ -45,22 +45,14 @@ namespace PolyFract.Presets
             }
             before--;
 
+            
             var P1 = full[before % full.Count];
             var P2 = full[(before + 1) % full.Count];
             var P3 = full[(before + 2) % full.Count];
-            double s = MathUtil.Map(0, 1, P1.Time, P2.Time, cycleT);
-
-            double h1 = 2 * s * s * s - 3 * s * s + 1;          // calculate basis function 1
-            double h2 = -2 * s * s * s + 3 * s * s;              // calculate basis function 2
-            double h3 = s * s * s - 2 * s * s + s;         // calculate basis function 3
-            double h4 = s * s * s - s * s;
-
-            var T1 = new PointOfView(P2.Origin - P1.Origin, P2.Zoom - P1.Zoom, 0);
-            var T2 = new PointOfView(P3.Origin - P2.Origin, P3.Zoom - P2.Zoom, 0);
-            PointOfView res = new PointOfView(h1 * P1.Origin + h2 * P2.Origin + h3 * T1.Origin + h4 * T2.Origin,
-                                              h1 * P1.Zoom + h2 * P2.Zoom + h3 * T1.Zoom + h4 * T2.Zoom, 0);
-            res.Time = t;
-            return res;
+            var interpolatedOrigin = Interpolation.Interpolate(P1.Origin, P2.Origin, P3.Origin, P1.Time, P2.Time, cycleT);
+            var interpolatedZoom = Interpolation.Interpolate(P1.Zoom, P2.Zoom, P3.Zoom, P1.Time, P2.Time, cycleT);
+            PointOfView result = new PointOfView(interpolatedOrigin, interpolatedZoom, t);
+            return result;
         }
 
         public static Complex[] GetInterpolated(List<CoefficientTimePoint> list, double t)
@@ -81,21 +73,9 @@ namespace PolyFract.Presets
             var P1 = full[before % full.Count];
             var P2 = full[(before + 1) % full.Count];
             var P3 = full[(before + 2) % full.Count];
-            double s = MathUtil.Map(0, 1, P1.Time, P2.Time, cycleT);
-
-            double h1 = 2 * s * s * s - 3 * s * s + 1;          // calculate basis function 1
-            double h2 = -2 * s * s * s + 3 * s * s;              // calculate basis function 2
-            double h3 = s * s * s - 2 * s * s + s;         // calculate basis function 3
-            double h4 = s * s * s - s * s;
-
             List<Complex> interpolated = new List<Complex>();
             for (int i= 0; i < P1.Coeffs.Length; i ++)
-            {
-                var T1 = P2.Coeffs[i] - P1.Coeffs[i];
-                var T2 = P3.Coeffs[i] - P2.Coeffs[i];
-                interpolated.Add(h1 * P1.Coeffs[i] + h2 * P2.Coeffs[i] + h3 * T1 + h4 * T2);
-            }
-
+                interpolated.Add(Interpolation.Interpolate(P1.Coeffs[i], P2.Coeffs[i], P3.Coeffs[i], P1.Time, P2.Time, cycleT));
             return interpolated.ToArray();
         }
 

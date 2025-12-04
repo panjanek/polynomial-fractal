@@ -20,10 +20,5 @@ namespace PolyFract.Math
         {
             return (x >= cx - r) && (x <= cx + r) && (y >= cy - r) && (y <= cy + r);
         }
-
-        public static double Map(double from, double to, double tstart, double tstop, double t)
-        {
-            return from + (t - tstart) * (to - from) / (tstop - tstart);
-        }
     }
 }
