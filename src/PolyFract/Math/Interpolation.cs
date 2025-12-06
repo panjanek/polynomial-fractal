@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using MathNet.Numerics.Statistics;
 using PolyFract.Gui;
 
-namespace PolyFract.Math
+namespace PolyFract.Maths
 {
     public static class Interpolation
     {

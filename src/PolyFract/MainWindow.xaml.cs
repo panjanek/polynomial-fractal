@@ -17,7 +17,7 @@ using System.Windows.Shapes;
 using System.Windows.Threading;
 using Microsoft.WindowsAPICodePack.Dialogs;
 using PolyFract.Gui;
-using PolyFract.Math;
+using PolyFract.Maths;
 using PolyFract.Presets;
 using static System.Formats.Asn1.AsnWriter;
 
@@ -71,6 +71,8 @@ namespace PolyFract
         private List<RedoItem> redo = [];
 
         private FullscreenWindow fullscreen = null;
+
+        private Solver solver = null;
 
         public MainWindow()
         {
@@ -172,8 +174,11 @@ namespace PolyFract
                 frameCount++;
             }
 
-            var solutions = Solver.SolveAll(coefficients, order);
-            scene.Draw(solutions, contextMenu.menuShowCoeff.IsChecked ? coefficients : []);
+            if (solver == null || solver.coefficientsValuesCount != coefficients.Length || solver.order != order)
+                solver = new Solver(coefficients.Length, order);
+
+            solver.Solve(coefficients);
+            scene.Draw(solver.real, solver.imaginary, solver.angle, contextMenu.menuShowCoeff.IsChecked ? coefficients : []);
         }
 
         private void CopyCoordinatesToClipboard(Point clikPoint)

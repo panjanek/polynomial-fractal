@@ -7,19 +7,41 @@ using System.Threading.Tasks;
 using MathNet.Numerics;
 using MathNet.Numerics.LinearAlgebra;
 
-namespace PolyFract.Math
+namespace PolyFract.Maths
 {
-    public static class Solver
+    public class Solver
     {
-        public static SolutionPoint[] SolveAll(Complex[] coefficients, int order)
-        {
-            int polynomialsCount = 1;
-            for (int i = 0; i < order + 1; i++)
-                polynomialsCount *= coefficients.Length;
+        public double[] real;
 
-            var allRoots = new SolutionPoint[polynomialsCount * order];
-            for (int i = 0; i < allRoots.Length; i++)
-                allRoots[i] = new SolutionPoint();
+        public double[] imaginary;
+
+        public double[] angle;
+
+        public int order;
+
+        public int coefficientsValuesCount;
+
+        public int polynomialsCount;
+
+        public Solver(int coefficientsValuesCount, int order)
+        {
+            this.coefficientsValuesCount = coefficientsValuesCount;
+            this.order = order;
+            polynomialsCount = 1;
+            for (int i = 0; i < order + 1; i++)
+                polynomialsCount *= coefficientsValuesCount;
+            int rootsCount = polynomialsCount * order;
+            real = new double[rootsCount];
+            imaginary = new double[rootsCount];
+            angle = new double[rootsCount];
+        }
+
+
+        public void Solve(Complex[] coefficients)
+        {
+            if (coefficients.Length != coefficientsValuesCount)
+                throw new Exception($"Solver created for {coefficientsValuesCount} coefficients count but got {coefficients.Length}");
+
 
             Parallel.For(0, polynomialsCount, new ParallelOptions() { MaxDegreeOfParallelism = 16 }, i => {
 
@@ -34,28 +56,113 @@ namespace PolyFract.Math
 
                 try
                 {
-                    var roots = FindRoots(poly);
+                    var roots = FindRootsDurandKerner(poly, maxIterations : 48, tolerance : 1e-10);
 
                     int firstRootIdx = i * order;
-                    for(int j=0; j<roots.Count; j++)
+                    for(int j=0; j<roots.Length; j++)
                     {
-                        allRoots[firstRootIdx+j].root = roots[j];
-                        (int m, Complex v, double angle) = LocalDirection(poly, roots[j]);
-                        allRoots[firstRootIdx + j].angle = angle;
+                        int idx = firstRootIdx + j;
+                        real[idx] = roots[j].Real;
+                        imaginary[idx] = roots[j].Imaginary;
+                        angle[idx] = MathUtil.AngleAt(poly, roots[j]);
                     }
-
-
-
                 }
                 catch (Exception ex) 
                 {
                     Console.WriteLine(ex.Message);
                 }
             });
-
-            return allRoots;
         }
 
+        /// <summary>
+        /// Find all complex roots of polynomial with complex coefficients using Durand-Kerner.
+        /// Coeffs are in descending powers: a0*z^n + a1*z^(n-1) + ... + an.
+        /// </summary>
+        private Complex[] FindRootsDurandKerner(Complex[] coeffsDescending, int maxIterations, double tolerance)
+        {
+            if (coeffsDescending == null || coeffsDescending.Length < 2)
+                throw new ArgumentException("At least two coefficients required.");
+
+            int n = coeffsDescending.Length - 1; // degree
+            Complex a0 = coeffsDescending[0];
+            if (a0 == Complex.Zero)
+                throw new ArgumentException("Leading coefficient must be non-zero.");
+
+            // Make polynomial monic: z^n + b1*z^(n-1) + ... + bn
+            // Store full monic coeffs: [1, b1, ..., bn]
+            var monic = new Complex[n + 1];
+            monic[0] = Complex.One;
+            for (int i = 1; i <= n; i++)
+                monic[i] = coeffsDescending[i] / a0;
+
+            // Initial radius heuristic: 1 + max |b_k|
+            double maxAbs = 0.0;
+            for (int i = 1; i <= n; i++)
+            {
+                double m = monic[i].Magnitude;
+                if (m > maxAbs) maxAbs = m;
+            }
+            double r = 1.0 + maxAbs;
+
+            // Initial guesses: r * exp(2π i k / n)
+            var z = new Complex[n];
+            double twoPiOverN = 2.0 * Math.PI / n;
+            for (int k = 0; k < n; k++)
+            {
+                double angle = twoPiOverN * k;
+                z[k] = Complex.FromPolarCoordinates(r, angle);
+            }
+
+            // Work buffers to reduce allocations
+            Complex[] newZ = new Complex[n];
+
+            for (int iter = 0; iter < maxIterations; iter++)
+            {
+                double maxDelta = 0.0;
+
+                for (int i = 0; i < n; i++)
+                {
+                    Complex zi = z[i];
+
+                    // Evaluate polynomial at zi using Horner (monic)
+                    Complex p = monic[0];
+                    for (int k = 1; k <= n; k++)
+                        p = p * zi + monic[k];
+
+                    // Compute product ∏_{j ≠ i} (zi - zj)
+                    Complex denom = Complex.One;
+                    for (int j = 0; j < n; j++)
+                    {
+                        if (j == i) continue;
+                        denom *= (zi - z[j]);
+                    }
+
+                    // Durand-Kerner update
+                    Complex delta = p / denom;
+                    Complex ziNew = zi - delta;
+                    newZ[i] = ziNew;
+
+                    double d = delta.Magnitude;
+                    if (d > maxDelta) maxDelta = d;
+                }
+
+                // Copy back
+                for (int i = 0; i < n; i++)
+                    z[i] = newZ[i];
+
+                if (maxDelta < tolerance)
+                    break;
+            }
+
+            // Undo monic scaling: roots of original p(z) and monic version are the same,
+            // so no extra work needed here.
+            return z;
+        }
+
+
+        /// <summary>
+        /// Finds roots of polynomial using companion-matrix + eigenvalues approach. Pretty precise, but slower
+        /// </summary>
         public static MathNet.Numerics.LinearAlgebra.Vector<Complex> FindRoots(Complex[] coeffsDescending)
         {
             if (coeffsDescending == null || coeffsDescending.Length < 2)
@@ -95,72 +202,8 @@ namespace PolyFract.Math
             return evd.EigenValues;
         }
 
-        public static (int m, Complex v, double angleRad) LocalDirection(Complex[] coeffs, Complex r, double tol = 1e-12)
-        {
-            if (coeffs == null || coeffs.Length == 0)
-                throw new ArgumentException("coeffs required");
 
-            int n = coeffs.Length - 1; // degree = n
-                                       // scale tolerance by coefficient magnitudes
-            double coeffScale = 0.0;
-            foreach (var c in coeffs) coeffScale = System.Math.Max(coeffScale, c.Magnitude);
-            double effectiveTol = tol * System.Math.Max(1.0, coeffScale);
 
-            // prepare current derivative coefficients; start with original
-            Complex[] derivCoeffs = new Complex[coeffs.Length];
-            Array.Copy(coeffs, derivCoeffs, coeffs.Length);
 
-            // iterate k = 1..n to find first nonzero derivative at r
-            for (int k = 1; k <= n; ++k)
-            {
-                // compute derivative coefficients of order k (in-place):
-                // for a polynomial of degree d, new coeff j = old coeff j * (d - j)
-                int d = derivCoeffs.Length - 1;
-                Complex[] next = new Complex[derivCoeffs.Length - 1];
-                for (int j = 0; j < next.Length; ++j)
-                {
-                    next[j] = derivCoeffs[j] * (d - j);
-                }
-                derivCoeffs = next;
-
-                // Evaluate derivCoeffs at r using Horner
-                Complex val = HornerEval(derivCoeffs, r);
-                if (val.Magnitude > effectiveTol)
-                {
-                    // compute v = p^{(m)}(r)/m!
-                    double mfact = FactorialDouble(k); // or compute progressively if performance needed
-                    Complex v = val / mfact;
-                    double angle = System.Math.Atan2(v.Imaginary, v.Real); // -pi..pi
-                    return (k, v, angle);
-                }
-            }
-
-            // all derivatives numerically zero -> polynomial zero (or root of multiplicity > degree)
-            return (0, Complex.Zero, 0.0);
-        }
-
-        private static Complex HornerEval(Complex[] coeffs, Complex x)
-        {
-            Complex acc = Complex.Zero;
-            foreach (var c in coeffs)
-            {
-                acc = acc * x + c;
-            }
-            return acc;
-        }
-
-        private static double FactorialDouble(int k)
-        {
-            double f = 1.0;
-            for (int i = 2; i <= k; ++i) f *= i;
-            return f;
-        }
-    }
-
-    public class SolutionPoint
-    {
-        public Complex root;
-
-        public double angle;
     }
 }

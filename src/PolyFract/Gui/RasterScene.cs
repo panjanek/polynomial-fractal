@@ -14,7 +14,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using MathNet.Numerics;
-using PolyFract.Math;
+using PolyFract.Maths;
 using static System.Formats.Asn1.AsnWriter;
 
 namespace PolyFract.Gui
@@ -159,8 +159,13 @@ namespace PolyFract.Gui
 
         public (int x, int y) ToPixelCoordinates(Complex x)
         {
-            int ix = (int)System.Math.Round(Width / 2 + (x.Real - Origin.Real) * Zoom);
-            int iy = (int)System.Math.Round(Height / 2 - (x.Imaginary - Origin.Imaginary) * Zoom);
+            return ToPixelCoordinates(x.Real, x.Imaginary);
+        }
+
+        public (int x, int y) ToPixelCoordinates(double real, double imaginary)
+        {
+            int ix = (int)System.Math.Round(Width / 2 + (real - Origin.Real) * Zoom);
+            int iy = (int)System.Math.Round(Height / 2 - (imaginary - Origin.Imaginary) * Zoom);
             return (ix, iy);
         }
 
@@ -169,16 +174,16 @@ namespace PolyFract.Gui
             return new Complex((x - Width / 2)/Zoom + Origin.Real, (Height / 2 - y) / Zoom + Origin.Imaginary);
         }
 
-        public void Draw(SolutionPoint[] solutions, Complex[] coefficients)
+        public void Draw(double[] real, double[] imaginary, double[] angle, Complex[] coefficients)
         {
             this.coefficients = coefficients;
             Array.Fill<byte>(Pixels, 0);
-            for (int i=0;  i< solutions.Length; i++)
+            for (int i=0;  i< real.Length; i++)
             {
-                var solution = solutions[i];
-                var h = 0.5 + solution.angle / (2*System.Math.PI);
+                
+                var h = 0.5 + angle[i] / (2*System.Math.PI);
                 GuiUtil.HsvToRgb(h*360, 1, 1, out var r, out var g, out var b);
-                (int x, int y) = ToPixelCoordinates(solution.root);
+                (int x, int y) = ToPixelCoordinates(real[i], imaginary[i]);
                 AddGlyph(x, y, rootMarker, r, g, b, Intensity);
             }
 

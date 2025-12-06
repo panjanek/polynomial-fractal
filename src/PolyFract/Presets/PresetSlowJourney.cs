@@ -3,7 +3,7 @@ using PolyFract.Gui;
 
 namespace PolyFract.Presets
 {
-    public class SlowJourney : BasePreset
+    public class PresetSlowJourney : BasePreset
     {
         public override string Name => "Slow Journey";
 

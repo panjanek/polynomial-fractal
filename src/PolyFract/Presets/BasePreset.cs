@@ -6,7 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using MathNet.Numerics.Statistics;
 using PolyFract.Gui;
-using PolyFract.Math;
+using PolyFract.Maths;
 using static System.Formats.Asn1.AsnWriter;
 
 namespace PolyFract.Presets
@@ -19,7 +19,7 @@ namespace PolyFract.Presets
                     new PresetOscilatingThree(),
                     new PresetAnotherJourney(),
                     new FastJourney(),
-                    new SlowJourney(),
+                    new PresetSlowJourney(),
                     
                 ];
         public abstract string Name { get; }
