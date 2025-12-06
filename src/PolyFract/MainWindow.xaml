@@ -7,10 +7,12 @@
         mc:Ignorable="d"
         Title="PolyFract" Width="Auto" Height="Auto" WindowState ="Maximized" MinWidth="720" MinHeight="576">
     <ScrollViewer Width="Auto" Height="Auto"
+    Name ="scrollbox"
     HorizontalScrollBarVisibility="Auto"
     VerticalScrollBarVisibility="Auto" >
-
-        <Grid Name="placeholder" Width="1920" Height="1080">
-        </Grid>
+        <StackPanel Name="parent" Width="1920" Height="1080">
+            <Grid Name="placeholder" VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
+            </Grid>
+        </StackPanel>
     </ScrollViewer>
 </Window>

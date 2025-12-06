@@ -252,7 +252,7 @@ namespace PolyFract.Gui
                 CopyPosClicked();
         }
 
-        public void UpdateMenuHeaders(int coefficientsCount, double intensity, int order, BasePreset preset)
+        public void UpdateContextMenu(int coefficientsCount, double intensity, int order, BasePreset preset)
         {
             menuCoeffCount.Header = $"Number of coefficients values (A/S) [{coefficientsCount}]";
             menuIntensity.Header = $"Colors intensity (O/P)  [{(int)System.Math.Round(intensity * 100)}%]";
@@ -264,12 +264,20 @@ namespace PolyFract.Gui
                 menuAutoPOV.IsEnabled = false;
                 menuAutoPOV.IsChecked = false;
             }
+            else
+            {
+                menuAutoPOV.IsEnabled = true;
+            }
 
-            var testAutoCoeff = preset?.GetCoefficients(0);
+                var testAutoCoeff = preset?.GetCoefficients(0);
             if (testAutoCoeff == null)
             {
                 menuAutoCoeff.IsEnabled = false;
                 menuAutoCoeff.IsChecked = false;
+            }
+            else
+            {
+                menuAutoCoeff.IsEnabled = true;
             }
         }
 

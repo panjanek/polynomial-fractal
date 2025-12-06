@@ -81,15 +81,24 @@ namespace PolyFract.Gui
 
         public void CreateImage(Panel placeholder)
         {
-            var img = new Image();
-            img.Width = placeholder.Width;
-            img.Height = placeholder.Height;
-            img.Visibility = Visibility.Visible;
-            placeholder.Children.Add(img);
-            Image = img;
+            placeholder.Children.Clear();
+            Image = new Image();
+            if (!double.IsNaN(placeholder.ActualWidth) && !double.IsNaN(placeholder.ActualHeight) && placeholder.ActualWidth>0 && placeholder.ActualHeight > 0)
+            {
+                Image.Width = placeholder.ActualWidth;
+                Image.Height = placeholder.ActualHeight;
+            }
+            else
+            {
+                Image.Width = 1920;
+                Image.Height = 1080;
+            }
 
-            Width = (int)placeholder.Width;
-            Height = (int)placeholder.Height;
+            Image.Visibility = Visibility.Visible;
+            placeholder.Children.Add(Image);
+
+            Width = (int)Image.Width;
+            Height = (int)Image.Height;
             Bitmap = new WriteableBitmap(Width, Height, 96, 96, System.Windows.Media.PixelFormats.Bgr32, null);
             Image.Source = Bitmap;
             Pixels = ClearRasterImage();

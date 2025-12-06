@@ -70,11 +70,14 @@ namespace PolyFract
 
         private List<RedoItem> redo = [];
 
+        private FullscreenWindow fullscreen = null;
+
         public MainWindow()
         {
             InitializeComponent();
+
             scene = new RasterScene(placeholder);
-            
+            scene.DraggedOrZoommed = () => contextMenu.menuAutoPOV.IsChecked = false;
 
             frameCount = 0;
             lastCheckTime = DateTime.Now;
@@ -93,13 +96,13 @@ namespace PolyFract
                 }
 
                 order = newOrder;
-                contextMenu.UpdateMenuHeaders(coefficients.Length, scene.Intensity, order, currentPreset);
+                UpdateContextMenu();
             };
 
             contextMenu.IntensityChanged = newIntensity =>
             {
                 scene.Intensity = newIntensity;
-                contextMenu.UpdateMenuHeaders(coefficients.Length, scene.Intensity, order, currentPreset);
+                UpdateContextMenu();
             };
 
             contextMenu.OrientationChanged = isVertical =>
@@ -126,11 +129,11 @@ namespace PolyFract
             contextMenu.PresetSelected = (p, recDir) =>
             {
                 ApplyPreset(p);
-                contextMenu.UpdateMenuHeaders(coefficients.Length, scene.Intensity, order, currentPreset);
+                UpdateContextMenu();
                 recordingDir = recDir;
             };
 
-            scene.DraggedOrZoommed = () => contextMenu.menuAutoPOV.IsChecked = false;
+            
             SetDefaultValues();
             graphicsTimer.Interval = TimeSpan.FromSeconds(0.001);
             graphicsTimer.Tick += GraphicsTimerTick;
@@ -139,6 +142,13 @@ namespace PolyFract
             infoTimer.Interval = TimeSpan.FromSeconds(1.0);
             infoTimer.Tick += InfoTimer_Tick;
             infoTimer.Start();
+
+            placeholder.SizeChanged += Placeholder_SizeChanged;
+        }
+
+        private void Placeholder_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            scene.Reset(placeholder);
         }
 
         private void GraphicsTimerTick(object sender, EventArgs e)
@@ -186,7 +196,7 @@ namespace PolyFract
             }
 
             coefficients = newCoeff;
-            contextMenu.UpdateMenuHeaders(coefficients.Length, scene.Intensity, order, currentPreset);
+            UpdateContextMenu();
         }
 
         private void AttachCoefficiensDragging()
@@ -227,7 +237,7 @@ namespace PolyFract
             contextMenu.menuAutoCoeff.IsChecked = true;
             contextMenu.menuAutoPOV.IsChecked = true;
             contextMenu.menuPaused.IsChecked = false;
-            contextMenu.UpdateMenuHeaders(coefficients.Length, scene.Intensity, order, currentPreset);
+            UpdateContextMenu();
         }
 
         private void SetDefaultValues()
@@ -240,72 +250,104 @@ namespace PolyFract
             scene.Origin = Complex.Zero;
             scene.Zoom = DefaultZoom;
             recordingDir = null;
-            contextMenu.UpdateMenuHeaders(coefficients.Length, scene.Intensity, order, currentPreset);
+            UpdateContextMenu();
         }
 
         private void MainWindow_KeyDown(object sender, KeyEventArgs e)
         {
-            if (e.Key == Key.OemPlus)
-                dt = dt*1.1;
-
-            if (e.Key == Key.OemMinus)
-                dt = dt*0.9;
-
-            if (e.Key == Key.Q && order > 2)
-                    order--;
-
-            if (e.Key == Key.W && MathUtil.IntegerPower(coefficients.Length, order + 1) < MaxPixelCount)
-                order++;
-
-            if (e.Key == Key.A && coefficients.Length > 2)
-                    ChangeCoefficientsCount(coefficients.Length - 1);
-
-            if (e.Key == Key.S && MathUtil.IntegerPower(coefficients.Length + 1, order) < MaxPixelCount)
-                    ChangeCoefficientsCount(coefficients.Length + 1);
-
-            if (e.Key == Key.C)
-                CopyCoordinatesToClipboard(Mouse.GetPosition(scene.Image));
-
-            if (e.Key == Key.O && scene.Intensity > 0.01)
-                scene.Intensity -= 0.01;
-
-            if (e.Key == Key.P && scene.Intensity < 1.0)
-                scene.Intensity += 0.01;
-
-            if (e.Key == Key.Z && redo.Count > 0)
-            {
-                var last = redo.Last();
-                redo = redo.Take(redo.Count - 1).ToList();
-                scene.Origin = last.Pov.Origin;
-                scene.Zoom = last.Pov.Zoom;
-                coefficients = last.Coeffs;
-                t = last.Pov.Time;
-            }
-
-            if (e.Key == Key.OemMinus)
-                dt = dt * 0.9;
-
-            if (e.Key == Key.Space)
-                contextMenu.menuPaused.IsChecked = !contextMenu.menuPaused.IsChecked;
-
-
             switch (e.Key)
             {
-                case Key.D1: ApplyPreset(BasePreset.AllPresets[0]); break;
-                case Key.D2: ApplyPreset(BasePreset.AllPresets[1]); break;
-                case Key.D3: ApplyPreset(BasePreset.AllPresets[2]); break;
-                case Key.D4: ApplyPreset(BasePreset.AllPresets[3]); break;
-                case Key.D5: ApplyPreset(BasePreset.AllPresets[4]); break;
+                case Key.Space:
+                    contextMenu.menuPaused.IsChecked = !contextMenu.menuPaused.IsChecked;
+                    break;
+                case Key.OemMinus:
+                    dt = dt * 0.9; 
+                    break;
+                case Key.OemPlus:
+                    dt = dt * 1.1; 
+                    break;
+                case Key.Q:
+                    if (order > 2)
+                        order--;
+                    break;
+                case Key.W:
+                    if (MathUtil.IntegerPower(coefficients.Length, order + 1) < MaxPixelCount)
+                        order++;
+                    break;
+                case Key.A:
+                    if (coefficients.Length > 2)
+                        ChangeCoefficientsCount(coefficients.Length - 1); 
+                    break;
+                case Key.S:
+                    if (MathUtil.IntegerPower(coefficients.Length + 1, order) < MaxPixelCount)
+                        ChangeCoefficientsCount(coefficients.Length + 1);
+                    break;
+                case Key.C:
+                    CopyCoordinatesToClipboard(Mouse.GetPosition(scene.Image));
+                    break;
+                case Key.O:
+                    if (scene.Intensity > 0.01)
+                        scene.Intensity -= 0.01;
+                    break;
+                case Key.P:
+                    if (scene.Intensity < 1.0)
+                        scene.Intensity += 0.01;
+                    break;
+                case Key.D1: 
+                    ApplyPreset(BasePreset.AllPresets[0]); 
+                    break;
+                case Key.D2: 
+                    ApplyPreset(BasePreset.AllPresets[1]); 
+                    break;
+                case Key.D3: 
+                    ApplyPreset(BasePreset.AllPresets[2]); 
+                    break;
+                case Key.D4: 
+                    ApplyPreset(BasePreset.AllPresets[3]); 
+                    break;
+                case Key.D5: 
+                    ApplyPreset(BasePreset.AllPresets[4]); 
+                    break;
+                case Key.Z:
+                    if (redo.Count > 0)
+                    {
+                        var last = redo.Last();
+                        redo = redo.Take(redo.Count - 1).ToList();
+                        scene.Origin = last.Pov.Origin;
+                        scene.Zoom = last.Pov.Zoom;
+                        coefficients = last.Coeffs;
+                        t = last.Pov.Time;
+                    }
+                    break;
+                case Key.F:
+                    if (fullscreen == null)
+                    {
+                        parent.Children.Remove(placeholder);
+                        fullscreen = new FullscreenWindow();
+                        fullscreen.KeyDown += MainWindow_KeyDown;
+                        fullscreen.ContentHost.Content = placeholder;
+                        scene.Reset(placeholder);
+                        fullscreen.ShowDialog();
+                        
+                    }
+                    else
+                    {
+                        fullscreen.ContentHost.Content = null;
+                        parent.Children.Add(placeholder);
+                        fullscreen.Close();
+                        fullscreen = null;
+                        scene.Reset(placeholder);
+                    }
+                    break;
             }
 
-
-
-            contextMenu.UpdateMenuHeaders(coefficients.Length, scene.Intensity, order, currentPreset);
+            UpdateContextMenu();
         }
 
         private void InfoTimer_Tick(object sender, EventArgs e)
         {
-            var timespan = DateTime.Now - lastCheckTime;
+            var now = DateTime.Now;
+            var timespan = now - lastCheckTime;
             double frames = frameCount - lastCheckFrameCount;
             if (timespan.TotalSeconds >= 0.0001)
             {
@@ -316,7 +358,7 @@ namespace PolyFract
                 var originStr = $"r={scene.Origin.Real.ToString("0.0000")},i={scene.Origin.Imaginary.ToString("0.0000")}";
                 Title = $"PolyFract. " +
                         $"{(contextMenu.menuPaused.IsChecked ? "[pause] " : "")} " +
-                        $"pixels:{MathUtil.IntegerPower(coefficients.Length, order)} " +
+                        $"pixels:{MathUtil.IntegerPower(coefficients.Length, order) * order} " +
                         $"t:{t.ToString("0.000")} " +
                         $"frameCount:{frameCount} " +
                         $"fps:{fps.ToString("0.00")} " +
@@ -327,6 +369,9 @@ namespace PolyFract
                         $"order: {order} " +
                         $"coeffsCount: {coefficients.Length}";
             }
+
+            lastCheckFrameCount = frameCount;
+            lastCheckTime = now;
         }
 
         private void AutoCoefficientsChange()
@@ -344,6 +389,8 @@ namespace PolyFract
                 scene.Zoom = newPOV.Zoom;
             }
         }
+
+        private void UpdateContextMenu() => contextMenu.UpdateContextMenu(coefficients.Length, scene.Intensity, order, currentPreset);
     }
 
     public class RedoItem
