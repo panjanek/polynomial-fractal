@@ -1,25 +1,11 @@
-﻿using System;
-using System.Data;
-using System.Linq.Expressions;
+﻿using System.Data;
 using System.Numerics;
-using System.Resources.Extensions;
-using System.Text;
-using System.Text.RegularExpressions;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 using System.Windows.Threading;
-using Microsoft.WindowsAPICodePack.Dialogs;
 using PolyFract.Gui;
 using PolyFract.Maths;
 using PolyFract.Presets;
-using static System.Formats.Asn1.AsnWriter;
 
 // TODO:
 // - presets: 3coeff + fractals,
