@@ -78,12 +78,11 @@ namespace PolyFract
 
             scene = new RasterScene(placeholder);
             scene.DraggedOrZoommed = () => contextMenu.menuAutoPOV.IsChecked = false;
+            AttachCoefficiensDragging();
 
             frameCount = 0;
             lastCheckTime = DateTime.Now;
             KeyDown += MainWindow_KeyDown;
-
-            AttachCoefficiensDragging();
 
             contextMenu = new PolyFractContextMenu(placeholder);
             contextMenu.OrderChanged = newOrder =>
@@ -108,7 +107,6 @@ namespace PolyFract
             contextMenu.OrientationChanged = isVertical =>
             {
                 scene.Reset(placeholder);
-                AttachCoefficiensDragging();
             };
 
             contextMenu.CoefficientCountChanged = newCoefficientCount => {
@@ -149,6 +147,7 @@ namespace PolyFract
         private void Placeholder_SizeChanged(object sender, SizeChangedEventArgs e)
         {
             scene.Reset(placeholder);
+            AttachCoefficiensDragging();
         }
 
         private void GraphicsTimerTick(object sender, EventArgs e)

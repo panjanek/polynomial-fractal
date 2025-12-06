@@ -6,13 +6,10 @@
         xmlns:local="clr-namespace:PolyFract"
         mc:Ignorable="d"
         Title="PolyFract" Width="Auto" Height="Auto" WindowState ="Maximized" MinWidth="720" MinHeight="576">
-    <ScrollViewer Width="Auto" Height="Auto"
-    Name ="scrollbox"
-    HorizontalScrollBarVisibility="Auto"
-    VerticalScrollBarVisibility="Auto" >
-        <StackPanel Name="parent" Width="1920" Height="1080">
+
+    <Grid Name="parent" VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
             <Grid Name="placeholder" VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
             </Grid>
-        </StackPanel>
-    </ScrollViewer>
+        </Grid>
+
 </Window>

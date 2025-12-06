@@ -10,6 +10,7 @@ using System.Windows;
 using System.Windows.Automation;
 using System.Windows.Controls;
 using System.Windows.Documents;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using MathNet.Numerics;
@@ -74,8 +75,7 @@ namespace PolyFract.Gui
 
         public void Reset(Panel placeholder)
         {
-            placeholder.Children.Remove(Image);
-            Image.ReleaseMouseCapture();
+            
             CreateImage(placeholder);
         }
 
@@ -128,6 +128,7 @@ namespace PolyFract.Gui
         private void Image_MouseWheel(object sender, System.Windows.Input.MouseWheelEventArgs e)
         {
             var pos = e.GetPosition(Image);
+            //var pos = Mouse.GetPosition(Image);
 
             double zoomRatio = 1.0 + ZoomingSpeed * e.Delta;
 
