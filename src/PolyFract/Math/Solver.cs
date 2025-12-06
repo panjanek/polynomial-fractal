@@ -37,7 +37,7 @@ namespace PolyFract.Math
                     var roots = FindRoots(poly);
 
                     int firstRootIdx = i * order;
-                    for(int j=0; j<roots.Length; j++)
+                    for(int j=0; j<roots.Count; j++)
                     {
                         allRoots[firstRootIdx+j].root = roots[j];
                         (int m, Complex v, double angle) = LocalDirection(poly, roots[j]);
@@ -56,7 +56,7 @@ namespace PolyFract.Math
             return allRoots;
         }
 
-        public static Complex[] FindRoots(Complex[] coeffsDescending)
+        public static MathNet.Numerics.LinearAlgebra.Vector<Complex> FindRoots(Complex[] coeffsDescending)
         {
             if (coeffsDescending == null || coeffsDescending.Length < 2)
                 return null;
@@ -92,7 +92,7 @@ namespace PolyFract.Math
 
             // Eigenvalues of companion matrix are the roots
             var evd = M.Evd();
-            return evd.EigenValues.ToArray();
+            return evd.EigenValues;
         }
 
         public static (int m, Complex v, double angleRad) LocalDirection(Complex[] coeffs, Complex r, double tol = 1e-12)

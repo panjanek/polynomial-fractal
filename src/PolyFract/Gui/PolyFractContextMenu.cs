@@ -100,10 +100,36 @@ namespace PolyFract.Gui
             menuOrder.Click += MenuOrder_Click;
             menuIntensity.Click += MenuIntensity_Click;
             menuReset.Click += MenuReset_Click;
-            menuVertical.Checked += MenuVertical_Checked;
+            menuVertical.Click += MenuVertical_Click; ;
             menuCapture.Click += MenuCapture_Click;
             menuRecord.Click += MenuRecord_Click;
             placeholder.PreviewMouseRightButtonDown += Placeholder_PreviewMouseRightButtonDown;
+        }
+
+        private void MenuVertical_Click(object sender, RoutedEventArgs e)
+        {
+            if (menuVertical.IsChecked)
+            {
+                if (placeholder.Width > placeholder.Height)
+                {
+                    var tmp = placeholder.Width;
+                    placeholder.Width = placeholder.Height;
+                    placeholder.Height = tmp;
+                    if (OrientationChanged != null)
+                        OrientationChanged(menuVertical.IsChecked);
+                }
+            }
+            else
+            {
+                if (placeholder.Width < placeholder.Height)
+                {
+                    var tmp = placeholder.Width;
+                    placeholder.Width = placeholder.Height;
+                    placeholder.Height = tmp;
+                    if (OrientationChanged != null)
+                        OrientationChanged(menuVertical.IsChecked);
+                }
+            }
         }
 
         private void MenuRecord_Click(object sender, RoutedEventArgs e)
@@ -165,32 +191,6 @@ namespace PolyFract.Gui
                 menuRecord.IsChecked = false;
                 if (PresetSelected != null)
                     PresetSelected(selectedPreset, null);
-            }
-        }
-
-        private void MenuVertical_Checked(object sender, RoutedEventArgs e)
-        {
-            if (menuVertical.IsChecked)
-            {
-                if (placeholder.Width > placeholder.Height)
-                {
-                    var tmp = placeholder.Width;
-                    placeholder.Width = placeholder.Height;
-                    placeholder.Height = tmp;
-                    if (OrientationChanged != null)
-                        OrientationChanged(menuVertical.IsChecked);
-                }
-            }
-            else
-            {
-                if (placeholder.Width < placeholder.Height)
-                {
-                    var tmp = placeholder.Width;
-                    placeholder.Width = placeholder.Height;
-                    placeholder.Height = tmp;
-                    if (OrientationChanged != null)
-                        OrientationChanged(menuVertical.IsChecked);
-                }
             }
         }
 

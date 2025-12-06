@@ -175,19 +175,19 @@ namespace PolyFract.Gui
             foreach (var coef in coefficients)
             {
                 (int cx, int cy) = ToPixelCoordinates(coef);
-                AddGlyph(cx, cy, coeffMarker, Colors.Red);
+                AddGlyph(cx, cy, coeffMarker, Colors.Red, 1.0, true);
             }
 
             Int32Rect rect = new Int32Rect(0, 0, Width, Height);
             Bitmap.WritePixels(rect, Pixels, Width * 4, 0);
         }
 
-        private void AddGlyph(int cx, int cy, double[,] map, System.Windows.Media.Color color, double intensity = 1.0)
+        private void AddGlyph(int cx, int cy, double[,] map, System.Windows.Media.Color color, double intensity = 1.0, bool overwrite = false)
         {
-            AddGlyph(cx, cy, map, color.R, color.G, color.B, intensity);
+            AddGlyph(cx, cy, map, color.R, color.G, color.B, intensity, overwrite);
         }
 
-        private void AddGlyph(int cx, int cy, double[,] map, int r, int g, int b, double intensity = 1.0)
+        private void AddGlyph(int cx, int cy, double[,] map, int r, int g, int b, double intensity = 1.0, bool overwrite = false)
         {
             for (int mx = 0; mx < map.GetLength(0); mx++)
             {
@@ -202,22 +202,35 @@ namespace PolyFract.Gui
                         var cr = (int)System.Math.Round(r * strength * intensity);
                         var cg = (int)System.Math.Round(g * strength * intensity);
                         var cb = (int)System.Math.Round(b * strength * intensity);
-                        AddPixel(coord, cr, cg, cb);
+                        AddPixel(coord, cr, cg, cb, overwrite);
                     }
                 }
             }
         }
 
-        private void AddPixel(int coord, System.Windows.Media.Color color)
+        private void AddPixel(int coord, System.Windows.Media.Color color, bool overwrite = false)
         {
-            AddPixel(coord, color.R, color.G, color.B);
+            AddPixel(coord, color.R, color.G, color.B, overwrite);
         }
 
-        private void AddPixel(int coord, int r, int g, int b)
+        private void AddPixel(int coord, int r, int g, int b, bool overwrite = false)
         {
-            Pixels[coord + 0] = AddWithClamp(Pixels[coord + 0], b);
-            Pixels[coord + 1] = AddWithClamp(Pixels[coord + 1], g);
-            Pixels[coord + 2] = AddWithClamp(Pixels[coord + 2], r);
+            if (overwrite)
+            {
+                if (b != 0 || g != 0 || r != 0)
+                {
+                    Pixels[coord + 0] = (byte)b;
+                    Pixels[coord + 1] = (byte)g;
+                    Pixels[coord + 2] = (byte)r;
+                }
+            }
+            else
+            {
+                Pixels[coord + 0] = AddWithClamp(Pixels[coord + 0], b);
+                Pixels[coord + 1] = AddWithClamp(Pixels[coord + 1], g);
+                Pixels[coord + 2] = AddWithClamp(Pixels[coord + 2], r);
+            }
+
             Pixels[coord + 3] = 255;
         }
 
