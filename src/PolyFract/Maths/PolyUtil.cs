@@ -137,5 +137,14 @@ namespace PolyFract.Maths
             var evd = M.Evd();
             return evd.EigenValues;
         }
+
+        public static Complex EvalPoly(Complex[] coeffsDescending, Complex z)
+        {
+            int n = coeffsDescending.Length - 1;
+            Complex p = coeffsDescending[0];
+            for (int i = 1; i <= n; i++)
+                p = p * z + coeffsDescending[i];
+            return p;
+        }
     }
 }

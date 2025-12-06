@@ -12,8 +12,6 @@ namespace PolyFract.Maths
 {
     public class Solver
     {
-        public const int ThreadCount = 32;
-
         public double[] real;
 
         public double[] imaginary;
@@ -40,8 +38,9 @@ namespace PolyFract.Maths
             imaginary = new double[rootsCount];
             angle = new double[rootsCount];
 
-            int polysPerThread = polynomialsCount / ThreadCount;
-            threads = new ThreadContext[ThreadCount];
+            int threadCount = Environment.ProcessorCount;
+            int polysPerThread = polynomialsCount / threadCount;
+            threads = new ThreadContext[threadCount];
             for(int t=0; t<threads.Length; t++)
             {
                 threads[t] = new ThreadContext();
@@ -53,6 +52,11 @@ namespace PolyFract.Maths
                 {
                     threads[t].To = polynomialsCount;
                 }
+
+                int rootsInThisThread = (threads[t].To - threads[t].From) * order;
+                threads[t].real = new double[rootsInThisThread];
+                threads[t].imaginary = new double[rootsInThisThread];
+                threads[t].angle = new double[rootsInThisThread];
             }
         }
 
@@ -64,6 +68,7 @@ namespace PolyFract.Maths
             Parallel.For(0, threads.Length, new ParallelOptions() { MaxDegreeOfParallelism = threads.Length }, t =>
             {
                 var context = threads[t];
+                context.errorsCount = 0;
                 for (int i = context.From; i < context.To; i++)
                 {
                     int polyIdx = i;
@@ -75,17 +80,46 @@ namespace PolyFract.Maths
                     }
 
                     var roots = context.DurandHelper.FindRoots(context.Poly);
-                    int firstRootIdx = i * order;
+                    int threadTargetFirstIdx = (i - context.From)  * order;
                     for (int j = 0; j < roots.Length; j++)
                     {
-                        int idx = firstRootIdx + j;
-                        real[idx] = roots[j].Real;
-                        imaginary[idx] = roots[j].Imaginary;
-                        angle[idx] = MathUtil.AngleAt(context.Poly, roots[j]);
+                        var root = roots[j];
+                        int threadTargetIdx = threadTargetFirstIdx + j;
+
+                        var test = PolyUtil.EvalPoly(context.Poly, root);
+                        if (test.Magnitude > 0.0001)
+                        {
+                            context.real[threadTargetIdx] = -1000;
+                            context.imaginary[threadTargetIdx] = -1000;
+                            context.errorsCount++;
+                        }
+                        else
+                        {
+                            context.real[threadTargetIdx] = root.Real;
+                            context.imaginary[threadTargetIdx] = root.Imaginary;
+                            
+                        }
+
+                        context.angle[threadTargetIdx] = MathUtil.AngleAt(context.Poly, root);
                     }
                 }
             });
+
+            for(int t=0; t<threads.Length; t++)
+            {
+                var thread = threads[t];
+                int targetIdx = thread.From * order;
+                Array.Copy(thread.real, 0, real, targetIdx, thread.real.Length);
+                Array.Copy(thread.imaginary, 0, imaginary, targetIdx, thread.imaginary.Length);
+                Array.Copy(thread.angle, 0, angle, targetIdx, thread.angle.Length);
+            }
          }
+
+        public int GetErrorsCount()
+        {
+            var errRate = threads.Sum(t => t.errorsCount);
+            return errRate;
+        }
     }
 
     public class ThreadContext
@@ -97,5 +131,13 @@ namespace PolyFract.Maths
         public Complex[] Poly;
 
         public DurandKernerHelper DurandHelper;
+
+        public int errorsCount;
+
+        public double[] real;
+
+        public double[] imaginary;
+
+        public double[] angle;
     }
 }

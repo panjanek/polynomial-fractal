@@ -7,9 +7,9 @@ using System.Threading.Tasks;
 
 namespace PolyFract.Maths
 {
-    public sealed class DurandKernerHelper
+    public class DurandKernerHelper
     {
-        private const int MaxIterations = 48;
+        private const int MaxIterations = 32;
 
         private double Tolerance = 1e-10;
 
@@ -104,9 +104,6 @@ namespace PolyFract.Maths
                     break;
             }
 
-            // Copy to a compact array of size n for the caller
-            //var result = new Complex[n];
-            //Array.Copy(_z, result, n);
             return _z;
         }
     }

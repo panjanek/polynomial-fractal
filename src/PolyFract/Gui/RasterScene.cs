@@ -197,6 +197,7 @@ namespace PolyFract.Gui
 
         public void FastDraw(double[] real, double[] imaginary, double[] angle, Complex[] coefficients)
         {
+            this.coefficients = coefficients;
             Bitmap.Lock();
             unsafe
             {
@@ -211,6 +212,12 @@ namespace PolyFract.Gui
                     (int x, int y) = ToPixelCoordinates(real[i], imaginary[i]);
                     AddGlyph(pBackBuffer, x, y, rootMarker, r, g, b, Intensity);
                 }
+
+                foreach (var coef in coefficients)
+                {
+                    (int cx, int cy) = ToPixelCoordinates(coef);
+                    AddGlyph(pBackBuffer, cx, cy, coeffMarker, Colors.Red, 1.0, true);
+                }
             }
 
             Bitmap.AddDirtyRect(new Int32Rect(0, 0, Bitmap.PixelWidth, Bitmap.PixelHeight));
@@ -219,7 +226,7 @@ namespace PolyFract.Gui
 
         private unsafe void AddGlyph(byte* pBackBuffer, int cx, int cy, double[,] map, System.Windows.Media.Color color, double intensity = 1.0, bool overwrite = false)
         {
-            AddGlyph(cx, cy, map, color.R, color.G, color.B, intensity, overwrite);
+            AddGlyph(pBackBuffer, cx, cy, map, color.R, color.G, color.B, intensity, overwrite);
         }
 
         private unsafe void AddGlyph(byte* pBackBuffer, int cx, int cy, double[,] map, int r, int g, int b, double intensity = 1.0, bool overwrite = false)

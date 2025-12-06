@@ -179,6 +179,7 @@ namespace PolyFract
 
             solver.Solve(coefficients);
             scene.FastDraw(solver.real, solver.imaginary, solver.angle, contextMenu.menuShowCoeff.IsChecked ? coefficients : []);
+            //scene.Draw(solver.real, solver.imaginary, solver.angle, contextMenu.menuShowCoeff.IsChecked ? coefficients : []);
         }
 
         private void CopyCoordinatesToClipboard(Point clikPoint)
@@ -374,9 +375,10 @@ namespace PolyFract
                 var mouseComplex = scene.ToComplexCoordinates(pos.X, pos.Y);
                 var mouseStr = $"r:{mouseComplex.Real.ToString("0.0000")},i:{mouseComplex.Imaginary.ToString("0.0000")}";
                 var originStr = $"r={scene.Origin.Real.ToString("0.0000")},i={scene.Origin.Imaginary.ToString("0.0000")}";
+                long pixelsCount = MathUtil.IntegerPower(coefficients.Length, order) * order;
                 Title = $"PolyFract. " +
                         $"{(contextMenu.menuPaused.IsChecked ? "[pause] " : "")} " +
-                        $"pixels:{MathUtil.IntegerPower(coefficients.Length, order) * order} " +
+                        $"pixels:{pixelsCount} " +
                         $"polys:{MathUtil.IntegerPower(coefficients.Length, order)} " +
                         $"t:{t.ToString("0.000")} " +
                         $"frameCount:{frameCount} " +
@@ -386,7 +388,9 @@ namespace PolyFract
                         $"intensity:{(scene.Intensity*100).ToString("0.0")}% " +
                         $"{(string.IsNullOrWhiteSpace(recordingDir) ? "" : $"recording to:{recordingDir}")} " +
                         $"order: {order} " +
-                        $"coeffsCount: {coefficients.Length}";
+                        $"coeffsCount: {coefficients.Length} "+
+                        $"threads: {Environment.ProcessorCount} " +
+                        $"errors: {solver?.GetErrorsCount()} ({(100.0 * solver?.GetErrorsCount() / pixelsCount)?.ToString("0.00000")}%) ";
             }
 
             lastCheckFrameCount = frameCount;
