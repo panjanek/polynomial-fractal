@@ -178,7 +178,7 @@ namespace PolyFract
                 solver = new Solver(coefficients.Length, order);
 
             solver.Solve(coefficients);
-            scene.Draw(solver.real, solver.imaginary, solver.angle, contextMenu.menuShowCoeff.IsChecked ? coefficients : []);
+            scene.FastDraw(solver.real, solver.imaginary, solver.angle, contextMenu.menuShowCoeff.IsChecked ? coefficients : []);
         }
 
         private void CopyCoordinatesToClipboard(Point clikPoint)

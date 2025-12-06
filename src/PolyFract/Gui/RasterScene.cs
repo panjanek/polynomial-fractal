@@ -67,7 +67,6 @@ namespace PolyFract.Gui
                 { 0.00, 0.02, 0.05, 0.02, 0.00 }
             };
 
-
         public RasterScene(Panel placeholder)
         {
             CreateImage(placeholder);
@@ -196,6 +195,75 @@ namespace PolyFract.Gui
             Bitmap.WritePixels(rect, Pixels, Width * 4, 0);
         }
 
+        public void FastDraw(double[] real, double[] imaginary, double[] angle, Complex[] coefficients)
+        {
+            Bitmap.Lock();
+            unsafe
+            {
+                byte* pBackBuffer = (byte*)Bitmap.BackBuffer;
+                int size = Bitmap.BackBufferStride * Bitmap.PixelHeight;
+
+                System.Runtime.CompilerServices.Unsafe.InitBlock(pBackBuffer, 0, (uint)size);
+                for (int i = 0; i < real.Length; i++)
+                {
+                    var h = 0.5 + angle[i] / (2 * System.Math.PI);
+                    GuiUtil.HsvToRgb(h * 360, 1, 1, out var r, out var g, out var b);
+                    (int x, int y) = ToPixelCoordinates(real[i], imaginary[i]);
+                    AddGlyph(pBackBuffer, x, y, rootMarker, r, g, b, Intensity);
+                }
+            }
+
+            Bitmap.AddDirtyRect(new Int32Rect(0, 0, Bitmap.PixelWidth, Bitmap.PixelHeight));
+            Bitmap.Unlock();
+        }
+
+        private unsafe void AddGlyph(byte* pBackBuffer, int cx, int cy, double[,] map, System.Windows.Media.Color color, double intensity = 1.0, bool overwrite = false)
+        {
+            AddGlyph(cx, cy, map, color.R, color.G, color.B, intensity, overwrite);
+        }
+
+        private unsafe void AddGlyph(byte* pBackBuffer, int cx, int cy, double[,] map, int r, int g, int b, double intensity = 1.0, bool overwrite = false)
+        {
+            for (int mx = 0; mx < map.GetLength(0); mx++)
+            {
+                for (int my = 0; my < map.GetLength(1); my++)
+                {
+                    var strength = map[mx, my];
+                    int x = cx - map.GetLength(0) / 2 + mx;
+                    int y = cy - map.GetLength(1) / 2 + my;
+                    if (x >= 0 && y >= 0 && x < Width && y < Height)
+                    {
+                        int coord = y * Width + x << 2;
+                        var cr = (int)System.Math.Round(r * strength * intensity);
+                        var cg = (int)System.Math.Round(g * strength * intensity);
+                        var cb = (int)System.Math.Round(b * strength * intensity);
+                        AddPixel(pBackBuffer, coord, cr, cg, cb, overwrite);
+                    }
+                }
+            }
+        }
+
+        private unsafe void AddPixel(byte* pBackBuffer, int coord, int r, int g, int b, bool overwrite = false)
+        {
+            if (overwrite)
+            {
+                if (b != 0 || g != 0 || r != 0)
+                {
+                    pBackBuffer[coord + 0] = (byte)b;
+                    pBackBuffer[coord + 1] = (byte)g;
+                    pBackBuffer[coord + 2] = (byte)r;
+                }
+            }
+            else
+            {
+                pBackBuffer[coord + 0] = AddWithClamp(pBackBuffer[coord + 0], b);
+                pBackBuffer[coord + 1] = AddWithClamp(pBackBuffer[coord + 1], g);
+                pBackBuffer[coord + 2] = AddWithClamp(pBackBuffer[coord + 2], r);
+            }
+
+            Pixels[coord + 3] = 255;
+        }
+
         private void AddGlyph(int cx, int cy, double[,] map, System.Windows.Media.Color color, double intensity = 1.0, bool overwrite = false)
         {
             AddGlyph(cx, cy, map, color.R, color.G, color.B, intensity, overwrite);
@@ -222,11 +290,6 @@ namespace PolyFract.Gui
             }
         }
 
-        private void AddPixel(int coord, System.Windows.Media.Color color, bool overwrite = false)
-        {
-            AddPixel(coord, color.R, color.G, color.B, overwrite);
-        }
-
         private void AddPixel(int coord, int r, int g, int b, bool overwrite = false)
         {
             if (overwrite)
@@ -247,6 +310,7 @@ namespace PolyFract.Gui
 
             Pixels[coord + 3] = 255;
         }
+
 
         private byte AddWithClamp(int c1, int c2)
         {
