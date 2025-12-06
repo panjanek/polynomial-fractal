@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Data;
+using System.Linq.Expressions;
 using System.Numerics;
 using System.Resources.Extensions;
 using System.Text;
@@ -286,6 +287,18 @@ namespace PolyFract
 
             if (e.Key == Key.Space)
                 contextMenu.menuPaused.IsChecked = !contextMenu.menuPaused.IsChecked;
+
+
+            switch (e.Key)
+            {
+                case Key.D1: ApplyPreset(BasePreset.AllPresets[0]); break;
+                case Key.D2: ApplyPreset(BasePreset.AllPresets[1]); break;
+                case Key.D3: ApplyPreset(BasePreset.AllPresets[2]); break;
+                case Key.D4: ApplyPreset(BasePreset.AllPresets[3]); break;
+                case Key.D5: ApplyPreset(BasePreset.AllPresets[4]); break;
+            }
+
+
 
             contextMenu.UpdateMenuHeaders(coefficients.Length, scene.Intensity, order, currentPreset);
         }

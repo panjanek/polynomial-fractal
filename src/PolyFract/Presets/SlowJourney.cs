@@ -3,9 +3,9 @@ using PolyFract.Gui;
 
 namespace PolyFract.Presets
 {
-    public class PresetSlow : BasePreset
+    public class SlowJourney : BasePreset
     {
-        public override string Name => "Preset 2 : Slow";
+        public override string Name => "Slow Journey";
 
         public override int Order => 15;
 

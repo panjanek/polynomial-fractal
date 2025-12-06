@@ -46,7 +46,7 @@ namespace PolyFract.Math
             double s = Map(0, 1, t1, t2, t);
             (double h1, double h2, double h3, double h4) = ComputeBasis(s);
             var T1 = P2 - P1; //(P2 - P0) / 2;
-            var T2 = (P3 - P1) / 2;
+            var T2 = (P3 - P2);
             var result = h1 * P1 + h2 * P2 + h3 * T1 + h4 * T2;
             return result;
         }
@@ -56,7 +56,7 @@ namespace PolyFract.Math
             double s = Map(0, 1, t1, t2, t);
             (double h1, double h2, double h3, double h4) = ComputeBasis(s);
             var T1 = P2 - P1; //(P2 - P0) / 2;
-            var T2 = (P3 - P1) / 2;
+            var T2 = (P3 - P2);
             var result = h1 * P1 + h2 * P2 + h3 * T1 + h4 * T2;
             return result;
         }

@@ -3,9 +3,9 @@ using PolyFract.Gui;
 
 namespace PolyFract.Presets
 {
-    public class PresetFast : BasePreset
+    public class FastJourney : BasePreset
     {
-        public override string Name => "Fast";
+        public override string Name => "Fast Journey";
 
         public override int Order => 10;
 
@@ -17,7 +17,7 @@ namespace PolyFract.Presets
 
         private List<CoefficientTimePoint> coeffMovement = [];
 
-        public PresetFast()
+        public FastJourney()
         {
             double timeScale = 0.3;
             AddTimePoint(0.1 * timeScale, new Complex(-0.02666666666666667, 0.013333333333333334), 300.0, [new Complex(-0.9966666666666664, -0.0033333333333334693), new Complex(1, 0)]);

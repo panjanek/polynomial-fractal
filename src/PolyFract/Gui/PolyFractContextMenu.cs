@@ -70,9 +70,10 @@ namespace PolyFract.Gui
             this.placeholder = placeholder;
             menu = new ContextMenu();
             menu.Items.Add(menuPreset);
-            foreach (var preset in BasePreset.AllPresets)
+            for (int i=0; i<BasePreset.AllPresets.Length; i++)
             {
-                var submenuPreset = new MenuItem { Header = preset.Name };
+                var preset = BasePreset.AllPresets[i];
+                var submenuPreset = new MenuItem { Header = $"{i+1}. {preset.Name}" };
                 menuPreset.Items.Add(submenuPreset);
                 var submenuPresetStart = new MenuItem { Header = "Start", Tag = preset };
                 var submenuPresetRecord = new MenuItem { Header = "Start and record", Tag = preset };

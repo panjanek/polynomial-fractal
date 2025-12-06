@@ -16,9 +16,10 @@ namespace PolyFract.Presets
         public static BasePreset[] AllPresets => 
                 [
                     new PresetRotatingTwo(),
-                    new PresetAdvanced(),
-                    new PresetFast(),
-                    new PresetSlow(),
+                    new PresetOscilatingThree(),
+                    new PresetAnotherJourney(),
+                    new FastJourney(),
+                    new SlowJourney(),
                     
                 ];
         public abstract string Name { get; }
@@ -41,7 +42,7 @@ namespace PolyFract.Presets
             while (cycleT > maxT)
                 cycleT -= maxT;
             int before = 0;
-            while (before < full.Count && full[before].Time < cycleT)
+            while (before < full.Count && full[before].Time <= cycleT)
             {
                 before++;
             }

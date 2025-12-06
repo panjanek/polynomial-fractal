@@ -8,9 +8,9 @@ using PolyFract.Gui;
 
 namespace PolyFract.Presets
 {
-    public class PresetAdvanced : BasePreset
+    public class PresetAnotherJourney : BasePreset
     {
-        public override string Name => "Advanced";
+        public override string Name => "Another Journey";
 
         public override int Order => 10;
 
@@ -22,7 +22,7 @@ namespace PolyFract.Presets
 
         private List<CoefficientTimePoint> coeffMovement = [];
 
-        public PresetAdvanced()
+        public PresetAnotherJourney()
         {
             AddTimePoint(0, new Complex(0, 0.006666666666666667), 300.0, [new Complex(-1, 0), new Complex(1, 0)]);
             AddTimePoint(0.1, new Complex(0.0033333333333333335, -0.0033333333333333335), 300.0, [new Complex(-0.9866666666666668, 0.15999999999999992), new Complex(1, 0)]);
