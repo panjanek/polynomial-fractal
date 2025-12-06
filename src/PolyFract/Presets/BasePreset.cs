@@ -15,6 +15,7 @@ namespace PolyFract.Presets
     {
         public static BasePreset[] AllPresets => 
                 [
+                    new PresetRotatingTwo(),
                     new PresetAdvanced(),
                     new PresetFast(),
                     new PresetSlow(),

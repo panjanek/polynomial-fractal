@@ -11,13 +11,15 @@ namespace PolyFract.Math
 {
     public static class Solver
     {
-        public static List<SolutionPoint> SolveAll(Complex[] coefficients, int order)
+        public static SolutionPoint[] SolveAll(Complex[] coefficients, int order)
         {
-            List<SolutionPoint> allRoots = new List<SolutionPoint>();
-
             int polynomialsCount = 1;
             for (int i = 0; i < order + 1; i++)
                 polynomialsCount *= coefficients.Length;
+
+            var allRoots = new SolutionPoint[polynomialsCount * order];
+            for (int i = 0; i < allRoots.Length; i++)
+                allRoots[i] = new SolutionPoint();
 
             Parallel.For(0, polynomialsCount, new ParallelOptions() { MaxDegreeOfParallelism = 16 }, i => {
 
@@ -33,27 +35,22 @@ namespace PolyFract.Math
                 try
                 {
                     var roots = FindRoots(poly);
-                    var points = new List<SolutionPoint>();
-                    foreach(var root in roots)
+
+                    int firstRootIdx = i * order;
+                    for(int j=0; j<roots.Length; j++)
                     {
-                        var point = new SolutionPoint() { root = root };
-
-                        (int m, Complex v, double angle) = LocalDirection(poly, root);
-                        point.angle = angle;
-
-                        points.Add(point);
+                        allRoots[firstRootIdx+j].root = roots[j];
+                        (int m, Complex v, double angle) = LocalDirection(poly, roots[j]);
+                        allRoots[firstRootIdx + j].angle = angle;
                     }
 
 
-                    if (roots != null)
-                    {
-                        lock (allRoots)
-                        {
-                            allRoots.AddRange(points);
-                        }
-                    }
+
                 }
-                catch (Exception ex) { }
+                catch (Exception ex) 
+                {
+                    Console.WriteLine(ex.Message);
+                }
             });
 
             return allRoots;

@@ -23,7 +23,7 @@ namespace PolyFract.Gui
 
         public MenuItem menuRecord = new MenuItem { Header = "Record frames to folder", IsCheckable = true };
 
-        public MenuItem menuPaused = new MenuItem { Header = "Paused", IsCheckable = true };
+        public MenuItem menuPaused = new MenuItem { Header = "Paused", IsCheckable = true, IsChecked = true };
 
         public MenuItem menuAutoCoeff = new MenuItem { Header = "Automatic coefficients movement", IsCheckable = true };
 
@@ -251,12 +251,25 @@ namespace PolyFract.Gui
                 CopyPosClicked();
         }
 
-        public void UpdateMenuHeaders(int coefficientsCount, double intensity, int order, string presetName)
+        public void UpdateMenuHeaders(int coefficientsCount, double intensity, int order, BasePreset preset)
         {
             menuCoeffCount.Header = $"Number of coefficients values (A/S) [{coefficientsCount}]";
             menuIntensity.Header = $"Colors intensity (O/P)  [{(int)System.Math.Round(intensity * 100)}%]";
             menuOrder.Header = $"Polynomial order (Q/W) [{order}]";
-            menuPreset.Header = $"Preset [{presetName}]";
+            menuPreset.Header = $"Preset [{preset?.Name}]";
+            var testAutoPov = preset?.GetPOV(0);
+            if (testAutoPov == null)
+            {
+                menuAutoPOV.IsEnabled = false;
+                menuAutoPOV.IsChecked = false;
+            }
+
+            var testAutoCoeff = preset?.GetCoefficients(0);
+            if (testAutoCoeff == null)
+            {
+                menuAutoCoeff.IsEnabled = false;
+                menuAutoCoeff.IsChecked = false;
+            }
         }
 
     }

@@ -35,6 +35,8 @@ namespace PolyFract.Gui
 
         public byte[] Pixels { get; set; }
 
+        public Action DraggedOrZoommed { get; set; }
+
         public Complex Origin { get; set; } = Complex.Zero;
         public double Zoom { get; set; } = MainWindow.DefaultZoom;
 
@@ -101,7 +103,10 @@ namespace PolyFract.Gui
                         return false;
                 }
 
+                if (DraggedOrZoommed != null)
+                    DraggedOrZoommed();
                 return true;
+
             }, (prev, curr) =>
             {
                 var delta = new Complex((curr.X - prev.X) / Zoom, -(curr.Y - prev.Y) / Zoom);
@@ -137,6 +142,9 @@ namespace PolyFract.Gui
 
             Origin = (bottomRight2 + topLeft2) / 2;
             Zoom *= zoomRatio;
+
+            if (DraggedOrZoommed != null)
+                DraggedOrZoommed();
         }
 
         public (int x, int y) ToPixelCoordinates(Complex x)
@@ -151,11 +159,11 @@ namespace PolyFract.Gui
             return new Complex((x - Width / 2)/Zoom + Origin.Real, (Height / 2 - y) / Zoom + Origin.Imaginary);
         }
 
-        public void Draw(List<SolutionPoint> solutions, Complex[] coefficients)
+        public void Draw(SolutionPoint[] solutions, Complex[] coefficients)
         {
             this.coefficients = coefficients;
             Array.Fill<byte>(Pixels, 0);
-            for (int i=0;  i< solutions.Count; i++)
+            for (int i=0;  i< solutions.Length; i++)
             {
                 var solution = solutions[i];
                 var h = 0.5 + solution.angle / (2*System.Math.PI);

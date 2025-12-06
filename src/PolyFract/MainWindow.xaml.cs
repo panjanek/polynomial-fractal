@@ -20,6 +20,9 @@ using PolyFract.Math;
 using PolyFract.Presets;
 using static System.Formats.Asn1.AsnWriter;
 
+// TODO:
+// - presets: 3coeff + fractals,
+
 namespace PolyFract
 {
     /// <summary>
@@ -70,6 +73,7 @@ namespace PolyFract
         {
             InitializeComponent();
             scene = new RasterScene(placeholder);
+            
 
             frameCount = 0;
             lastCheckTime = DateTime.Now;
@@ -88,13 +92,13 @@ namespace PolyFract
                 }
 
                 order = newOrder;
-                contextMenu.UpdateMenuHeaders(coefficients.Length, scene.Intensity, order, currentPreset?.Name);
+                contextMenu.UpdateMenuHeaders(coefficients.Length, scene.Intensity, order, currentPreset);
             };
 
             contextMenu.IntensityChanged = newIntensity =>
             {
                 scene.Intensity = newIntensity;
-                contextMenu.UpdateMenuHeaders(coefficients.Length, scene.Intensity, order, currentPreset?.Name);
+                contextMenu.UpdateMenuHeaders(coefficients.Length, scene.Intensity, order, currentPreset);
             };
 
             contextMenu.OrientationChanged = isVertical =>
@@ -120,13 +124,12 @@ namespace PolyFract
             contextMenu.SaveCapture = captFileName => scene.SaveToFile(captFileName);
             contextMenu.PresetSelected = (p, recDir) =>
             {
-                ApplyPreset(p, true);
-                contextMenu.UpdateMenuHeaders(coefficients.Length, scene.Intensity, order, currentPreset?.Name);
+                ApplyPreset(p);
+                contextMenu.UpdateMenuHeaders(coefficients.Length, scene.Intensity, order, currentPreset);
                 recordingDir = recDir;
             };
 
-
-
+            scene.DraggedOrZoommed = () => contextMenu.menuAutoPOV.IsChecked = false;
             SetDefaultValues();
             graphicsTimer.Interval = TimeSpan.FromSeconds(0.001);
             graphicsTimer.Tick += GraphicsTimerTick;
@@ -182,7 +185,7 @@ namespace PolyFract
             }
 
             coefficients = newCoeff;
-            contextMenu.UpdateMenuHeaders(coefficients.Length, scene.Intensity, order, currentPreset?.Name);
+            contextMenu.UpdateMenuHeaders(coefficients.Length, scene.Intensity, order, currentPreset);
         }
 
         private void AttachCoefficiensDragging()
@@ -196,6 +199,7 @@ namespace PolyFract
                     if (MathUtil.IsInSquare(mouse.X, mouse.Y, markerX, markerY, RasterScene.MarkerRadius))
                     {
                         draggedCoeffIdx = i;
+                        contextMenu.menuAutoCoeff.IsChecked = false;
                         return true;
                     }
                 }
@@ -208,38 +212,34 @@ namespace PolyFract
             });
         }
 
-        private void ApplyPreset(BasePreset preset, bool start)
+        private void ApplyPreset(BasePreset preset)
         {
             currentPreset = preset;
             order = preset.Order;
             dt = preset.DT;
             scene.Intensity = preset.Intensity;
             AutoCoefficientsChange();
-            if (start)
-            {
-                t = 0;
-                frameCount = 0;
-                contextMenu.menuPaused.IsChecked = false;
-                contextMenu.menuAutoCoeff.IsChecked = true;
-                contextMenu.menuAutoPOV.IsChecked = true;
-            }
 
-            contextMenu.UpdateMenuHeaders(coefficients.Length, scene.Intensity, order, currentPreset?.Name);
+            t = 0;
+            frameCount = 0;
+            contextMenu.menuPaused.IsChecked = false;
+            contextMenu.menuAutoCoeff.IsChecked = true;
+            contextMenu.menuAutoPOV.IsChecked = true;
+            contextMenu.menuPaused.IsChecked = false;
+            contextMenu.UpdateMenuHeaders(coefficients.Length, scene.Intensity, order, currentPreset);
         }
 
         private void SetDefaultValues()
         {
-            ApplyPreset(BasePreset.AllPresets[0], false);
+            ApplyPreset(BasePreset.AllPresets[0]);
             coefficients = [new Complex(-1, 0), new Complex(1, 0)];
             contextMenu.menuPaused.IsChecked = false;
-            contextMenu.menuAutoCoeff.IsChecked = false;
-            contextMenu.menuAutoPOV.IsChecked = false;
             contextMenu.menuShowCoeff.IsChecked = true;
             scene.Intensity = 1.0;
             scene.Origin = Complex.Zero;
             scene.Zoom = DefaultZoom;
             recordingDir = null;
-            contextMenu.UpdateMenuHeaders(coefficients.Length, scene.Intensity, order, currentPreset?.Name);
+            contextMenu.UpdateMenuHeaders(coefficients.Length, scene.Intensity, order, currentPreset);
         }
 
         private void MainWindow_KeyDown(object sender, KeyEventArgs e)
@@ -287,7 +287,7 @@ namespace PolyFract
             if (e.Key == Key.Space)
                 contextMenu.menuPaused.IsChecked = !contextMenu.menuPaused.IsChecked;
 
-            contextMenu.UpdateMenuHeaders(coefficients.Length, scene.Intensity, order, currentPreset?.Name);
+            contextMenu.UpdateMenuHeaders(coefficients.Length, scene.Intensity, order, currentPreset);
         }
 
         private void InfoTimer_Tick(object sender, EventArgs e)
@@ -318,14 +318,18 @@ namespace PolyFract
 
         private void AutoCoefficientsChange()
         {
-            coefficients = currentPreset.GetCoefficients(t);
+            var newCoeff = currentPreset.GetCoefficients(t);
+                coefficients = newCoeff;
         }
 
         private void AutoPointOfViewMove()
         {
-            var currentPOV = currentPreset.GetPOV(t);
-            scene.Origin = currentPOV.Origin;
-            scene.Zoom = currentPOV.Zoom;
+            var newPOV = currentPreset.GetPOV(t);
+            if (newPOV != null)
+            {
+                scene.Origin = newPOV.Origin;
+                scene.Zoom = newPOV.Zoom;
+            }
         }
     }
 
