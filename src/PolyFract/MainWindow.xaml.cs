@@ -148,6 +148,11 @@ namespace PolyFract
         {
             scene.Reset(placeholder);
             AttachCoefficiensDragging();
+            if (e.PreviousSize.Width > 0 && e.NewSize.Width > 0)
+            {
+                var zoomCorrection = e.NewSize.Width / e.PreviousSize.Width;
+                scene.Zoom *= zoomCorrection;
+            }
         }
 
         private void GraphicsTimerTick(object sender, EventArgs e)
@@ -319,28 +324,37 @@ namespace PolyFract
                     }
                     break;
                 case Key.F:
-                    if (fullscreen == null)
-                    {
-                        parent.Children.Remove(placeholder);
-                        fullscreen = new FullscreenWindow();
-                        fullscreen.KeyDown += MainWindow_KeyDown;
-                        fullscreen.ContentHost.Content = placeholder;
-                        scene.Reset(placeholder);
-                        fullscreen.ShowDialog();
-                        
-                    }
-                    else
-                    {
-                        fullscreen.ContentHost.Content = null;
-                        parent.Children.Add(placeholder);
-                        fullscreen.Close();
-                        fullscreen = null;
-                        scene.Reset(placeholder);
-                    }
+                    ToggleFullscreen();
+                    break;
+                case Key.Escape:
+                    if (fullscreen != null)
+                        ToggleFullscreen();
                     break;
             }
 
             UpdateContextMenu();
+        }
+
+        private void ToggleFullscreen()
+        {
+            if (fullscreen == null)
+            {
+                parent.Children.Remove(placeholder);
+                fullscreen = new FullscreenWindow();
+                fullscreen.KeyDown += MainWindow_KeyDown;
+                fullscreen.ContentHost.Content = placeholder;
+                scene.Reset(placeholder);
+                fullscreen.ShowDialog();
+
+            }
+            else
+            {
+                fullscreen.ContentHost.Content = null;
+                parent.Children.Add(placeholder);
+                fullscreen.Close();
+                fullscreen = null;
+                scene.Reset(placeholder);
+            }
         }
 
         private void InfoTimer_Tick(object sender, EventArgs e)
