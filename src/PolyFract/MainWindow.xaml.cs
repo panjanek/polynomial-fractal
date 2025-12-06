@@ -135,7 +135,7 @@ namespace PolyFract
 
             
             SetDefaultValues();
-            graphicsTimer.Interval = TimeSpan.FromSeconds(0.001);
+            graphicsTimer.Interval = TimeSpan.FromSeconds(0.01);
             graphicsTimer.Tick += GraphicsTimerTick;
             graphicsTimer.Start();
 

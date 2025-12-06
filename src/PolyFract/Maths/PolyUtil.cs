@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Numerics;
-using System.Text;
-using System.Threading.Tasks;
-using MathNet.Numerics.LinearAlgebra;
+﻿using System.Numerics;
 
 namespace PolyFract.Maths
 {
@@ -99,6 +93,7 @@ namespace PolyFract.Maths
         /// <summary>
         /// Finds roots of polynomial using companion-matrix + eigenvalues approach. Pretty precise, but slower
         /// </summary>
+        /*
         public static MathNet.Numerics.LinearAlgebra.Vector<Complex> FindRoots(Complex[] coeffsDescending)
         {
             if (coeffsDescending == null || coeffsDescending.Length < 2)
@@ -137,6 +132,7 @@ namespace PolyFract.Maths
             var evd = M.Evd();
             return evd.EigenValues;
         }
+        */
 
         public static Complex EvalPoly(Complex[] coeffsDescending, Complex z)
         {

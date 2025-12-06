@@ -1,12 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Numerics;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Controls;
-using MathNet.Numerics;
-using MathNet.Numerics.LinearAlgebra;
+﻿using System.Numerics;
 
 namespace PolyFract.Maths
 {
@@ -70,24 +62,6 @@ namespace PolyFract.Maths
                 thread.coeffs = coefficients.Select(x => new Complex(x.Real, x.Imaginary)).ToArray();
 
             Parallel.ForEach(threads, ctx => ctx.Run());
-
-            /*
-            Thread[] rawThreads = new Thread[threads.Length];
-            for (int t = 0; t < rawThreads.Length; t++)
-            {
-                var context = threads[t];
-                rawThreads[t] = new Thread(() =>
-                {
-                    RunThreadJob(context);
-                });
-
-                rawThreads[t].Start();
-            }
-
-            for (int tt = 0; tt < rawThreads.Length; tt++)
-                rawThreads[tt].Join();
-
-            */
 
             for (int t=0; t<threads.Length; t++)
             {
