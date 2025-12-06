@@ -44,16 +44,17 @@ namespace PolyFract.Maths
             for(int t=0; t<threads.Length; t++)
             {
                 threads[t] = new ThreadContext();
-                threads[t].From = t * polysPerThread;
-                threads[t].To = (t + 1) * polysPerThread;
-                threads[t].Poly = new Complex[order + 1];
-                threads[t].DurandHelper = new DurandKernerHelper(order);
+                threads[t].order = order;
+                threads[t].from = t * polysPerThread;
+                threads[t].to = (t + 1) * polysPerThread;
+                threads[t].poly = new Complex[order + 1];
+                threads[t].durandHelper = new DurandKernerHelper(order);
                 if (t == threads.Length - 1)
                 {
-                    threads[t].To = polynomialsCount;
+                    threads[t].to = polynomialsCount;
                 }
 
-                int rootsInThisThread = (threads[t].To - threads[t].From) * order;
+                int rootsInThisThread = (threads[t].to - threads[t].from) * order;
                 threads[t].real = new double[rootsInThisThread];
                 threads[t].imaginary = new double[rootsInThisThread];
                 threads[t].angle = new double[rootsInThisThread];
@@ -65,56 +66,38 @@ namespace PolyFract.Maths
             if (coefficients.Length != coefficientsValuesCount)
                 throw new Exception($"Solver created for {coefficientsValuesCount} coefficients count but got {coefficients.Length}");
 
-            Parallel.For(0, threads.Length, new ParallelOptions() { MaxDegreeOfParallelism = threads.Length }, t =>
+            foreach (var thread in threads)
+                thread.coeffs = coefficients.Select(x => new Complex(x.Real, x.Imaginary)).ToArray();
+
+            Parallel.ForEach(threads, ctx => ctx.Run());
+
+            /*
+            Thread[] rawThreads = new Thread[threads.Length];
+            for (int t = 0; t < rawThreads.Length; t++)
             {
                 var context = threads[t];
-                context.errorsCount = 0;
-                for (int i = context.From; i < context.To; i++)
+                rawThreads[t] = new Thread(() =>
                 {
-                    int polyIdx = i;
-                    for (int j = 0; j < context.Poly.Length; j++)
-                    {
-                        int coeffIdx = polyIdx % coefficients.Length;
-                        polyIdx = polyIdx / coefficients.Length;
-                        context.Poly[j] = coefficients[coeffIdx];
-                    }
+                    RunThreadJob(context);
+                });
 
-                    var roots = context.DurandHelper.FindRoots(context.Poly);
-                    int threadTargetFirstIdx = (i - context.From)  * order;
-                    for (int j = 0; j < roots.Length; j++)
-                    {
-                        var root = roots[j];
-                        int threadTargetIdx = threadTargetFirstIdx + j;
+                rawThreads[t].Start();
+            }
 
-                        var test = PolyUtil.EvalPoly(context.Poly, root);
-                        if (test.Magnitude > 0.0001)
-                        {
-                            context.real[threadTargetIdx] = -1000;
-                            context.imaginary[threadTargetIdx] = -1000;
-                            context.errorsCount++;
-                        }
-                        else
-                        {
-                            context.real[threadTargetIdx] = root.Real;
-                            context.imaginary[threadTargetIdx] = root.Imaginary;
-                            
-                        }
+            for (int tt = 0; tt < rawThreads.Length; tt++)
+                rawThreads[tt].Join();
 
-                        context.angle[threadTargetIdx] = MathUtil.AngleAt(context.Poly, root);
-                    }
-                }
-            });
+            */
 
-            for(int t=0; t<threads.Length; t++)
+            for (int t=0; t<threads.Length; t++)
             {
                 var thread = threads[t];
-                int targetIdx = thread.From * order;
+                int targetIdx = thread.from * order;
                 Array.Copy(thread.real, 0, real, targetIdx, thread.real.Length);
                 Array.Copy(thread.imaginary, 0, imaginary, targetIdx, thread.imaginary.Length);
                 Array.Copy(thread.angle, 0, angle, targetIdx, thread.angle.Length);
             }
-         }
-
+        }
         public int GetErrorsCount()
         {
             var errRate = threads.Sum(t => t.errorsCount);
@@ -124,13 +107,17 @@ namespace PolyFract.Maths
 
     public class ThreadContext
     {
-        public int From;
+        public int from;
 
-        public int To;
+        public int to;
 
-        public Complex[] Poly;
+        public Complex[] poly;
 
-        public DurandKernerHelper DurandHelper;
+        public Complex[] coeffs;
+
+        public int order;
+
+        public DurandKernerHelper durandHelper;
 
         public int errorsCount;
 
@@ -139,5 +126,43 @@ namespace PolyFract.Maths
         public double[] imaginary;
 
         public double[] angle;
+
+        public void Run()
+        {
+            errorsCount = 0;
+            for (int i = from; i < to; i++)
+            {
+                int polyIdx = i;
+                for (int j = 0; j < poly.Length; j++)
+                {
+                    int coeffIdx = polyIdx % coeffs.Length;
+                    polyIdx = polyIdx / coeffs.Length;
+                    poly[j] = coeffs[coeffIdx];
+                }
+
+                var roots = durandHelper.FindRoots(poly);
+                int threadTargetFirstIdx = (i - from) * order;
+                for (int j = 0; j < roots.Length; j++)
+                {
+                    var root = roots[j];
+                    int threadTargetIdx = threadTargetFirstIdx + j;
+
+                    var test = PolyUtil.EvalPoly(poly, root);
+                    if (test.Magnitude > 0.0001)
+                    {
+                        real[threadTargetIdx] = -1000;
+                        imaginary[threadTargetIdx] = -1000;
+                        errorsCount++;
+                    }
+                    else
+                    {
+                        real[threadTargetIdx] = root.Real;
+                        imaginary[threadTargetIdx] = root.Imaginary;
+                    }
+
+                    angle[threadTargetIdx] = MathUtil.AngleAt(poly, root);
+                }
+            }
+        }
     }
 }
