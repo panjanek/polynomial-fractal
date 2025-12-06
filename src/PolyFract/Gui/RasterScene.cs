@@ -128,7 +128,6 @@ namespace PolyFract.Gui
         private void Image_MouseWheel(object sender, System.Windows.Input.MouseWheelEventArgs e)
         {
             var pos = e.GetPosition(Image);
-            //var pos = Mouse.GetPosition(Image);
 
             double zoomRatio = 1.0 + ZoomingSpeed * e.Delta;
 

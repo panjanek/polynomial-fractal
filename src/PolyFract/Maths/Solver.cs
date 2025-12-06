@@ -56,7 +56,6 @@ namespace PolyFract.Maths
             }
         }
 
-
         public void Solve(Complex[] coefficients)
         {
             if (coefficients.Length != coefficientsValuesCount)
