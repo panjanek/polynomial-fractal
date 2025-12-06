@@ -377,6 +377,7 @@ namespace PolyFract
                 Title = $"PolyFract. " +
                         $"{(contextMenu.menuPaused.IsChecked ? "[pause] " : "")} " +
                         $"pixels:{MathUtil.IntegerPower(coefficients.Length, order) * order} " +
+                        $"polys:{MathUtil.IntegerPower(coefficients.Length, order)} " +
                         $"t:{t.ToString("0.000")} " +
                         $"frameCount:{frameCount} " +
                         $"fps:{fps.ToString("0.00")} " +

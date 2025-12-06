@@ -4,81 +4,17 @@ using System.Linq;
 using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
-using MathNet.Numerics;
 using MathNet.Numerics.LinearAlgebra;
 
 namespace PolyFract.Maths
 {
-    public class Solver
+    public static class PolyUtil
     {
-        public double[] real;
-
-        public double[] imaginary;
-
-        public double[] angle;
-
-        public int order;
-
-        public int coefficientsValuesCount;
-
-        public int polynomialsCount;
-
-        public Solver(int coefficientsValuesCount, int order)
-        {
-            this.coefficientsValuesCount = coefficientsValuesCount;
-            this.order = order;
-            polynomialsCount = 1;
-            for (int i = 0; i < order + 1; i++)
-                polynomialsCount *= coefficientsValuesCount;
-            int rootsCount = polynomialsCount * order;
-            real = new double[rootsCount];
-            imaginary = new double[rootsCount];
-            angle = new double[rootsCount];
-        }
-
-
-        public void Solve(Complex[] coefficients)
-        {
-            if (coefficients.Length != coefficientsValuesCount)
-                throw new Exception($"Solver created for {coefficientsValuesCount} coefficients count but got {coefficients.Length}");
-
-
-            Parallel.For(0, polynomialsCount, new ParallelOptions() { MaxDegreeOfParallelism = 16 }, i => {
-
-                Complex[] poly = new Complex[order + 1];
-                int polyIdx = i;
-                for (int j = 0; j < poly.Length; j++)
-                {
-                    int coeffIdx = polyIdx % coefficients.Length;
-                    polyIdx = polyIdx / coefficients.Length;
-                    poly[j] = coefficients[coeffIdx];
-                }
-
-                try
-                {
-                    var roots = FindRootsDurandKerner(poly, maxIterations : 48, tolerance : 1e-10);
-
-                    int firstRootIdx = i * order;
-                    for(int j=0; j<roots.Length; j++)
-                    {
-                        int idx = firstRootIdx + j;
-                        real[idx] = roots[j].Real;
-                        imaginary[idx] = roots[j].Imaginary;
-                        angle[idx] = MathUtil.AngleAt(poly, roots[j]);
-                    }
-                }
-                catch (Exception ex) 
-                {
-                    Console.WriteLine(ex.Message);
-                }
-            });
-        }
-
         /// <summary>
         /// Find all complex roots of polynomial with complex coefficients using Durand-Kerner.
         /// Coeffs are in descending powers: a0*z^n + a1*z^(n-1) + ... + an.
         /// </summary>
-        private Complex[] FindRootsDurandKerner(Complex[] coeffsDescending, int maxIterations, double tolerance)
+        public static Complex[] FindRootsDurandKerner(Complex[] coeffsDescending, int maxIterations, double tolerance)
         {
             if (coeffsDescending == null || coeffsDescending.Length < 2)
                 throw new ArgumentException("At least two coefficients required.");
@@ -201,9 +137,5 @@ namespace PolyFract.Maths
             var evd = M.Evd();
             return evd.EigenValues;
         }
-
-
-
-
     }
 }

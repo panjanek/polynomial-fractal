@@ -9,6 +9,10 @@ namespace PolyFract.Maths
 {
     public sealed class DurandKernerHelper
     {
+        private const int MaxIterations = 48;
+
+        private double Tolerance = 1e-10;
+
         private readonly int _maxDegree;
         private readonly Complex[] _monic;
         private readonly Complex[] _z;
@@ -27,9 +31,7 @@ namespace PolyFract.Maths
         /// coeffsDescending: a0*z^n + a1*z^(n-1) + ... + an
         /// Returns roots in a new array (but you can also pass in a buffer if you want).
         /// </summary>
-        public Complex[] FindRoots(Complex[] coeffsDescending,
-                                   int maxIterations = 32,
-                                   double tolerance = 1e-10)
+        public Complex[] FindRoots(Complex[] coeffsDescending)
         {
             if (coeffsDescending == null || coeffsDescending.Length < 2)
                 throw new ArgumentException("At least two coefficients required.");
@@ -66,7 +68,7 @@ namespace PolyFract.Maths
             }
 
             // ---- Iterations using _z and _newZ ----
-            for (int iter = 0; iter < maxIterations; iter++)
+            for (int iter = 0; iter < MaxIterations; iter++)
             {
                 double maxDelta = 0.0;
 
@@ -98,14 +100,14 @@ namespace PolyFract.Maths
                 for (int i = 0; i < n; i++)
                     _z[i] = _newZ[i];
 
-                if (maxDelta < tolerance)
+                if (maxDelta < Tolerance)
                     break;
             }
 
             // Copy to a compact array of size n for the caller
-            var result = new Complex[n];
-            Array.Copy(_z, result, n);
-            return result;
+            //var result = new Complex[n];
+            //Array.Copy(_z, result, n);
+            return _z;
         }
     }
 }
