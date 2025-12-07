@@ -48,6 +48,34 @@ namespace PolyFract.Maths
                                         int length,
                                         [Out] double[] output);
 
+        [DllImport("PolyFractFastSolver.dll", CallingConvention = CallingConvention.Cdecl)]
+        public static extern void FindRootsForPolys(
+                              //actual parameters
+                              int from,
+                              int to,
+                              [In] double[] coeffsvalues_r,
+                              [In] double[] coeffsvalues_i,
+                              int coeffsvalues_len,
+
+                              //preallocated buffer for numbered polynomials
+                              [In] double[] _poly_r,
+                              [In] double[] _poly_i,
+                              int _poly_len,
+
+                              //preallocated buffer for kerner-durand
+                              [In] double[] _monic_r,
+                              [In] double[] _monic_i,
+                              [In] double[] _z_r,
+                              [In] double[] _z_i,
+                              [In] double[] _z_a,
+                              [In] double[] _newZ_r,
+                              [In] double[] _newZ_i,
+
+                              //outputs
+                              [Out] double[] roots_r,
+                              [Out] double[] roots_i,
+                              [Out] double[] roots_a);
+
 
         /// <summary>
         /// Finds roots of numbered polynomials from-to and copies roots and angles to roots_r, roots_i, roots_a

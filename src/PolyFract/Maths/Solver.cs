@@ -126,16 +126,20 @@ namespace PolyFract.Maths
 
         public void Run()
         {
-            FastDurandKernerHelperNoComplex.FindRootsForPolys(
+            if (FastDurandKernerHelperNoComplex.IsNativeLibAvailable)
+            {
+                FastDurandKernerHelperNoComplex.FindRootsForPolys(
                           //actual parameters
-                          from, 
-                          to, 
-                          coeffs_r, 
+                          from,
+                          to,
+                          coeffs_r,
                           coeffs_i,
+                          coeffs_r.Length,
 
                           // pre-allocated buffer for numbered polynomials
                           _poly_r,
                           _poly_i,
+                          _poly_r.Length,
 
                           // pre-allocated buffer for durand-kerner implementation
                           _monic_r,
@@ -147,9 +151,37 @@ namespace PolyFract.Maths
                           _newZ_i,
 
                           //output
-                          real, 
-                          imaginary, 
+                          real,
+                          imaginary,
                           angle);
+            }
+            else
+            {
+                FastDurandKernerHelperNoComplex.FindRootsForPolys(
+                              //actual parameters
+                              from,
+                              to,
+                              coeffs_r,
+                              coeffs_i,
+
+                              // pre-allocated buffer for numbered polynomials
+                              _poly_r,
+                              _poly_i,
+
+                              // pre-allocated buffer for durand-kerner implementation
+                              _monic_r,
+                              _monic_i,
+                              _z_r,
+                              _z_i,
+                              _z_a,
+                              _newZ_r,
+                              _newZ_i,
+
+                              //output
+                              real,
+                              imaginary,
+                              angle);
+            }
 
             errorsCount = real.Count(r => r == FastDurandKernerHelperNoComplex.ErrorMarker);
         }
