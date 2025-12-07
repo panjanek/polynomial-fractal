@@ -4,19 +4,13 @@ namespace PolyFract.Maths
 {
     public class Solver
     {
-        public double[] real;
-
-        public double[] imaginary;
-
-        public double[] angle;
-
         public int order;
 
         public int coefficientsValuesCount;
 
         public int polynomialsCount;
 
-        private ThreadContext[] threads;
+        public ThreadContext[] threads;
 
         public Solver(int coefficientsValuesCount, int order)
         {
@@ -26,9 +20,6 @@ namespace PolyFract.Maths
             for (int i = 0; i < order + 1; i++)
                 polynomialsCount *= coefficientsValuesCount;
             int rootsCount = polynomialsCount * order;
-            real = new double[rootsCount];
-            imaginary = new double[rootsCount];
-            angle = new double[rootsCount];
 
             int threadCount = Environment.ProcessorCount;
             int polysPerThread = polynomialsCount / threadCount;
@@ -62,15 +53,6 @@ namespace PolyFract.Maths
                 thread.coeffs = coefficients.Select(x => new Complex(x.Real, x.Imaginary)).ToArray();
 
             Parallel.ForEach(threads, ctx => ctx.Run());
-
-            for (int t=0; t<threads.Length; t++)
-            {
-                var thread = threads[t];
-                int targetIdx = thread.from * order;
-                Array.Copy(thread.real, 0, real, targetIdx, thread.real.Length);
-                Array.Copy(thread.imaginary, 0, imaginary, targetIdx, thread.imaginary.Length);
-                Array.Copy(thread.angle, 0, angle, targetIdx, thread.angle.Length);
-            }
         }
         public int GetErrorsCount()
         {

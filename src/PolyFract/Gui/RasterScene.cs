@@ -184,7 +184,7 @@ namespace PolyFract.Gui
             Bitmap.WritePixels(rect, Pixels, Width * 4, 0);
         }
 
-        public void FastDraw(double[] real, double[] imaginary, double[] angle, Complex[] coefficients)
+        public void FastDraw(Solver solver, Complex[] coefficients)
         {
             this.coefficients = coefficients;
             Bitmap.Lock();
@@ -194,12 +194,15 @@ namespace PolyFract.Gui
                 int size = Bitmap.BackBufferStride * Bitmap.PixelHeight;
 
                 System.Runtime.CompilerServices.Unsafe.InitBlock(pBackBuffer, 0, (uint)size);
-                for (int i = 0; i < real.Length; i++)
+                foreach (var thread in solver.threads)
                 {
-                    var h = 0.5 + angle[i] / (2 * System.Math.PI);
-                    GuiUtil.HsvToRgb(h * 360, 1, 1, out var r, out var g, out var b);
-                    (int x, int y) = ToPixelCoordinates(real[i], imaginary[i]);
-                    AddGlyph(pBackBuffer, x, y, rootMarker, r, g, b, Intensity);
+                    for (int i = 0; i < thread.real.Length; i++)
+                    {
+                        var h = 0.5 + thread.angle[i] / (2 * System.Math.PI);
+                        GuiUtil.HsvToRgb(h * 360, 1, 1, out var r, out var g, out var b);
+                        (int x, int y) = ToPixelCoordinates(thread.real[i], thread.imaginary[i]);
+                        AddGlyph(pBackBuffer, x, y, rootMarker, r, g, b, Intensity);
+                    }
                 }
 
                 foreach (var coef in coefficients)
