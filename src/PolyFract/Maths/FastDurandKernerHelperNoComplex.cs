@@ -219,13 +219,13 @@ namespace PolyFract.Maths
             }
 
             //compute angles
-            for (int i = 0; i < n; i++)
+            for (int i = 0; i <= n; i++)
             {
                 _z_a[i] = AngleAt(poly_r, poly_i, _z_r[i], _z_i[i]);
             }
 
             //remove errors
-            for (int i = 0; i < n; i++)
+            for (int i = 0; i <= n; i++)
             {
                 var r_r = _z_r[i];
                 var r_i = _z_i[i];
@@ -243,7 +243,7 @@ namespace PolyFract.Maths
 
                 var v_m = Magnitude(v_i, v_r);
                 if (v_m > ErrorMargin)
-                    _z_r[i] = double.MinValue;
+                    _z_r[i] = double.MaxValue;
             }
         }
 

@@ -56,9 +56,23 @@ namespace PolyFract.Gui
                 { 0.00, 0.02, 0.05, 0.02, 0.00 }
             };
 
+        int[,] coeffMarkerInt;
+        int[,] rootMarkerInt;
+
         public RasterScene(Panel placeholder)
         {
             CreateImage(placeholder);
+            coeffMarkerInt = DoubleMatrixToInt(coeffMarker);
+            rootMarkerInt = DoubleMatrixToInt(rootMarker);
+        }
+
+        private int[,] DoubleMatrixToInt(double[,] matrix)
+        {
+            int[,] result = new int[matrix.GetLength(0), matrix.GetLength(1)];
+            for (int i = 0; i < matrix.GetLength(0); i++)
+                for (int j = 0; j < matrix.GetLength(1); j++)
+                    result[i, j] = (int)Math.Round(matrix[i, j] * 255);
+            return result;
         }
 
         public void Reset(Panel placeholder)
@@ -187,6 +201,7 @@ namespace PolyFract.Gui
         public void FastDraw(Solver solver, Complex[] coefficients)
         {
             this.coefficients = coefficients;
+            int intensityInt = (int)System.Math.Round(255 * Intensity);
             Bitmap.Lock();
             unsafe
             {
@@ -202,14 +217,15 @@ namespace PolyFract.Gui
                         var h = 0.5 + thread.angle[i] / (2 * System.Math.PI);
                         GuiUtil.HsvToRgb(h * 360, 1, 1, out var r, out var g, out var b);
                         (int x, int y) = ToPixelCoordinates(thread.real[i], thread.imaginary[i]);
-                        AddGlyph(pBackBuffer, x, y, rootMarker, r, g, b, Intensity);
+                        if (thread.real[i] != double.MaxValue)
+                            AddGlyph(pBackBuffer, x, y, rootMarkerInt, r, g, b, intensityInt);
                     }
                 });
 
                 foreach (var coef in coefficients)
                 {
                     (int cx, int cy) = ToPixelCoordinates(coef);
-                    AddGlyph(pBackBuffer, cx, cy, coeffMarker, Colors.Red, 1.0, true);
+                    AddGlyph(pBackBuffer, cx, cy, coeffMarkerInt, Colors.Red, 255, true);
                 }
             }
 
@@ -217,12 +233,12 @@ namespace PolyFract.Gui
             Bitmap.Unlock();
         }
 
-        private unsafe void AddGlyph(byte* pBackBuffer, int cx, int cy, double[,] map, System.Windows.Media.Color color, double intensity = 1.0, bool overwrite = false)
+        private unsafe void AddGlyph(byte* pBackBuffer, int cx, int cy, int[,] map, System.Windows.Media.Color color, int intensity = 255, bool overwrite = false)
         {
             AddGlyph(pBackBuffer, cx, cy, map, color.R, color.G, color.B, intensity, overwrite);
         }
 
-        private unsafe void AddGlyph(byte* pBackBuffer, int cx, int cy, double[,] map, int r, int g, int b, double intensity = 1.0, bool overwrite = false)
+        private unsafe void AddGlyph(byte* pBackBuffer, int cx, int cy, int[,] map, int r, int g, int b, int intensity = 255, bool overwrite = false)
         {
             for (int mx = 0; mx < map.GetLength(0); mx++)
             {
@@ -234,9 +250,9 @@ namespace PolyFract.Gui
                     if (x >= 0 && y >= 0 && x < Width && y < Height)
                     {
                         int coord = y * Width + x << 2;
-                        var cr = (int)System.Math.Round(r * strength * intensity);
-                        var cg = (int)System.Math.Round(g * strength * intensity);
-                        var cb = (int)System.Math.Round(b * strength * intensity);
+                        var cr = (r * strength * intensity) >> 16;
+                        var cg = (g * strength * intensity) >> 16;
+                        var cb = (b * strength * intensity) >> 16;
                         AddPixel(pBackBuffer, coord, cr, cg, cb, overwrite);
                     }
                 }
