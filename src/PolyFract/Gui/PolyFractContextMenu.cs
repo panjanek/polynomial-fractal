@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.Eventing.Reader;
 using System.Linq;
 using System.Numerics;
 using System.Text;
@@ -64,6 +65,12 @@ namespace PolyFract.Gui
         public Action CopyPosClicked { get; set; }
 
         public Point LastRightClick { get; set; }
+
+        public bool AutoPOV { get; set; }
+
+        public bool AutoCoeff { get; set; }
+
+        public bool Paused { get; set; }
             
         public PolyFractContextMenu(Panel placeholder)
         {
@@ -101,10 +108,28 @@ namespace PolyFract.Gui
             menuOrder.Click += MenuOrder_Click;
             menuIntensity.Click += MenuIntensity_Click;
             menuReset.Click += MenuReset_Click;
-            menuVertical.Click += MenuVertical_Click; ;
+            menuVertical.Click += MenuVertical_Click;
             menuCapture.Click += MenuCapture_Click;
             menuRecord.Click += MenuRecord_Click;
+            menuPaused.Click += MenuPaused_Click;
+            menuAutoPOV.Click += MenuAutoPOV_Click;
+            menuAutoCoeff.Click += MenuAutoCoeff_Click;
             placeholder.PreviewMouseRightButtonDown += Placeholder_PreviewMouseRightButtonDown;
+        }
+
+        private void MenuAutoCoeff_Click(object sender, RoutedEventArgs e)
+        {
+            AutoCoeff = menuAutoCoeff.IsChecked;
+        }
+
+        private void MenuAutoPOV_Click(object sender, RoutedEventArgs e)
+        {
+            AutoPOV = menuAutoPOV.IsChecked;
+        }
+
+        private void MenuPaused_Click(object sender, RoutedEventArgs e)
+        {
+            Paused = menuPaused.IsChecked;
         }
 
         private void MenuVertical_Click(object sender, RoutedEventArgs e)
@@ -279,6 +304,10 @@ namespace PolyFract.Gui
             {
                 menuAutoCoeff.IsEnabled = true;
             }
+
+            AutoCoeff = menuAutoCoeff.IsChecked;
+            AutoPOV = menuAutoPOV.IsChecked;
+            Paused = menuPaused.IsChecked;
         }
 
     }

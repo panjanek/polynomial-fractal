@@ -66,7 +66,7 @@ namespace PolyFract
             FastDurandKernerHelperNoComplex.InitNative();
 
             scene = new RasterScene(placeholder);
-            scene.DraggedOrZoommed = () => contextMenu.menuAutoPOV.IsChecked = false;
+            scene.DraggedOrZoommed = () => { contextMenu.menuAutoPOV.IsChecked = false; UpdateContextMenu(); };
             AttachCoefficiensDragging();
 
             frameCount = 0;
@@ -122,28 +122,62 @@ namespace PolyFract
 
             
             SetDefaultValues();
-            graphicsTimer.Interval = TimeSpan.FromSeconds(0.01);
-            graphicsTimer.Tick += GraphicsTimerTick;
-            graphicsTimer.Start();
+            placeholder.SizeChanged += Placeholder_SizeChanged;
+
+            //graphicsTimer.Interval = TimeSpan.FromSeconds(0.01);
+            //graphicsTimer.Tick += GraphicsTimerTick;
+            //graphicsTimer.Start();
 
             infoTimer.Interval = TimeSpan.FromSeconds(1.0);
             infoTimer.Tick += InfoTimer_Tick;
             infoTimer.Start();
 
-            placeholder.SizeChanged += Placeholder_SizeChanged;
+            
+            
+            Thread renderThread = new Thread(() =>
+            {
+                Worker();
+            });
+            renderThread.IsBackground = true;
+            renderThread.Start();
         }
 
-        private void Placeholder_SizeChanged(object sender, SizeChangedEventArgs e)
+        private void Worker()
         {
-            scene.Reset(placeholder);
-            AttachCoefficiensDragging();
-            if (e.PreviousSize.Width > 0 && e.NewSize.Width > 0)
+            while (true)
             {
-                var zoomCorrection = e.NewSize.Width / e.PreviousSize.Width;
-                scene.Zoom *= zoomCorrection;
+                if (!contextMenu.Paused)
+                {
+                    t += dt;
+
+                    if (contextMenu.AutoPOV)
+                        AutoPointOfViewMove();
+
+                    if (contextMenu.AutoCoeff)
+                        AutoCoefficientsChange();
+                }
+
+                if (solver == null || solver.coefficientsValuesCount != coefficients.Length || solver.order != order)
+                    solver = new Solver(coefficients.Length, order);
+                solver.Solve(coefficients);
+
+
+                if (Application.Current?.Dispatcher != null)
+                {
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        if (scene != null && solver != null)
+                        {
+                            scene.FastDraw(solver, contextMenu.menuShowCoeff.IsChecked ? coefficients : []);
+                            frameCount++;
+                        }
+                    });
+                }
+                
             }
         }
 
+        /*
         private void GraphicsTimerTick(object sender, EventArgs e)
         {
             if (!contextMenu.menuPaused.IsChecked)
@@ -167,6 +201,17 @@ namespace PolyFract
             solver.Solve(coefficients);
             scene.FastDraw(solver, contextMenu.menuShowCoeff.IsChecked ? coefficients : []);
             //scene.Draw(solver.real, solver.imaginary, solver.angle, contextMenu.menuShowCoeff.IsChecked ? coefficients : []);
+        }*/
+
+        private void Placeholder_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            scene.Reset(placeholder);
+            AttachCoefficiensDragging();
+            if (e.PreviousSize.Width > 0 && e.NewSize.Width > 0)
+            {
+                var zoomCorrection = e.NewSize.Width / e.PreviousSize.Width;
+                scene.Zoom *= zoomCorrection;
+            }
         }
 
         private void CopyCoordinatesToClipboard(Point clikPoint)
@@ -208,6 +253,7 @@ namespace PolyFract
                     {
                         draggedCoeffIdx = i;
                         contextMenu.menuAutoCoeff.IsChecked = false;
+                        UpdateContextMenu();
                         return true;
                     }
                 }
@@ -233,7 +279,6 @@ namespace PolyFract
             contextMenu.menuPaused.IsChecked = false;
             contextMenu.menuAutoCoeff.IsChecked = true;
             contextMenu.menuAutoPOV.IsChecked = true;
-            contextMenu.menuPaused.IsChecked = false;
             UpdateContextMenu();
         }
 
@@ -377,7 +422,8 @@ namespace PolyFract
                         $"order: {order} " +
                         $"coeffsCount: {coefficients.Length} "+
                         $"threads: {Environment.ProcessorCount} " +
-                        $"errors: {solver?.GetErrorsCount()} ({(100.0 * solver?.GetErrorsCount() / pixelsCount)?.ToString("0.00000")}%) ";
+                        $"errors: {solver?.GetErrorsCount()} ({(100.0 * solver?.GetErrorsCount() / pixelsCount)?.ToString("0.00000")}%) "+
+                        $"solver: {(FastDurandKernerHelperNoComplex.IsNativeLibAvailable ? "[native]" : "[managed]")}";
             }
 
             lastCheckFrameCount = frameCount;

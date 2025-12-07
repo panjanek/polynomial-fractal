@@ -4,10 +4,20 @@
 #define _USE_MATH_DEFINES
 #include <cmath>
 
+#include <omp.h>
+
 #define MaxIterations (32)
 #define Tolerance     (1e-10)
 #define ErrorMargin   (0.0001)
 #define ErrorMarker   (1000000)
+
+
+// Use __restrict (MSVC/GCC compatible form) to help optimizer
+#if defined(_MSC_VER)
+#  define RESTRICT __restrict
+#else
+#  define RESTRICT __restrict__
+#endif
 
 BOOL APIENTRY DllMain( HMODULE hModule,
                        DWORD  ul_reason_for_call,
@@ -38,6 +48,15 @@ extern "C"
     }
 }
 
+
+static inline double mag2(double xr, double xi) noexcept {
+    return xr * xr + xi * xi;
+}
+static inline double Magnitude(double xr, double xi) noexcept {
+    return std::sqrt(mag2(xr, xi));
+}
+
+/*
 double Magnitude(double a, double b)
 {
     // Using
@@ -68,7 +87,7 @@ double Magnitude(double a, double b)
         double ratio = small / large;
         return (large * std::sqrt(1.0 + ratio * ratio));
     }
-}
+}*/
 
 double UltraFastAtan2(double y, double x)
 {
@@ -132,24 +151,42 @@ void FindRoots(
     if (a0_r == 0 && a0_i == 0)
         return;
 
+    const double a0_mag2 = a0_r * a0_r + a0_i * a0_i;
+    const double inv_a0_mag2 = 1.0 / a0_mag2;
+
     // ---- Build monic coefficients into reusable _monic ----
     // monic: [1, b1, ..., bn] for z^n + b1*z^(n-1) + ... + bn
     _monic_r[0] = 1;
     _monic_i[0] = 0;
+
+    /*
     for (int i = 1; i <= n; i++)
     {
         //_monic[i] = coeffsDescending[i] / a0;
         double div = a0_r * a0_r + a0_i * a0_i;
         _monic_r[i] = (poly_r[i] * a0_r + poly_i[i] * a0_i) / div;
         _monic_i[i] = (poly_i[i] * a0_r - poly_r[i] * a0_i) / div;
+    }*/
+
+    for (int i = 1; i <= n; ++i) {
+        // complex division poly[i] / a0  => (p * conj(a0)) / |a0|^2
+        const double pr = poly_r[i];
+        const double pi = poly_i[i];
+        // multiply by conj(a0) = (a0_r - i*a0_i)
+        const double num_r = pr * a0_r + pi * a0_i;
+        const double num_i = pi * a0_r - pr * a0_i;
+        _monic_r[i] = num_r * inv_a0_mag2;
+        _monic_i[i] = num_i * inv_a0_mag2;
     }
 
     // ---- Initial radius ----
     double maxAbs = 0.0;
     for (int i = 1; i <= n; i++)
     {
-        double m = Magnitude(_monic_r[i], _monic_i[i]); // _monic[i].Magnitude;
-        if (m > maxAbs) maxAbs = m;
+        //double m = Magnitude(_monic_r[i], _monic_i[i]); // _monic[i].Magnitude;
+        const double m2 = mag2(_monic_r[i], _monic_i[i]);
+        if (m2 > maxAbs * maxAbs) 
+            maxAbs = std::sqrt(m2);
     }
     double r = 1.0 + maxAbs;
 
@@ -167,8 +204,7 @@ void FindRoots(
     // ---- Iterations using _z and _newZ ----
     for (int iter = 0; iter < MaxIterations; iter++)
     {
-        double maxDelta = 0.0;
-
+        double maxDelta2 = 0.0;
         for (int i = 0; i < n; i++)
         {
             //Complex zi = _z[i];
@@ -219,8 +255,10 @@ void FindRoots(
             _newZ_i[i] = ziNew_i;
 
             //double d = delta.Magnitude;
-            double d = Magnitude(delta_r, delta_i);
-            if (d > maxDelta) maxDelta = d;
+            //double d = Magnitude(delta_r, delta_i);
+            double d2 = mag2(delta_r, delta_i);
+            //if (d > maxDelta) maxDelta = d;
+            if (d2 > maxDelta2) maxDelta2 = d2;
         }
 
         // swap buffers (_z <= _newZ)
@@ -231,8 +269,8 @@ void FindRoots(
             _z_i[i] = _newZ_i[i];
         }
 
-        if (maxDelta < Tolerance)
-            break;
+        //if (maxDelta < Tolerance) break;
+        if (maxDelta2 < (Tolerance * Tolerance)) break;
     }
 
     //compute angles
@@ -295,6 +333,8 @@ extern "C"
             double* roots_a)
     {
         //int order = _poly_len - 1;
+        //#pragma omp parallel
+        //omp_set_num_threads(2);
         for (int i = from; i < to; i++)
         {
             int polyIdx = i;
