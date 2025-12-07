@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Controls;
@@ -11,11 +12,42 @@ namespace PolyFract.Maths
 {
     public static class FastDurandKernerHelperNoComplex
     {
-        private const int MaxIterations = 32;
+        public const int MaxIterations = 32;
 
-        private const double Tolerance = 1e-10;
+        public const double Tolerance = 1e-10;
 
-        private const double ErrorMargin = 0.0001;
+        public const double ErrorMargin = 0.0001;
+
+        public const double ErrorMarker = 1000000;
+
+        public static bool IsNativeLibAvailable { get; private set; } = false;
+
+        public static void InitNative()
+        {
+            var testArch = System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture;
+            var testLocation = System.IO.Path.GetFullPath("PolyFractFastSolver.dll");
+            Console.WriteLine($"Trying to load native solver dll from {testLocation}, arch {testArch}");
+            try
+            {
+
+                var input = new double[3] { 1, 2, 3 };
+                var output = new double[3] { 0, 0, 0 };
+                TestNative(input, input.Length, output);
+                IsNativeLibAvailable = (output[0] == 2 && output[1] == 4 && output[2] == 6);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"native dll not loaded: {ex.Message}");
+                IsNativeLibAvailable = false;
+            }
+        }
+
+        [DllImport("PolyFractFastSolver.dll", CallingConvention = CallingConvention.Cdecl)]
+        public static extern void TestNative(
+                                        [In] double[] input,
+                                        int length,
+                                        [Out] double[] output);
+
 
         /// <summary>
         /// Finds roots of numbered polynomials from-to and copies roots and angles to roots_r, roots_i, roots_a
@@ -237,7 +269,7 @@ namespace PolyFract.Maths
 
                 var v_m = Magnitude(v_i, v_r);
                 if (v_m > ErrorMargin)
-                    _z_r[i] = double.MaxValue;
+                    _z_r[i] = ErrorMarker;
             }
         }
 

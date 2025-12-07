@@ -110,6 +110,7 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -150,4 +151,7 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
+  <Target Name="CopyDll" AfterTargets="Build">
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(SolutionDir)PolyFract\bin\$(Configuration)\net8.0-windows\" SkipUnchangedFiles="true" />
+  </Target>
 </Project>

@@ -151,7 +151,7 @@ namespace PolyFract.Maths
                           imaginary, 
                           angle);
 
-            errorsCount = real.Count(r => r == double.MaxValue);
+            errorsCount = real.Count(r => r == FastDurandKernerHelperNoComplex.ErrorMarker);
         }
     }
 }

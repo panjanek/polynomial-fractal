@@ -63,6 +63,7 @@ namespace PolyFract
         public MainWindow()
         {
             InitializeComponent();
+            FastDurandKernerHelperNoComplex.InitNative();
 
             scene = new RasterScene(placeholder);
             scene.DraggedOrZoommed = () => contextMenu.menuAutoPOV.IsChecked = false;

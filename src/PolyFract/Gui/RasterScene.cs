@@ -217,7 +217,7 @@ namespace PolyFract.Gui
                         var h = 0.5 + thread.angle[i] / (2 * System.Math.PI);
                         GuiUtil.HsvToRgb(h * 360, 1, 1, out var r, out var g, out var b);
                         (int x, int y) = ToPixelCoordinates(thread.real[i], thread.imaginary[i]);
-                        if (thread.real[i] != double.MaxValue)
+                        if (thread.real[i] != FastDurandKernerHelperNoComplex.ErrorMarker)
                             AddGlyph(pBackBuffer, x, y, rootMarkerInt, r, g, b, intensityInt);
                     }
                 });
