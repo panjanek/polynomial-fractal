@@ -34,16 +34,28 @@ namespace PolyFract.Maths
                 threads[t].poly_i = new double[order + 1];
                 threads[t].coeffs_r = new double[coefficientsValuesCount];
                 threads[t].coeffs_i = new double[coefficientsValuesCount];
-                threads[t].durandHelper = new FastDurandKernerHelperNoComplex(order);
+                threads[t].durandHelper = new FastDurandKernerHelperNoComplex();
                 if (t == threads.Length - 1)
                 {
                     threads[t].to = polynomialsCount;
                 }
 
+                // buffer for thread output
                 int rootsInThisThread = (threads[t].to - threads[t].from) * order;
                 threads[t].real = new double[rootsInThisThread];
                 threads[t].imaginary = new double[rootsInThisThread];
                 threads[t].angle = new double[rootsInThisThread];
+
+                //buffers for solving algorithm
+                threads[t]._monic_r = new double[order + 1];
+                threads[t]._monic_i = new double[order + 1];
+                threads[t]._z_r = new double[order];
+                threads[t]._z_i = new double[order];
+                threads[t]._z_a = new double[order];
+                threads[t]._newZ_r = new double[order];
+                threads[t]._newZ_i = new double[order];
+                threads[t]._poly_r = new double[order];
+                threads[t]._poly_i = new double[order];
             }
         }
 
@@ -96,9 +108,47 @@ namespace PolyFract.Maths
 
         public double[] angle;
 
+        /// <summary>
+        /// variables allocated for DurandKerner helper
+        /// </summary>
+        public double[] _poly_r;
+        public double[] _poly_i;
+        public double[] _monic_r;
+        public double[] _monic_i;
+        public double[] _z_r;
+        public double[] _z_i;
+        public double[] _z_a;
+        public double[] _newZ_r;
+        public double[] _newZ_i;
+
+
         public void Run()
         {
-            durandHelper.FindRootsForPolys(from, to, coeffs_r, coeffs_i, real, imaginary, angle);
+            durandHelper.FindRootsForPolys(
+                          //actual parameters
+                          from, 
+                          to, 
+                          coeffs_r, 
+                          coeffs_i,
+
+                          // pre-allocated buffer for numbered polynomials
+                          _poly_r,
+                          _poly_i,
+
+                          // pre-allocated buffer for durand-kerner implementation
+                          _monic_r,
+                          _monic_i,
+                          _z_r,
+                          _z_i,
+                          _z_a,
+                          _newZ_r,
+                          _newZ_i,
+
+                          //output
+                          real, 
+                          imaginary, 
+                          angle);
+
             errorsCount = real.Count(r => r == double.MinValue);
         }
     }

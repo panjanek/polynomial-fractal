@@ -17,32 +17,37 @@ namespace PolyFract.Maths
 
         private const double ErrorMargin = 0.0001;
 
-        private readonly int _maxDegree;
-        private readonly double[] _monic_r;
-        private readonly double[] _monic_i;
-        public readonly double[] _z_r;
-        public readonly double[] _z_i;
-        public readonly double[] _z_a;
-        private readonly double[] _newZ_r;
-        private readonly double[] _newZ_i;
-        private readonly double[] _poly_r;
-        private readonly double[] _poly_i;
-
-        public FastDurandKernerHelperNoComplex(int maxDegree)
+        public FastDurandKernerHelperNoComplex()
         {
-            _maxDegree = maxDegree;
-            _monic_r = new double[maxDegree + 1];
-            _monic_i = new double[maxDegree + 1];
-            _z_r = new double[maxDegree];
-            _z_i = new double[maxDegree];
-            _z_a = new double[maxDegree];
-            _newZ_r = new double[maxDegree];
-            _newZ_i = new double[maxDegree];
-            _poly_r = new double[maxDegree];
-            _poly_i = new double[maxDegree];
         }
 
-        public void FindRootsForPolys(int from, int to, double[] coeffsvalues_r, double[] coeffsvalues_i, double[] roots_r, double[] roots_i, double[] roots_a)
+        /// <summary>
+        /// Finds roots of numbered polynomials from-to and copies roots and angles to roots_r, roots_i, roots_a
+        /// </summary>
+        public void FindRootsForPolys(
+                                      //actual parameters
+                                      int from,
+                                      int to,
+                                      double[] coeffsvalues_r, 
+                                      double[] coeffsvalues_i,
+
+                                      //preallocated buffer for numbered polynomials
+                                      double[] _poly_r,
+                                      double[] _poly_i,
+
+                                      //preallocated buffer for kerner-durand
+                                      double[] _monic_r,
+                                      double[] _monic_i,
+                                      double[] _z_r,
+                                      double[] _z_i,
+                                      double[] _z_a,
+                                      double[] _newZ_r,
+                                      double[] _newZ_i,
+
+                                      //outputs
+                                      double[] roots_r, 
+                                      double[] roots_i, 
+                                      double[] roots_a)
         {
             for (int i = from; i < to; i++)
             {
@@ -55,7 +60,17 @@ namespace PolyFract.Maths
                     _poly_i[j] = coeffsvalues_i[coeffIdx];
                 }
 
-                FindRoots(_poly_r, _poly_i);
+                FindRoots(_poly_r, 
+                          _poly_i,
+
+                          _monic_r,
+                          _monic_i,
+                          _z_r,
+                          _z_i,
+                          _z_a,
+                          _newZ_r,
+                          _newZ_i);
+
                 int targetFirstIdx = (i - from) * _z_r.Length;
                 for (int j = 0; j < _z_r.Length; j++)
                 {
@@ -72,17 +87,29 @@ namespace PolyFract.Maths
         /// coeffsDescending: a0*z^n + a1*z^(n-1) + ... + an
         /// Returns roots in a new array (but you can also pass in a buffer if you want).
         /// </summary>
-        public void FindRoots(double[] coeffsDescending_r, double[] coeffsDescending_i)
+        public void FindRoots(
+            //polynomial to solve
+            double[] poly_r,
+            double[] poly_i,
+
+            // preallocated buffers
+            double[] _monic_r,
+            double[] _monic_i,
+            double[] _z_r,
+            double[] _z_i,
+            double[] _z_a,
+            double[] _newZ_r,
+            double[] _newZ_i)
         {
-            if (coeffsDescending_r == null || coeffsDescending_r.Length < 2)
+            if (poly_r == null || poly_r.Length < 2)
                 throw new ArgumentException("At least two coefficients required.");
 
-            int n = coeffsDescending_r.Length - 1;
-            if (n > _maxDegree)
+            int n = poly_r.Length - 1;
+            if (n > poly_r.Length)
                 throw new ArgumentException("Polynomial degree exceeds solver maxDegree.");
 
-            double a0_r = coeffsDescending_r[0];
-            double a0_i = coeffsDescending_i[0];
+            double a0_r = poly_r[0];
+            double a0_i = poly_i[0];
             if (a0_r == 0 && a0_i == 0)
                 throw new ArgumentException("Leading coefficient must be non-zero.");
 
@@ -94,8 +121,8 @@ namespace PolyFract.Maths
             {
                 //_monic[i] = coeffsDescending[i] / a0;
                 double div = a0_r * a0_r + a0_i * a0_i;
-                _monic_r[i] = (coeffsDescending_r[i] * a0_r + coeffsDescending_i[i] * a0_i) / div;
-                _monic_i[i] = (coeffsDescending_i[i] * a0_r - coeffsDescending_r[i] * a0_i) / div;
+                _monic_r[i] = (poly_r[i] * a0_r + poly_i[i] * a0_i) / div;
+                _monic_i[i] = (poly_i[i] * a0_r - poly_r[i] * a0_i) / div;
             }
 
             // ---- Initial radius ----
@@ -194,7 +221,7 @@ namespace PolyFract.Maths
             //compute angles
             for (int i = 0; i < n; i++)
             {
-                _z_a[i] = AngleAt(coeffsDescending_r, coeffsDescending_i, _z_r[i], _z_i[i]);
+                _z_a[i] = AngleAt(poly_r, poly_i, _z_r[i], _z_i[i]);
             }
 
             //remove errors
@@ -203,13 +230,13 @@ namespace PolyFract.Maths
                 var r_r = _z_r[i];
                 var r_i = _z_i[i];
 
-                double v_r = coeffsDescending_r[0];
-                double v_i = coeffsDescending_i[0];
+                double v_r = poly_r[0];
+                double v_i = poly_i[0];
                 for (int j = 1; j <= n; j++)
                 {
                     //v = v * r + coeffsDescending[j];
-                    var v_r_tmp = v_r * r_r - v_i * r_i + coeffsDescending_r[j];
-                    var v_i_tmp = v_r * r_i + v_i * r_r + coeffsDescending_i[j];
+                    var v_r_tmp = v_r * r_r - v_i * r_i + poly_r[j];
+                    var v_i_tmp = v_r * r_i + v_i * r_r + poly_i[j];
                     v_r = v_r_tmp;
                     v_i = v_i_tmp;
                 }
