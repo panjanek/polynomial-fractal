@@ -23,8 +23,6 @@ namespace PolyFract
 
         private RasterScene scene;
 
-        private DispatcherTimer graphicsTimer = new DispatcherTimer();
-
         private DispatcherTimer infoTimer = new DispatcherTimer();
 
         private Complex[] coefficients = [];
@@ -49,8 +47,6 @@ namespace PolyFract
         private long lastCheckFrameCount;
 
         private PolyFractContextMenu contextMenu;
-
-        private DraggingHandler coefficientsDragging;
 
         private BasePreset currentPreset;
 
@@ -124,15 +120,9 @@ namespace PolyFract
             SetDefaultValues();
             placeholder.SizeChanged += Placeholder_SizeChanged;
 
-            //graphicsTimer.Interval = TimeSpan.FromSeconds(0.01);
-            //graphicsTimer.Tick += GraphicsTimerTick;
-            //graphicsTimer.Start();
-
             infoTimer.Interval = TimeSpan.FromSeconds(1.0);
             infoTimer.Tick += InfoTimer_Tick;
-            infoTimer.Start();
-
-            
+            infoTimer.Start();           
             
             Thread renderThread = new Thread(() =>
             {
@@ -161,47 +151,33 @@ namespace PolyFract
                     solver = new Solver(coefficients.Length, order);
                 solver.Solve(coefficients);
 
-
                 if (Application.Current?.Dispatcher != null)
                 {
-                    Application.Current.Dispatcher.Invoke(() =>
+                    try
                     {
-                        if (scene != null && solver != null)
-                        {
-                            scene.FastDraw(solver, contextMenu.menuShowCoeff.IsChecked ? coefficients : []);
-                            frameCount++;
-                        }
-                    });
+                        Application.Current.Dispatcher.Invoke(() =>
+                            {
+                                try
+                                {
+                                    if (scene != null && solver != null)
+                                    {
+                                        scene.FastDraw(solver, contextMenu.menuShowCoeff.IsChecked ? coefficients : []);
+                                        frameCount++;
+                                    }
+                                } catch (Exception ex)
+                                {
+                                    Console.WriteLine(ex);
+                                }
+                            });
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine(ex);
+                    }
                 }
                 
             }
         }
-
-        /*
-        private void GraphicsTimerTick(object sender, EventArgs e)
-        {
-            if (!contextMenu.menuPaused.IsChecked)
-            {
-                t += dt;
-                if (contextMenu.menuAutoPOV.IsChecked)
-                    AutoPointOfViewMove();
-
-                if (contextMenu.menuAutoCoeff.IsChecked)
-                    AutoCoefficientsChange();
-
-                if (!string.IsNullOrWhiteSpace(recordingDir))
-                    scene.SaveToFile($"{recordingDir}/frame_{(frameCount.ToString("00000"))}.png");
-
-                frameCount++;
-            }
-
-            if (solver == null || solver.coefficientsValuesCount != coefficients.Length || solver.order != order)
-                solver = new Solver(coefficients.Length, order);
-
-            solver.Solve(coefficients);
-            scene.FastDraw(solver, contextMenu.menuShowCoeff.IsChecked ? coefficients : []);
-            //scene.Draw(solver.real, solver.imaginary, solver.angle, contextMenu.menuShowCoeff.IsChecked ? coefficients : []);
-        }*/
 
         private void Placeholder_SizeChanged(object sender, SizeChangedEventArgs e)
         {
@@ -243,7 +219,7 @@ namespace PolyFract
 
         private void AttachCoefficiensDragging()
         {
-            coefficientsDragging = new DraggingHandler(scene.Image, (mouse) =>
+            var coefficientsDragging = new DraggingHandler(scene.Image, (mouse) =>
             {
                 for (int i = 0; i < coefficients.Length; i++)
                 {

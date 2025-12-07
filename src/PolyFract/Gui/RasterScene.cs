@@ -210,7 +210,8 @@ namespace PolyFract.Gui
 
                 System.Runtime.CompilerServices.Unsafe.InitBlock(pBackBuffer, 0, (uint)size);
                 //foreach (var thread in solver.threads)
-                Parallel.ForEach(solver.threads, thread =>
+                var renderingThreadCount = solver.threads.Length;
+                Parallel.ForEach(solver.threads, new ParallelOptions() { MaxDegreeOfParallelism = renderingThreadCount },  thread =>
                 {
                     for (int i = 0; i < thread.real.Length; i++)
                     {
@@ -272,9 +273,9 @@ namespace PolyFract.Gui
             }
             else
             {
-                pBackBuffer[coord + 0] = AddWithClamp(pBackBuffer[coord + 0], b);
-                pBackBuffer[coord + 1] = AddWithClamp(pBackBuffer[coord + 1], g);
-                pBackBuffer[coord + 2] = AddWithClamp(pBackBuffer[coord + 2], r);
+                pBackBuffer[coord + 0] = Blend(pBackBuffer[coord + 0], b);
+                pBackBuffer[coord + 1] = Blend(pBackBuffer[coord + 1], g);
+                pBackBuffer[coord + 2] = Blend(pBackBuffer[coord + 2], r);
             }
 
             Pixels[coord + 3] = 255;
@@ -319,18 +320,17 @@ namespace PolyFract.Gui
             }
             else
             {
-                Pixels[coord + 0] = AddWithClamp(Pixels[coord + 0], b);
-                Pixels[coord + 1] = AddWithClamp(Pixels[coord + 1], g);
-                Pixels[coord + 2] = AddWithClamp(Pixels[coord + 2], r);
+                Pixels[coord + 0] = Blend(Pixels[coord + 0], b);
+                Pixels[coord + 1] = Blend(Pixels[coord + 1], g);
+                Pixels[coord + 2] = Blend(Pixels[coord + 2], r);
             }
 
             Pixels[coord + 3] = 255;
         }
 
-
-        private byte AddWithClamp(int c1, int c2)
+        private byte Blend(int src, int dst)
         {
-            var res = c1 + c2;
+            int res = (246*(src + dst)) >> 8;
             if (res > 255)
                 res = 255;
             return (byte)res;
