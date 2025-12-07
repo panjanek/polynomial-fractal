@@ -30,7 +30,10 @@ namespace PolyFract.Maths
                 threads[t].order = order;
                 threads[t].from = t * polysPerThread;
                 threads[t].to = (t + 1) * polysPerThread;
-                threads[t].poly = new Complex[order + 1];
+                threads[t].poly_r = new double[order + 1];
+                threads[t].poly_i = new double[order + 1];
+                threads[t].coeffs_r = new double[coefficientsValuesCount];
+                threads[t].coeffs_i = new double[coefficientsValuesCount];
                 threads[t].durandHelper = new FastDurandKernerHelperNoComplex(order);
                 if (t == threads.Length - 1)
                 {
@@ -50,7 +53,13 @@ namespace PolyFract.Maths
                 throw new Exception($"Solver created for {coefficientsValuesCount} coefficients count but got {coefficients.Length}");
 
             foreach (var thread in threads)
-                thread.coeffs = coefficients.Select(x => new Complex(x.Real, x.Imaginary)).ToArray();
+            {
+                for (int c = 0; c < coefficients.Length; c++)
+                {
+                    thread.coeffs_r[c] = coefficients[c].Real;
+                    thread.coeffs_i[c] = coefficients[c].Imaginary;
+                }
+            }
 
             Parallel.ForEach(threads, ctx => ctx.Run());
         }
@@ -67,9 +76,13 @@ namespace PolyFract.Maths
 
         public int to;
 
-        public Complex[] poly;
+        public double[] poly_r;
 
-        public Complex[] coeffs;
+        public double[] poly_i;
+
+        public double[] coeffs_r;
+
+        public double[] coeffs_i;
 
         public int order;
 
@@ -89,14 +102,15 @@ namespace PolyFract.Maths
             for (int i = from; i < to; i++)
             {
                 int polyIdx = i;
-                for (int j = 0; j < poly.Length; j++)
+                for (int j = 0; j < poly_r.Length; j++)
                 {
-                    int coeffIdx = polyIdx % coeffs.Length;
-                    polyIdx = polyIdx / coeffs.Length;
-                    poly[j] = coeffs[coeffIdx];
+                    int coeffIdx = polyIdx % coeffs_r.Length;
+                    polyIdx = polyIdx / coeffs_r.Length;
+                    poly_r[j] = coeffs_r[coeffIdx];
+                    poly_i[j] = coeffs_i[coeffIdx];
                 }
 
-                durandHelper.FindRoots(poly.Select(p=>p.Real).ToArray(), poly.Select(p=>p.Imaginary).ToArray());
+                durandHelper.FindRoots(poly_r, poly_i);
                 int threadTargetFirstIdx = (i - from) * order;
                 for (int j = 0; j < durandHelper._z_r.Length; j++)
                 {
