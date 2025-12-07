@@ -31,7 +31,7 @@ namespace PolyFract.Maths
                 threads[t].from = t * polysPerThread;
                 threads[t].to = (t + 1) * polysPerThread;
                 threads[t].poly = new Complex[order + 1];
-                threads[t].durandHelper = new DurandKernerHelper(order);
+                threads[t].durandHelper = new FastDurandKernerHelper(order);
                 if (t == threads.Length - 1)
                 {
                     threads[t].to = polynomialsCount;
@@ -73,7 +73,7 @@ namespace PolyFract.Maths
 
         public int order;
 
-        public DurandKernerHelper durandHelper;
+        public FastDurandKernerHelper durandHelper;
 
         public int errorsCount;
 
@@ -96,11 +96,11 @@ namespace PolyFract.Maths
                     poly[j] = coeffs[coeffIdx];
                 }
 
-                var roots = durandHelper.FindRoots(poly);
+                durandHelper.FindRoots(poly);
                 int threadTargetFirstIdx = (i - from) * order;
-                for (int j = 0; j < roots.Length; j++)
+                for (int j = 0; j < durandHelper._z.Length; j++)
                 {
-                    var root = roots[j];
+                    var root = durandHelper._z[j];
                     int threadTargetIdx = threadTargetFirstIdx + j;
 
                     var test = PolyUtil.EvalPoly(poly, root);
