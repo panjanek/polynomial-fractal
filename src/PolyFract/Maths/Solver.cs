@@ -106,8 +106,8 @@ namespace PolyFract.Maths
                     var test = PolyUtil.EvalPoly(poly, root);
                     if (test.Magnitude > 0.0001)
                     {
-                        real[threadTargetIdx] = -1000;
-                        imaginary[threadTargetIdx] = -1000;
+                        real[threadTargetIdx] = double.MinValue;
+                        imaginary[threadTargetIdx] = double.MinValue;
                         errorsCount++;
                     }
                     else

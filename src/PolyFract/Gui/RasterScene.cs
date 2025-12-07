@@ -194,7 +194,8 @@ namespace PolyFract.Gui
                 int size = Bitmap.BackBufferStride * Bitmap.PixelHeight;
 
                 System.Runtime.CompilerServices.Unsafe.InitBlock(pBackBuffer, 0, (uint)size);
-                foreach (var thread in solver.threads)
+                //foreach (var thread in solver.threads)
+                Parallel.ForEach(solver.threads, thread =>
                 {
                     for (int i = 0; i < thread.real.Length; i++)
                     {
@@ -203,7 +204,7 @@ namespace PolyFract.Gui
                         (int x, int y) = ToPixelCoordinates(thread.real[i], thread.imaginary[i]);
                         AddGlyph(pBackBuffer, x, y, rootMarker, r, g, b, Intensity);
                     }
-                }
+                });
 
                 foreach (var coef in coefficients)
                 {
