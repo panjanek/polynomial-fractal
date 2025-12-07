@@ -9,7 +9,7 @@ namespace PolyFract.Presets
 
         public override int Order => 15;
 
-        public override double DT => 0.0005;
+        public override double DT => 0.01;
 
         public override double Intensity => 0.15;
 

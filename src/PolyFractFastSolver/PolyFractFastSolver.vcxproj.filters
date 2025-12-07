@@ -30,7 +30,4 @@
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
-  <ItemGroup>
-    <None Include="..\polyfract\mainwindow.xaml.cs" />
-  </ItemGroup>
 </Project>

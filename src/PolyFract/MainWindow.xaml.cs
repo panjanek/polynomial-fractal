@@ -8,7 +8,7 @@ using PolyFract.Maths;
 using PolyFract.Presets;
 
 // TODO:
-// - presets: 3coeff + fractals,
+// - move hsv colors to c++
 
 namespace PolyFract
 {
@@ -17,6 +17,7 @@ namespace PolyFract
     /// </summary>
     public partial class MainWindow : Window
     {
+
         public const int MaxPixelCount = 10000000;
 
         public const double DefaultZoom = 300;
@@ -33,7 +34,9 @@ namespace PolyFract
 
         private double dt = 0.0005;
 
-        private double t = 0;
+        //private double t = 0;
+
+        public DateTime tStart = DateTime.Now;
 
         private int? draggedCoeffIdx;
 
@@ -55,6 +58,8 @@ namespace PolyFract
         private FullscreenWindow fullscreen = null;
 
         private Solver solver = null;
+
+        private volatile bool uiPending = false;
 
         public MainWindow()
         {
@@ -138,7 +143,7 @@ namespace PolyFract
             {
                 if (!contextMenu.Paused)
                 {
-                    t += dt;
+                    var t = GetTime();
 
                     if (contextMenu.AutoPOV)
                         AutoPointOfViewMove();
@@ -151,12 +156,19 @@ namespace PolyFract
                     solver = new Solver(coefficients.Length, order);
                 solver.Solve(coefficients);
 
-                if (Application.Current?.Dispatcher != null)
+                
+
+
+                if (Application.Current?.Dispatcher != null && !uiPending)
                 {
+                    uiPending = true;
                     try
                     {
-                        Application.Current.Dispatcher.Invoke(() =>
+                        Application.Current.Dispatcher.BeginInvoke(
+                            DispatcherPriority.Background,
+                            (Action)(() =>
                             {
+
                                 try
                                 {
                                     if (scene != null && solver != null)
@@ -164,11 +176,16 @@ namespace PolyFract
                                         scene.FastDraw(solver, contextMenu.menuShowCoeff.IsChecked ? coefficients : []);
                                         frameCount++;
                                     }
-                                } catch (Exception ex)
+                                }
+                                catch (Exception ex)
                                 {
                                     Console.WriteLine(ex);
                                 }
-                            });
+                                finally
+                                {
+                                    uiPending = false;
+                                }
+                            } ));
                     }
                     catch (Exception ex)
                     {
@@ -190,16 +207,26 @@ namespace PolyFract
             }
         }
 
+        private void ResetTime()
+        {
+            tStart = DateTime.Now;
+        }
+
+        private double GetTime()
+        {
+            return (DateTime.Now - tStart).TotalSeconds * dt;
+        }
+
         private void CopyCoordinatesToClipboard(Point clikPoint)
         {
             var clickedOrigin = scene.ToComplexCoordinates(clikPoint.X, clikPoint.Y);
-            string timeStr = t.ToString("0.0000");
+            string timeStr = GetTime().ToString("0.0000");
             string zoomStr = scene.Zoom.ToString("0.0");
             string originStr = $"new Complex({clickedOrigin.Real}, {clickedOrigin.Imaginary})";
             string coeffsStr = string.Join(", ", coefficients.Select(c => $"new Complex({c.Real}, {c.Imaginary})"));
             string clipboard = $"AddTimePoint({timeStr}, {originStr}, {zoomStr}, [{coeffsStr}]);";
             System.Windows.Clipboard.SetText(clipboard);
-            redo.Add(new RedoItem() { Coeffs = coefficients.ToArray(), Pov = new PointOfView(scene.Origin, scene.Zoom, t) });
+            redo.Add(new RedoItem() { Coeffs = coefficients.ToArray(), Pov = new PointOfView(scene.Origin, scene.Zoom, GetTime()) });
         }
 
         private void ChangeCoefficientsCount(int newCoefficientCount)
@@ -250,7 +277,7 @@ namespace PolyFract
             scene.Intensity = preset.Intensity;
             AutoCoefficientsChange();
 
-            t = 0;
+            ResetTime();
             frameCount = 0;
             contextMenu.menuPaused.IsChecked = false;
             contextMenu.menuAutoCoeff.IsChecked = true;
@@ -334,7 +361,7 @@ namespace PolyFract
                         scene.Origin = last.Pov.Origin;
                         scene.Zoom = last.Pov.Zoom;
                         coefficients = last.Coeffs;
-                        t = last.Pov.Time;
+                        //t = last.Pov.Time;
                     }
                     break;
                 case Key.F:
@@ -388,7 +415,7 @@ namespace PolyFract
                         $"{(contextMenu.menuPaused.IsChecked ? "[pause] " : "")} " +
                         $"pixels:{pixelsCount} " +
                         $"polys:{MathUtil.IntegerPower(coefficients.Length, order)} " +
-                        $"t:{t.ToString("0.000")} " +
+                        $"t:{GetTime().ToString("0.000")} " +
                         $"frameCount:{frameCount} " +
                         $"fps:{fps.ToString("0.00")} " +
                         $"mouse:({mouseStr}) origin:({originStr}) " +
@@ -408,13 +435,13 @@ namespace PolyFract
 
         private void AutoCoefficientsChange()
         {
-            var newCoeff = currentPreset.GetCoefficients(t);
+            var newCoeff = currentPreset.GetCoefficients(GetTime());
                 coefficients = newCoeff;
         }
 
         private void AutoPointOfViewMove()
         {
-            var newPOV = currentPreset.GetPOV(t);
+            var newPOV = currentPreset.GetPOV(GetTime());
             if (newPOV != null)
             {
                 scene.Origin = newPOV.Origin;

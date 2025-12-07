@@ -211,6 +211,7 @@ namespace PolyFract.Gui
                 System.Runtime.CompilerServices.Unsafe.InitBlock(pBackBuffer, 0, (uint)size);
                 //foreach (var thread in solver.threads)
                 var renderingThreadCount = solver.threads.Length;
+                renderingThreadCount = 1;
                 Parallel.ForEach(solver.threads, new ParallelOptions() { MaxDegreeOfParallelism = renderingThreadCount },  thread =>
                 {
                     for (int i = 0; i < thread.real.Length; i++)
