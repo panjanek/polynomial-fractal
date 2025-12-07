@@ -9,7 +9,7 @@ using System.Windows.Controls;
 
 namespace PolyFract.Maths
 {
-    public class FastDurandKernerHelperNoComplex
+    public static class FastDurandKernerHelperNoComplex
     {
         private const int MaxIterations = 32;
 
@@ -17,14 +17,10 @@ namespace PolyFract.Maths
 
         private const double ErrorMargin = 0.0001;
 
-        public FastDurandKernerHelperNoComplex()
-        {
-        }
-
         /// <summary>
         /// Finds roots of numbered polynomials from-to and copies roots and angles to roots_r, roots_i, roots_a
         /// </summary>
-        public void FindRootsForPolys(
+        public static void FindRootsForPolys(
                                       //actual parameters
                                       int from,
                                       int to,
@@ -87,7 +83,7 @@ namespace PolyFract.Maths
         /// coeffsDescending: a0*z^n + a1*z^(n-1) + ... + an
         /// Returns roots in a new array (but you can also pass in a buffer if you want).
         /// </summary>
-        public void FindRoots(
+        public static void FindRoots(
             //polynomial to solve
             double[] poly_r,
             double[] poly_i,
@@ -141,10 +137,8 @@ namespace PolyFract.Maths
                 double angle = twoPiOverN * k;
 
                 //_z[k] = Complex.FromPolarCoordinates(r, angle);
-                //new Complex(magnitude * Math.Cos(phase), magnitude * Math.Sin(phase));
                 _z_r[k] = r * Math.Cos(angle);
                 _z_i[k] = r * Math.Sin(angle);
-
             }
 
             // ---- Iterations using _z and _newZ ----
@@ -247,16 +241,7 @@ namespace PolyFract.Maths
             }
         }
 
-        public static Complex EvalPoly(Complex[] coeffsDescending, Complex z)
-        {
-            int n = coeffsDescending.Length - 1;
-            Complex p = coeffsDescending[0];
-            for (int i = 1; i <= n; i++)
-                p = p * z + coeffsDescending[i];
-            return p;
-        }
-
-        private double Magnitude(double a, double b)
+        public static double Magnitude(double a, double b)
         {
             // Using
             //   sqrt(a^2 + b^2) = |a| * sqrt(1 + (b/a)^2)
@@ -288,26 +273,26 @@ namespace PolyFract.Maths
             }
         }
 
-        private double AngleAt(double[] coeffs_r, double[] coeffs_i, double x_r, double x_i)
+        public static double AngleAt(double[] coeffs_r, double[] coeffs_i, double x_r, double x_i)
         {
-            //var derivative = MathUtil.EvaluateDerivative(coeffs, x);
+            //evaluate derivative at x
             int n = coeffs_r.Length - 1;
             double d_r = 0;
             double d_i = 0;
 
             for (int i = 0; i < n; i++)
             {
-                //d = d * x + coeffsDescending[i] * (n - i);
                 var d_r_tmp = d_r * x_r - d_i * x_i + coeffs_r[i] * (n - i);
                 var d_i_tmp = d_r * x_i + d_i * x_r + coeffs_i[i] * (n - 1);
                 d_r = d_r_tmp;
                 d_i = d_i_tmp;
             }
-        
+          
+            //simplified angle of d
             return UltraFastAtan2(d_i, d_r);
         }
 
-        private double UltraFastAtan2(double y, double x)
+        public static double UltraFastAtan2(double y, double x)
         {
             double absY = Math.Abs(y) + 1e-10f;
 

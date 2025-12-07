@@ -22,6 +22,11 @@ namespace PolyFract.Maths
             int rootsCount = polynomialsCount * order;
 
             int threadCount = Environment.ProcessorCount;
+            if (polynomialsCount < 10 * threadCount)
+                threadCount = polynomialsCount / 10;
+            if (threadCount == 0)
+                threadCount = 1;
+
             int polysPerThread = polynomialsCount / threadCount;
             threads = new ThreadContext[threadCount];
             for(int t=0; t<threads.Length; t++)
@@ -34,7 +39,6 @@ namespace PolyFract.Maths
                 threads[t].poly_i = new double[order + 1];
                 threads[t].coeffs_r = new double[coefficientsValuesCount];
                 threads[t].coeffs_i = new double[coefficientsValuesCount];
-                threads[t].durandHelper = new FastDurandKernerHelperNoComplex();
                 if (t == threads.Length - 1)
                 {
                     threads[t].to = polynomialsCount;
@@ -98,8 +102,6 @@ namespace PolyFract.Maths
 
         public int order;
 
-        public FastDurandKernerHelperNoComplex durandHelper;
-
         public int errorsCount;
 
         public double[] real;
@@ -124,7 +126,7 @@ namespace PolyFract.Maths
 
         public void Run()
         {
-            durandHelper.FindRootsForPolys(
+            FastDurandKernerHelperNoComplex.FindRootsForPolys(
                           //actual parameters
                           from, 
                           to, 
