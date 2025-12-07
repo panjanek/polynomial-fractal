@@ -98,41 +98,8 @@ namespace PolyFract.Maths
 
         public void Run()
         {
-            errorsCount = 0;
-            for (int i = from; i < to; i++)
-            {
-                int polyIdx = i;
-                for (int j = 0; j < poly_r.Length; j++)
-                {
-                    int coeffIdx = polyIdx % coeffs_r.Length;
-                    polyIdx = polyIdx / coeffs_r.Length;
-                    poly_r[j] = coeffs_r[coeffIdx];
-                    poly_i[j] = coeffs_i[coeffIdx];
-                }
-
-                durandHelper.FindRoots(poly_r, poly_i);
-                int threadTargetFirstIdx = (i - from) * order;
-                for (int j = 0; j < durandHelper._z_r.Length; j++)
-                {
-                    var root_r = durandHelper._z_r[j];
-                    var root_i = durandHelper._z_i[j];
-                    int threadTargetIdx = threadTargetFirstIdx + j;
-                    angle[threadTargetIdx] = durandHelper._z_a[j];
-                    if (root_r == double.MinValue)
-                    {
-                        real[threadTargetIdx] = double.MinValue;
-                        imaginary[threadTargetIdx] = double.MinValue;
-                        errorsCount++;
-                    }
-                    else
-                    {
-                        real[threadTargetIdx] = root_r;
-                        imaginary[threadTargetIdx] = root_i;
-                    }
-                    
-                    
-                }
-            }
+            durandHelper.FindRootsForPolys(from, to, coeffs_r, coeffs_i, real, imaginary, angle);
+            errorsCount = real.Count(r => r == double.MinValue);
         }
     }
 }

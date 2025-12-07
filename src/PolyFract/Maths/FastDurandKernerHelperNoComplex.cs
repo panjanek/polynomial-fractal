@@ -4,6 +4,7 @@ using System.Linq;
 using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows.Controls;
 
 
 namespace PolyFract.Maths
@@ -24,6 +25,8 @@ namespace PolyFract.Maths
         public readonly double[] _z_a;
         private readonly double[] _newZ_r;
         private readonly double[] _newZ_i;
+        private readonly double[] _poly_r;
+        private readonly double[] _poly_i;
 
         public FastDurandKernerHelperNoComplex(int maxDegree)
         {
@@ -35,6 +38,33 @@ namespace PolyFract.Maths
             _z_a = new double[maxDegree];
             _newZ_r = new double[maxDegree];
             _newZ_i = new double[maxDegree];
+            _poly_r = new double[maxDegree];
+            _poly_i = new double[maxDegree];
+        }
+
+        public void FindRootsForPolys(int from, int to, double[] coeffsvalues_r, double[] coeffsvalues_i, double[] roots_r, double[] roots_i, double[] roots_a)
+        {
+            for (int i = from; i < to; i++)
+            {
+                int polyIdx = i;
+                for (int j = 0; j < _poly_r.Length; j++)
+                {
+                    int coeffIdx = polyIdx % coeffsvalues_r.Length;
+                    polyIdx = polyIdx / coeffsvalues_r.Length;
+                    _poly_r[j] = coeffsvalues_r[coeffIdx];
+                    _poly_i[j] = coeffsvalues_i[coeffIdx];
+                }
+
+                FindRoots(_poly_r, _poly_i);
+                int targetFirstIdx = (i - from) * _z_r.Length;
+                for (int j = 0; j < _z_r.Length; j++)
+                {
+                    int targetIdx = targetFirstIdx + j;
+                    roots_r[targetIdx] = _z_r[j];
+                    roots_i[targetIdx] = _z_i[j];
+                    roots_a[targetIdx] = _z_a[j];
+                }
+            }
         }
 
         /// <summary>
