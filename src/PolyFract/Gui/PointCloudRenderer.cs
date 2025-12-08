@@ -1,11 +1,25 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using System.Numerics;
+using System.Runtime.InteropServices;
+using System.Runtime.InteropServices.JavaScript;
 using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Forms;
+using System.Windows.Forms.Integration;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using System.Windows.Media.Media3D;
+using OpenTK;
+using OpenTK.GLControl;
+using OpenTK.Graphics.OpenGL;
+using OpenTK.Mathematics;
+using OpenTK.Windowing.Common;
 using PolyFract.Maths;
+using Vector2 = OpenTK.Mathematics.Vector2;
+using Vector3 = OpenTK.Mathematics.Vector3;
+
 
 namespace PolyFract.Gui
 {
@@ -14,9 +28,22 @@ namespace PolyFract.Gui
         public const int MarkerRadius = 5;
 
         public const double ZoomingSpeed = 0.0002;
-        public Image Image { get; set; }
+        public System.Windows.Controls.Image Image { get; set; }
 
         public WriteableBitmap Bitmap { get; set; }
+
+        public WindowsFormsHost Host { get; set; }
+
+        private GLControl GlControl { get; set; }
+
+        private Solver solver;
+
+        PointVertex[] points = null;
+        int projLocation;
+        int shaderProgram;
+        int vao;
+        int vbo;
+        Matrix4 projectionMatrix;
 
         public int Width { get; set; }
 
@@ -60,7 +87,7 @@ namespace PolyFract.Gui
         int[,] coeffMarkerInt;
         int[,] rootMarkerInt;
 
-        public PointCloudRenderer(Panel placeholder)
+        public PointCloudRenderer(System.Windows.Controls.Panel placeholder)
         {
             CreateImage(placeholder);
             coeffMarkerInt = DoubleMatrixToInt(coeffMarker);
@@ -76,16 +103,58 @@ namespace PolyFract.Gui
             return result;
         }
 
-        public void Reset(Panel placeholder)
-        {
-            
+        public void Reset(System.Windows.Controls.Panel placeholder)
+        { 
             CreateImage(placeholder);
         }
 
-        public void CreateImage(Panel placeholder)
+        public void CreateImage(System.Windows.Controls.Panel placeholder)
         {
-            placeholder.Children.Clear();
-            Image = new Image();
+            if (Host == null)
+            {
+                placeholder.Children.Clear();
+
+                Host = new WindowsFormsHost();
+                if (!double.IsNaN(placeholder.ActualWidth) && !double.IsNaN(placeholder.ActualHeight) && placeholder.ActualWidth > 0 && placeholder.ActualHeight > 0)
+                {
+                    Host.Width = placeholder.ActualWidth;
+                    Host.Height = placeholder.ActualHeight;
+                }
+                else
+                {
+                    Host.Width = 1920;
+                    Host.Height = 1080;
+                }
+
+                placeholder.Children.Add(Host);
+
+                var settings = new GLControlSettings
+                {
+                    API = OpenTK.Windowing.Common.ContextAPI.OpenGL,
+                    APIVersion = new Version(3, 3), // OpenGL 3.3
+                    Profile = ContextProfile.Compatability,
+                    Flags = ContextFlags.Default,
+                    IsEventDriven = false
+                };
+
+                GlControl = new GLControl(settings);
+                //GlControl.Width = 1920;
+                //GlControl.Height = 1080;
+                GlControl.Dock = DockStyle.Fill;
+
+                Host.Child = GlControl;
+
+                GlControl.Paint += GlControl_Paint;
+                GlControl.Resize += GlControl_Resize;
+            }
+
+
+            /*
+            placeholder.Children.Add(Host);
+
+
+
+            Image = new System.Windows.Controls.Image();
             if (!double.IsNaN(placeholder.ActualWidth) && !double.IsNaN(placeholder.ActualHeight) && placeholder.ActualWidth>0 && placeholder.ActualHeight > 0)
             {
                 Image.Width = placeholder.ActualWidth;
@@ -125,7 +194,223 @@ namespace PolyFract.Gui
                 Origin -= delta;
             });
 
+            
+
             Image.MouseWheel += Image_MouseWheel;
+            */
+
+        }
+
+        private void GlControl_Resize(object? sender, EventArgs e)
+        {
+            GL.Viewport(0, 0, GlControl.Width, GlControl.Height);
+
+            /*
+            double zoom = 0.5;
+            GL.MatrixMode(MatrixMode.Projection);
+            GL.LoadIdentity();
+            GL.Ortho(0, GlControl.Width * zoom, GlControl.Height * zoom, 0, -1, 1); // top-left origin
+            GL.MatrixMode(MatrixMode.Modelview);
+            GL.LoadIdentity();*/
+
+            GL.Ortho(-4, 4, 4, -4, -1, 1);
+
+            GlControl.Invalidate();
+        }
+
+        private void GlControl_Paint(object? sender, PaintEventArgs e)
+        {
+            /*
+            double zoom = 0.5;
+            GL.MatrixMode(MatrixMode.Projection);
+            GL.LoadIdentity();
+            GL.Ortho(0, GlControl.Width * zoom, GlControl.Height * zoom, 0, -1, 1); // top-left origin
+            GL.MatrixMode(MatrixMode.Modelview);
+            GL.LoadIdentity();
+            */
+
+
+
+            if (solver != null)
+            {
+                if (points == null)
+                {
+                    points = new PointVertex[solver.threads.Sum(t => t.real.Length)];
+
+                    vao = GL.GenVertexArray();
+                    vbo = GL.GenBuffer();
+
+                    GL.BindVertexArray(vao);
+                    GL.BindBuffer(BufferTarget.ArrayBuffer, vbo);
+
+                    // Upload raw data:
+                    GL.BufferData(BufferTarget.ArrayBuffer,
+                                  points.Length * Marshal.SizeOf<PointVertex>(),
+                                  points,
+                                  BufferUsageHint.StaticDraw);
+
+                    int stride = Marshal.SizeOf<PointVertex>();
+
+                    // Position attribute (location 0)
+                    GL.EnableVertexAttribArray(0);
+                    GL.VertexAttribPointer(0, 2, VertexAttribPointerType.Float, false,
+                                           stride, 0);
+
+                    // Color attribute (location 1)
+                    GL.EnableVertexAttribArray(1);
+                    GL.VertexAttribPointer(1, 3, VertexAttribPointerType.Float, false,
+                                           stride, Marshal.OffsetOf<PointVertex>("Color"));
+
+                    projectionMatrix = Matrix4.CreateOrthographicOffCenter(-4, 4, 4, -4, -1, 1);
+
+                    shaderProgram = CompileAndLinkShaders();
+                    projLocation = GL.GetUniformLocation(shaderProgram, "projection");
+                }
+
+                int c = 0;
+                foreach (var thread in solver.threads)
+                {
+                    for (int i = 0; i < thread.real.Length; i++)
+                    {
+                        points[c].Position = new Vector2((float)thread.real[i], (float)thread.imaginary[i]);
+                        points[c].Color = new Vector3((float)thread.color_r[i] / 255.0f, (float)thread.color_g[i] / 255.0f, (float)thread.color_b[i] / 255.0f);
+                        c++;
+                    }
+                }
+
+                GL.BufferData(BufferTarget.ArrayBuffer,
+              points.Length * Marshal.SizeOf<PointVertex>(),
+              points,
+              BufferUsageHint.StaticDraw);
+
+                GL.Clear(ClearBufferMask.ColorBufferBit);
+
+                GL.UseProgram(shaderProgram);
+                GL.BindVertexArray(vao);
+
+                GL.UniformMatrix4(projLocation, false, ref projectionMatrix);
+
+                GL.DrawArrays(PrimitiveType.Points, 0, points.Length);
+
+                GlControl.SwapBuffers();
+
+                /*
+            GL.Clear(ClearBufferMask.ColorBufferBit);
+            GL.ClearColor(0, 0.3f, 0, 1.0f);
+
+            GL.PointSize(3.0f);
+            GL.Begin(PrimitiveType.Points);
+                foreach (var thread in solver.threads)
+                {
+                    for (int i = 0; i < thread.real.Length; i++)
+                    {
+                        if (thread.real[i] != Polynomials.ErrorMarker)
+                        {
+                            GL.Color3(thread.color_r[i]/255.0, thread.color_g[i]/255.0, thread.color_b[i]/255.0);
+                            //GL.Color3((int)255*255, (int)0, (int)0);
+                            GL.Vertex2(thread.real[i], thread.imaginary[i]);
+                        }
+                    }
+                }
+            }
+     
+            Random rand = new Random();
+            for (int i = 0; i < 100000; i++)
+            {
+                float x = (float)(rand.NextDouble() *2 - 1);
+                float y = (float)(rand.NextDouble() *2 - 1);
+                GL.Vertex2(x, y);
+            }
+
+                GL.End();
+            GlControl.SwapBuffers();*/
+            }
+        }
+
+        public static int CompileAndLinkShaders()
+        {
+            string vertexSource = @"
+#version 330 core
+
+layout (location = 0) in vec2 aPosition;
+layout (location = 1) in vec3 aColor;
+
+uniform mat4 projection;
+
+out vec3 vColor;
+
+void main()
+{
+    vColor = aColor;
+    gl_PointSize = 3.0;
+    gl_Position = projection * vec4(aPosition, 0.0, 1.0);
+}
+";
+
+            string fragmentSource = @"
+#version 330 core
+
+in vec3 vColor;
+out vec4 outputColor;
+
+void main()
+{
+    outputColor = vec4(vColor, 1.0);
+}
+
+";
+            // Compile vertex shader
+            int vertexShader = GL.CreateShader(ShaderType.VertexShader);
+            GL.ShaderSource(vertexShader, vertexSource);
+            GL.CompileShader(vertexShader);
+
+            GL.GetShader(vertexShader, ShaderParameter.CompileStatus, out int vStatus);
+            if (vStatus != (int)All.True)
+            {
+                string log = GL.GetShaderInfoLog(vertexShader);
+                throw new Exception("Vertex shader compilation failed:\n" + log);
+            }
+
+            // Compile fragment shader
+            int fragmentShader = GL.CreateShader(ShaderType.FragmentShader);
+            GL.ShaderSource(fragmentShader, fragmentSource);
+            GL.CompileShader(fragmentShader);
+
+            GL.GetShader(fragmentShader, ShaderParameter.CompileStatus, out int fStatus);
+            if (fStatus != (int)All.True)
+            {
+                string log = GL.GetShaderInfoLog(fragmentShader);
+                throw new Exception("Fragment shader compilation failed:\n" + log);
+            }
+
+            // Create program and link
+            int program = GL.CreateProgram();
+            GL.AttachShader(program, vertexShader);
+            GL.AttachShader(program, fragmentShader);
+
+            GL.LinkProgram(program);
+
+            GL.GetProgram(program, GetProgramParameterName.LinkStatus, out int linkStatus);
+            if (linkStatus != (int)All.True)
+            {
+                string log = GL.GetProgramInfoLog(program);
+                throw new Exception("Shader program linking failed:\n" + log);
+            }
+
+            // Shaders can be detached and deleted after linking
+            GL.DetachShader(program, vertexShader);
+            GL.DetachShader(program, fragmentShader);
+            GL.DeleteShader(vertexShader);
+            GL.DeleteShader(fragmentShader);
+
+            return program;
+        }
+
+        public void DrawGL(Solver solver, Complex[] coefficients)
+        {
+            this.solver = solver;
+            GlControl.Invalidate();   
+            GlControl.Update();
         }
 
         private void Image_MouseWheel(object sender, System.Windows.Input.MouseWheelEventArgs e)
@@ -191,6 +476,15 @@ namespace PolyFract.Gui
             });
 
             this.coefficients = coefficients;
+
+            if (Host == null)
+                DrawBitmap(solver, coefficients);
+            else
+                DrawGL(solver, coefficients);
+        }
+
+        public void DrawBitmap(Solver solver, Complex[] coefficients)
+        {
             int intensityInt = (int)System.Math.Round(255 * Intensity);
             Bitmap.Lock();
             unsafe
@@ -205,7 +499,8 @@ namespace PolyFract.Gui
                         if (thread.real[i] != Polynomials.ErrorMarker)
                             AddGlyph(pBackBuffer, thread.pixel_x[i], thread.pixel_y[i], rootMarkerInt, thread.color_r[i], thread.color_g[i], thread.color_b[i], intensityInt);
                     }
-                };
+                }
+               
 
                 foreach (var coef in coefficients)
                 {
@@ -303,4 +598,10 @@ namespace PolyFract.Gui
         }
 
      }
+}
+
+struct PointVertex
+{
+    public Vector2 Position;   // float x, y
+    public Vector3 Color;      // float r, g, b
 }

@@ -6,6 +6,10 @@ using System.Windows.Threading;
 using PolyFract.Gui;
 using PolyFract.Maths;
 using PolyFract.Presets;
+using Application = System.Windows.Application;
+using KeyEventArgs = System.Windows.Input.KeyEventArgs;
+using MessageBox = System.Windows.MessageBox;
+using Point = System.Windows.Point;
 
 // TODO:
 // - directx
@@ -240,6 +244,7 @@ namespace PolyFract
 
         private void AttachCoefficiensDragging()
         {
+            /*
             var coefficientsDragging = new DraggingHandler(renderer.Image, (mouse) =>
             {
                 for (int i = 0; i < coefficients.Length; i++)
@@ -260,7 +265,7 @@ namespace PolyFract
             {
                 var delta = new Complex((curr.X - prev.X) / renderer.Zoom, -(curr.Y - prev.Y) / renderer.Zoom);
                 coefficients[draggedCoeffIdx.Value] += delta;
-            });
+            });*/
         }
 
         private void ApplyPreset(BasePreset preset)
