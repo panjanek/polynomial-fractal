@@ -4,8 +4,10 @@ using System.Linq;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Controls;
+using PolyFract.Gui;
 
 
 namespace PolyFract.Maths
@@ -74,13 +76,16 @@ namespace PolyFract.Maths
                               //outputs
                               [Out] double[] roots_r,
                               [Out] double[] roots_i,
-                              [Out] double[] roots_a);
+                              [Out] double[] roots_a,
+                              [Out] int[] color_r,
+                              [Out] int[] color_g,
+                              [Out] int[] color_b);
 
 
         /// <summary>
         /// Finds roots of numbered polynomials from-to and copies roots and angles to roots_r, roots_i, roots_a
         /// </summary>
-        public static void FindRootsForPolys(
+        public static void FindRootsForPolysManaged(
                                       //actual parameters
                                       int from,
                                       int to,
@@ -103,7 +108,10 @@ namespace PolyFract.Maths
                                       //outputs
                                       double[] roots_r, 
                                       double[] roots_i, 
-                                      double[] roots_a)
+                                      double[] roots_a,
+                                      int[] color_r,
+                                      int[] color_g,
+                                      int[] color_b)
         {
             for (int i = from; i < to; i++)
             {
@@ -134,6 +142,13 @@ namespace PolyFract.Maths
                     roots_r[targetIdx] = _z_r[j];
                     roots_i[targetIdx] = _z_i[j];
                     roots_a[targetIdx] = _z_a[j];
+
+                    var h = (int)Math.Round((255 * (Math.PI + roots_a[targetIdx])) / (2 * System.Math.PI));
+                    GuiUtil.HsvToRgb(h, out var r, out var g, out var b);
+
+                    color_r[targetIdx] = r;
+                    color_g[targetIdx] = g;
+                    color_b[targetIdx] = b;
                 }
             }
         }

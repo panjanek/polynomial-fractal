@@ -9,6 +9,7 @@ using PolyFract.Presets;
 
 // TODO:
 // - move hsv colors to c++
+// pararelize ToPixelCoords
 
 namespace PolyFract
 {

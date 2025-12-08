@@ -1,5 +1,6 @@
 ﻿using System.IO;
 using System.Numerics;
+using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -175,31 +176,20 @@ namespace PolyFract.Gui
             return new Complex((x - Width / 2)/Zoom + Origin.Real, (Height / 2 - y) / Zoom + Origin.Imaginary);
         }
 
-        public void Draw(double[] real, double[] imaginary, double[] angle, Complex[] coefficients)
-        {
-            this.coefficients = coefficients;
-            Array.Fill<byte>(Pixels, 0);
-            for (int i=0;  i< real.Length; i++)
-            {
-                
-                var h = 0.5 + angle[i] / (2*System.Math.PI);
-                GuiUtil.HsvToRgb(h*360, 1, 1, out var r, out var g, out var b);
-                (int x, int y) = ToPixelCoordinates(real[i], imaginary[i]);
-                AddGlyph(x, y, rootMarker, r, g, b, Intensity);
-            }
-
-            foreach (var coef in coefficients)
-            {
-                (int cx, int cy) = ToPixelCoordinates(coef);
-                AddGlyph(cx, cy, coeffMarker, Colors.Red, 1.0, true);
-            }
-
-            Int32Rect rect = new Int32Rect(0, 0, Width, Height);
-            Bitmap.WritePixels(rect, Pixels, Width * 4, 0);
-        }
-
         public void FastDraw(Solver solver, Complex[] coefficients)
         {
+            // compute pixel coordinates
+            Parallel.ForEach(solver.threads, new ParallelOptions() { MaxDegreeOfParallelism = solver.threads.Length }, thread =>
+            {
+                int x, y;
+                for (int i = 0; i < thread.real.Length; i++)
+                {
+                    (x, y) = ToPixelCoordinates(thread.real[i], thread.imaginary[i]);
+                    thread.pixel_x[i] = x;
+                    thread.pixel_y[i] = y;
+                }
+            });
+
             this.coefficients = coefficients;
             int intensityInt = (int)System.Math.Round(255 * Intensity);
             Bitmap.Lock();
@@ -207,22 +197,15 @@ namespace PolyFract.Gui
             {
                 byte* pBackBuffer = (byte*)Bitmap.BackBuffer;
                 int size = Bitmap.BackBufferStride * Bitmap.PixelHeight;
-
                 System.Runtime.CompilerServices.Unsafe.InitBlock(pBackBuffer, 0, (uint)size);
-                //foreach (var thread in solver.threads)
-                var renderingThreadCount = solver.threads.Length;
-                renderingThreadCount = 1;
-                Parallel.ForEach(solver.threads, new ParallelOptions() { MaxDegreeOfParallelism = renderingThreadCount },  thread =>
+                foreach (var thread in solver.threads)
                 {
                     for (int i = 0; i < thread.real.Length; i++)
                     {
-                        var h = 0.5 + thread.angle[i] / (2 * System.Math.PI);
-                        GuiUtil.HsvToRgb(h * 360, 1, 1, out var r, out var g, out var b);
-                        (int x, int y) = ToPixelCoordinates(thread.real[i], thread.imaginary[i]);
                         if (thread.real[i] != FastDurandKernerHelperNoComplex.ErrorMarker)
-                            AddGlyph(pBackBuffer, x, y, rootMarkerInt, r, g, b, intensityInt);
+                            AddGlyph(pBackBuffer, thread.pixel_x[i], thread.pixel_y[i], rootMarkerInt, thread.color_r[i], thread.color_g[i], thread.color_b[i], intensityInt);
                     }
-                });
+                };
 
                 foreach (var coef in coefficients)
                 {

@@ -56,39 +56,6 @@ static inline double Magnitude(double xr, double xi) noexcept {
     return std::sqrt(mag2(xr, xi));
 }
 
-/*
-double Magnitude(double a, double b)
-{
-    // Using
-    //   sqrt(a^2 + b^2) = |a| * sqrt(1 + (b/a)^2)
-    // we can factor out the larger component to dodge overflow even when a * a would overflow.
-
-    a = std::abs(a);
-    b = std::abs(b);
-
-    double small, large;
-    if (a < b)
-    {
-        small = a;
-        large = b;
-    }
-    else
-    {
-        small = b;
-        large = a;
-    }
-
-    if (small == 0.0)
-    {
-        return (large);
-    }
-    else
-    {
-        double ratio = small / large;
-        return (large * std::sqrt(1.0 + ratio * ratio));
-    }
-}*/
-
 double UltraFastAtan2(double y, double x)
 {
     double absY = std::abs(y) + 1e-10f;
@@ -158,15 +125,6 @@ void FindRoots(
     // monic: [1, b1, ..., bn] for z^n + b1*z^(n-1) + ... + bn
     _monic_r[0] = 1;
     _monic_i[0] = 0;
-
-    /*
-    for (int i = 1; i <= n; i++)
-    {
-        //_monic[i] = coeffsDescending[i] / a0;
-        double div = a0_r * a0_r + a0_i * a0_i;
-        _monic_r[i] = (poly_r[i] * a0_r + poly_i[i] * a0_i) / div;
-        _monic_i[i] = (poly_i[i] * a0_r - poly_r[i] * a0_i) / div;
-    }*/
 
     for (int i = 1; i <= n; ++i) {
         // complex division poly[i] / a0  => (p * conj(a0)) / |a0|^2
@@ -302,6 +260,34 @@ void FindRoots(
     }
 }
 
+void HsvToRgb(int h, int& r, int& g, int& b)
+{
+    if (h < 0)
+        h = 0;
+
+    if (h > 255)
+        h = 255;
+
+    int x = h * 6;
+    int sector = x >> 8;
+    int frac = x & 255;
+
+    int p = 0;
+    int q = 255 - frac;
+    int t = frac;
+
+    switch (sector)
+    {
+    case 0: r = 255; g = t; b = 0; return;
+    case 1: r = q; g = 255; b = 0; return;
+    case 2: r = 0; g = 255; b = t; return;
+    case 3: r = 0; g = q; b = 255; return;
+    case 4: r = t; g = 0; b = 255; return;
+    default:
+    case 5: r = 255; g = 0; b = q; return;
+    }
+}
+
 extern "C"
 {
     __declspec(dllexport)
@@ -330,17 +316,19 @@ extern "C"
             //outputs
             double* roots_r,
             double* roots_i,
-            double* roots_a)
+            double* roots_a,
+            int* color_r,
+            int* color_g,
+            int* color_b)
     {
-        //int order = _poly_len - 1;
-        //#pragma omp parallel
-        //omp_set_num_threads(2);
+        int r, g, b, polyIdx, coeffIdx, targetFirstIdx, targetIdx, h;
+        double angle;
         for (int i = from; i < to; i++)
         {
-            int polyIdx = i;
+            polyIdx = i;
             for (int j = 0; j < _poly_len; j++)
             {
-                int coeffIdx = polyIdx % coeffsvalues_len;
+                coeffIdx = polyIdx % coeffsvalues_len;
                 polyIdx = polyIdx / coeffsvalues_len;
                 _poly_r[j] = coeffsvalues_r[coeffIdx];
                 _poly_i[j] = coeffsvalues_i[coeffIdx];
@@ -359,13 +347,19 @@ extern "C"
                 _newZ_r,
                 _newZ_i);
 
-            int targetFirstIdx = (i - from) * _poly_len;
+            targetFirstIdx = (i - from) * _poly_len;
             for (int j = 0; j < _poly_len; j++)
             {
-                int targetIdx = targetFirstIdx + j;
+                targetIdx = targetFirstIdx + j;
+                angle = _z_a[j];
                 roots_r[targetIdx] = _z_r[j];
                 roots_i[targetIdx] = _z_i[j];
-                roots_a[targetIdx] = _z_a[j];
+                roots_a[targetIdx] = angle;
+                h = std::lroundl((255 * (M_PI + angle)) / (2 * M_PI));
+                HsvToRgb(h, r, g, b);
+                color_r[targetIdx] = r;
+                color_g[targetIdx] = g;
+                color_b[targetIdx] = b;
             }
         }
     }

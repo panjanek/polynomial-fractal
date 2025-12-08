@@ -49,6 +49,11 @@ namespace PolyFract.Maths
                 threads[t].real = new double[rootsInThisThread];
                 threads[t].imaginary = new double[rootsInThisThread];
                 threads[t].angle = new double[rootsInThisThread];
+                threads[t].color_r = new int[rootsInThisThread];
+                threads[t].color_g = new int[rootsInThisThread];
+                threads[t].color_b = new int[rootsInThisThread];
+                threads[t].pixel_x = new int[rootsInThisThread];
+                threads[t].pixel_y = new int[rootsInThisThread];
 
                 //buffers for solving algorithm
                 threads[t]._monic_r = new double[order + 1];
@@ -88,31 +93,33 @@ namespace PolyFract.Maths
 
     public class ThreadContext
     {
+        // numbered polynomials for this thread
         public int from;
-
         public int to;
 
-        public double[] poly_r;
-
-        public double[] poly_i;
-
-        public double[] coeffs_r;
-
-        public double[] coeffs_i;
-
+        // max degree of polynomial
         public int order;
 
+        //number of roots that were incorrectly estimated (should be below 1%)
         public int errorsCount;
 
+        // coefficient values to be used
+        public double[] coeffs_r;
+        public double[] coeffs_i;
+
+        // preallocated buffer for actual polynomial
+        public double[] poly_r;
+        public double[] poly_i;
+
+        // output of the solver
         public double[] real;
-
         public double[] imaginary;
-
         public double[] angle;
+        public int[] color_r;
+        public int[] color_g;
+        public int[] color_b;
 
-        /// <summary>
-        /// variables allocated for DurandKerner helper
-        /// </summary>
+        // variables allocated for DurandKerner helper
         public double[] _poly_r;
         public double[] _poly_i;
         public double[] _monic_r;
@@ -123,6 +130,9 @@ namespace PolyFract.Maths
         public double[] _newZ_r;
         public double[] _newZ_i;
 
+        //pre allocated buffer for pixel coords
+        public int[] pixel_x;
+        public int[] pixel_y;
 
         public void Run()
         {
@@ -153,11 +163,14 @@ namespace PolyFract.Maths
                           //output
                           real,
                           imaginary,
-                          angle);
+                          angle,
+                          color_r,
+                          color_g,
+                          color_b);
             }
             else
             {
-                FastDurandKernerHelperNoComplex.FindRootsForPolys(
+                FastDurandKernerHelperNoComplex.FindRootsForPolysManaged(
                               //actual parameters
                               from,
                               to,
@@ -180,7 +193,10 @@ namespace PolyFract.Maths
                               //output
                               real,
                               imaginary,
-                              angle);
+                              angle,
+                              color_r,
+                              color_g,
+                              color_b);
             }
 
             errorsCount = real.Count(r => r == FastDurandKernerHelperNoComplex.ErrorMarker);
