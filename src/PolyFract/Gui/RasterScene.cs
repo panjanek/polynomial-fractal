@@ -176,7 +176,7 @@ namespace PolyFract.Gui
             return new Complex((x - Width / 2)/Zoom + Origin.Real, (Height / 2 - y) / Zoom + Origin.Imaginary);
         }
 
-        public void FastDraw(Solver solver, Complex[] coefficients)
+        public void Draw(Solver solver, Complex[] coefficients)
         {
             // compute pixel coordinates
             Parallel.ForEach(solver.threads, new ParallelOptions() { MaxDegreeOfParallelism = solver.threads.Length }, thread =>
@@ -202,7 +202,7 @@ namespace PolyFract.Gui
                 {
                     for (int i = 0; i < thread.real.Length; i++)
                     {
-                        if (thread.real[i] != FastDurandKernerHelperNoComplex.ErrorMarker)
+                        if (thread.real[i] != Polynomials.ErrorMarker)
                             AddGlyph(pBackBuffer, thread.pixel_x[i], thread.pixel_y[i], rootMarkerInt, thread.color_r[i], thread.color_g[i], thread.color_b[i], intensityInt);
                     }
                 };
@@ -260,53 +260,6 @@ namespace PolyFract.Gui
                 pBackBuffer[coord + 0] = Blend(pBackBuffer[coord + 0], b);
                 pBackBuffer[coord + 1] = Blend(pBackBuffer[coord + 1], g);
                 pBackBuffer[coord + 2] = Blend(pBackBuffer[coord + 2], r);
-            }
-
-            Pixels[coord + 3] = 255;
-        }
-
-        private void AddGlyph(int cx, int cy, double[,] map, System.Windows.Media.Color color, double intensity = 1.0, bool overwrite = false)
-        {
-            AddGlyph(cx, cy, map, color.R, color.G, color.B, intensity, overwrite);
-        }
-
-        private void AddGlyph(int cx, int cy, double[,] map, int r, int g, int b, double intensity = 1.0, bool overwrite = false)
-        {
-            for (int mx = 0; mx < map.GetLength(0); mx++)
-            {
-                for (int my = 0; my < map.GetLength(1); my++)
-                {
-                    var strength = map[mx, my];
-                    int x = cx - map.GetLength(0) / 2 + mx;
-                    int y = cy - map.GetLength(1) / 2 + my;
-                    if (x >= 0 && y >= 0 && x < Width && y < Height)
-                    {
-                        int coord = y * Width + x << 2;
-                        var cr = (int)System.Math.Round(r * strength * intensity);
-                        var cg = (int)System.Math.Round(g * strength * intensity);
-                        var cb = (int)System.Math.Round(b * strength * intensity);
-                        AddPixel(coord, cr, cg, cb, overwrite);
-                    }
-                }
-            }
-        }
-
-        private void AddPixel(int coord, int r, int g, int b, bool overwrite = false)
-        {
-            if (overwrite)
-            {
-                if (b != 0 || g != 0 || r != 0)
-                {
-                    Pixels[coord + 0] = (byte)b;
-                    Pixels[coord + 1] = (byte)g;
-                    Pixels[coord + 2] = (byte)r;
-                }
-            }
-            else
-            {
-                Pixels[coord + 0] = Blend(Pixels[coord + 0], b);
-                Pixels[coord + 1] = Blend(Pixels[coord + 1], g);
-                Pixels[coord + 2] = Blend(Pixels[coord + 2], r);
             }
 
             Pixels[coord + 3] = 255;

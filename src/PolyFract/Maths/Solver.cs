@@ -136,9 +136,9 @@ namespace PolyFract.Maths
 
         public void Run()
         {
-            if (FastDurandKernerHelperNoComplex.IsNativeLibAvailable)
+            if (Polynomials.IsNativeLibAvailable)
             {
-                FastDurandKernerHelperNoComplex.FindRootsForPolys(
+                Polynomials.FindRootsForPolys(
                           //actual parameters
                           from,
                           to,
@@ -170,7 +170,7 @@ namespace PolyFract.Maths
             }
             else
             {
-                FastDurandKernerHelperNoComplex.FindRootsForPolysManaged(
+                Polynomials.FindRootsForPolysManaged(
                               //actual parameters
                               from,
                               to,
@@ -199,7 +199,7 @@ namespace PolyFract.Maths
                               color_b);
             }
 
-            errorsCount = real.Count(r => r == FastDurandKernerHelperNoComplex.ErrorMarker);
+            errorsCount = real.Count(r => r == Polynomials.ErrorMarker);
         }
     }
 }

@@ -8,8 +8,7 @@ using PolyFract.Maths;
 using PolyFract.Presets;
 
 // TODO:
-// - move hsv colors to c++
-// pararelize ToPixelCoords
+// - directx
 
 namespace PolyFract
 {
@@ -18,7 +17,6 @@ namespace PolyFract
     /// </summary>
     public partial class MainWindow : Window
     {
-
         public const int MaxPixelCount = 10000000;
 
         public const double DefaultZoom = 300;
@@ -34,8 +32,6 @@ namespace PolyFract
         private long frameCount;
 
         private double dt = 0.0005;
-
-        //private double t = 0;
 
         public DateTime tStart = DateTime.Now;
 
@@ -65,7 +61,7 @@ namespace PolyFract
         public MainWindow()
         {
             InitializeComponent();
-            FastDurandKernerHelperNoComplex.InitNative();
+            Polynomials.InitNative();
 
             scene = new RasterScene(placeholder);
             scene.DraggedOrZoommed = () => { contextMenu.menuAutoPOV.IsChecked = false; UpdateContextMenu(); };
@@ -157,9 +153,6 @@ namespace PolyFract
                     solver = new Solver(coefficients.Length, order);
                 solver.Solve(coefficients);
 
-                
-
-
                 if (Application.Current?.Dispatcher != null && !uiPending)
                 {
                     uiPending = true;
@@ -174,7 +167,7 @@ namespace PolyFract
                                 {
                                     if (scene != null && solver != null)
                                     {
-                                        scene.FastDraw(solver, contextMenu.menuShowCoeff.IsChecked ? coefficients : []);
+                                        scene.Draw(solver, contextMenu.menuShowCoeff.IsChecked ? coefficients : []);
                                         frameCount++;
                                     }
                                 }
@@ -362,7 +355,6 @@ namespace PolyFract
                         scene.Origin = last.Pov.Origin;
                         scene.Zoom = last.Pov.Zoom;
                         coefficients = last.Coeffs;
-                        //t = last.Pov.Time;
                     }
                     break;
                 case Key.F:
@@ -387,7 +379,6 @@ namespace PolyFract
                 fullscreen.ContentHost.Content = placeholder;
                 scene.Reset(placeholder);
                 fullscreen.ShowDialog();
-
             }
             else
             {
@@ -427,7 +418,7 @@ namespace PolyFract
                         $"coeffsCount: {coefficients.Length} "+
                         $"threads: {Environment.ProcessorCount} " +
                         $"errors: {solver?.GetErrorsCount()} ({(100.0 * solver?.GetErrorsCount() / pixelsCount)?.ToString("0.00000")}%) "+
-                        $"solver: {(FastDurandKernerHelperNoComplex.IsNativeLibAvailable ? "[native]" : "[managed]")}";
+                        $"solver: {(Polynomials.IsNativeLibAvailable ? "[native]" : "[managed]")}";
             }
 
             lastCheckFrameCount = frameCount;
@@ -437,7 +428,7 @@ namespace PolyFract
         private void AutoCoefficientsChange()
         {
             var newCoeff = currentPreset.GetCoefficients(GetTime());
-                coefficients = newCoeff;
+            coefficients = newCoeff;
         }
 
         private void AutoPointOfViewMove()

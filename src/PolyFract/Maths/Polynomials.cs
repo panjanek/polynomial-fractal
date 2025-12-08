@@ -12,7 +12,7 @@ using PolyFract.Gui;
 
 namespace PolyFract.Maths
 {
-    public static class FastDurandKernerHelperNoComplex
+    public static class Polynomials
     {
         public const int MaxIterations = 32;
 
@@ -81,10 +81,7 @@ namespace PolyFract.Maths
                               [Out] int[] color_g,
                               [Out] int[] color_b);
 
-
-        /// <summary>
-        /// Finds roots of numbered polynomials from-to and copies roots and angles to roots_r, roots_i, roots_a
-        /// </summary>
+        // managed code implementation used if native code library could not be loaded
         public static void FindRootsForPolysManaged(
                                       //actual parameters
                                       int from,
@@ -153,11 +150,7 @@ namespace PolyFract.Maths
             }
         }
 
-        /// <summary>
-        /// Find roots of polynomial with complex coefficients using Durand–Kerner.
-        /// coeffsDescending: a0*z^n + a1*z^(n-1) + ... + an
-        /// Returns roots in a new array (but you can also pass in a buffer if you want).
-        /// </summary>
+        // managed code implementation used if native code library could not be loaded
         public static void FindRoots(
             //polynomial to solve
             double[] poly_r,
