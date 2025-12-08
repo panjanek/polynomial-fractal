@@ -157,6 +157,10 @@ namespace PolyFract
                     solver = new Solver(coefficients.Length, order);
                 solver.Solve(coefficients);
 
+
+                renderer.DrawGL(solver, coefficients);
+                frameCount++;
+                /*
                 if (Application.Current?.Dispatcher != null && !uiPending)
                 {
                     uiPending = true;
@@ -189,8 +193,8 @@ namespace PolyFract
                     {
                         Console.WriteLine(ex);
                     }
-                }
-                
+                }*/
+
             }
         }
 

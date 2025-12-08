@@ -277,11 +277,21 @@ namespace PolyFract.Gui
                         c++;
                     }
                 }
-
+                /*
                 GL.BufferData(BufferTarget.ArrayBuffer,
-              points.Length * Marshal.SizeOf<PointVertex>(),
-              points,
-              BufferUsageHint.StaticDraw);
+                  points.Length * Marshal.SizeOf<PointVertex>(),
+                  points,
+                  BufferUsageHint.StaticDraw);
+                */
+                GL.BindBuffer(BufferTarget.ArrayBuffer, vbo);
+
+                // Update the whole buffer (most common case):
+                GL.BufferSubData(
+                    BufferTarget.ArrayBuffer,
+                    IntPtr.Zero,
+                    points.Length * Marshal.SizeOf<PointVertex>(),
+                    points
+                );
 
                 GL.Clear(ClearBufferMask.ColorBufferBit);
 
@@ -410,7 +420,7 @@ void main()
         {
             this.solver = solver;
             GlControl.Invalidate();   
-            GlControl.Update();
+            //GlControl.Update();
         }
 
         private void Image_MouseWheel(object sender, System.Windows.Input.MouseWheelEventArgs e)

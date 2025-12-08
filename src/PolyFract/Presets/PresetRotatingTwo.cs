@@ -12,7 +12,7 @@ namespace PolyFract.Presets
     {
         public override string Name => "Rotating two";
 
-        public override int Order => 10;
+        public override int Order => 14;
 
         public override double DT => 0.01;
 
