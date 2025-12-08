@@ -21,7 +21,7 @@ namespace PolyFract
 
         public const double DefaultZoom = 300;
 
-        private RasterScene scene;
+        private PointCloudRenderer renderer;
 
         private DispatcherTimer infoTimer = new DispatcherTimer();
 
@@ -63,8 +63,8 @@ namespace PolyFract
             InitializeComponent();
             Polynomials.InitNative();
 
-            scene = new RasterScene(placeholder);
-            scene.DraggedOrZoommed = () => { contextMenu.menuAutoPOV.IsChecked = false; UpdateContextMenu(); };
+            renderer = new PointCloudRenderer(placeholder);
+            renderer.DraggedOrZoommed = () => { contextMenu.menuAutoPOV.IsChecked = false; UpdateContextMenu(); };
             AttachCoefficiensDragging();
 
             frameCount = 0;
@@ -87,13 +87,13 @@ namespace PolyFract
 
             contextMenu.IntensityChanged = newIntensity =>
             {
-                scene.Intensity = newIntensity;
+                renderer.Intensity = newIntensity;
                 UpdateContextMenu();
             };
 
             contextMenu.OrientationChanged = isVertical =>
             {
-                scene.Reset(placeholder);
+                renderer.Reset(placeholder);
             };
 
             contextMenu.CoefficientCountChanged = newCoefficientCount => {
@@ -110,7 +110,7 @@ namespace PolyFract
             contextMenu.Reset = () => SetDefaultValues();
             contextMenu.CopyPosClicked = () => CopyCoordinatesToClipboard(contextMenu.LastRightClick);
             contextMenu.ToggleRecording = recordingDir => this.recordingDir = recordingDir;
-            contextMenu.SaveCapture = captFileName => scene.SaveToFile(captFileName);
+            contextMenu.SaveCapture = captFileName => renderer.SaveToFile(captFileName);
             contextMenu.PresetSelected = (p, recDir) =>
             {
                 ApplyPreset(p);
@@ -165,9 +165,9 @@ namespace PolyFract
 
                                 try
                                 {
-                                    if (scene != null && solver != null)
+                                    if (renderer != null && solver != null)
                                     {
-                                        scene.Draw(solver, contextMenu.menuShowCoeff.IsChecked ? coefficients : []);
+                                        renderer.Draw(solver, contextMenu.menuShowCoeff.IsChecked ? coefficients : []);
                                         frameCount++;
                                     }
                                 }
@@ -192,12 +192,12 @@ namespace PolyFract
 
         private void Placeholder_SizeChanged(object sender, SizeChangedEventArgs e)
         {
-            scene.Reset(placeholder);
+            renderer.Reset(placeholder);
             AttachCoefficiensDragging();
             if (e.PreviousSize.Width > 0 && e.NewSize.Width > 0)
             {
                 var zoomCorrection = e.NewSize.Width / e.PreviousSize.Width;
-                scene.Zoom *= zoomCorrection;
+                renderer.Zoom *= zoomCorrection;
             }
         }
 
@@ -213,14 +213,14 @@ namespace PolyFract
 
         private void CopyCoordinatesToClipboard(Point clikPoint)
         {
-            var clickedOrigin = scene.ToComplexCoordinates(clikPoint.X, clikPoint.Y);
+            var clickedOrigin = renderer.ToComplexCoordinates(clikPoint.X, clikPoint.Y);
             string timeStr = GetTime().ToString("0.0000");
-            string zoomStr = scene.Zoom.ToString("0.0");
+            string zoomStr = renderer.Zoom.ToString("0.0");
             string originStr = $"new Complex({clickedOrigin.Real}, {clickedOrigin.Imaginary})";
             string coeffsStr = string.Join(", ", coefficients.Select(c => $"new Complex({c.Real}, {c.Imaginary})"));
             string clipboard = $"AddTimePoint({timeStr}, {originStr}, {zoomStr}, [{coeffsStr}]);";
             System.Windows.Clipboard.SetText(clipboard);
-            redo.Add(new RedoItem() { Coeffs = coefficients.ToArray(), Pov = new PointOfView(scene.Origin, scene.Zoom, GetTime()) });
+            redo.Add(new RedoItem() { Coeffs = coefficients.ToArray(), Pov = new PointOfView(renderer.Origin, renderer.Zoom, GetTime()) });
         }
 
         private void ChangeCoefficientsCount(int newCoefficientCount)
@@ -240,13 +240,13 @@ namespace PolyFract
 
         private void AttachCoefficiensDragging()
         {
-            var coefficientsDragging = new DraggingHandler(scene.Image, (mouse) =>
+            var coefficientsDragging = new DraggingHandler(renderer.Image, (mouse) =>
             {
                 for (int i = 0; i < coefficients.Length; i++)
                 {
                     var coeff = coefficients[i];
-                    (var markerX, var markerY) = scene.ToPixelCoordinates(coeff);
-                    if (MathUtil.IsInSquare(mouse.X, mouse.Y, markerX, markerY, RasterScene.MarkerRadius))
+                    (var markerX, var markerY) = renderer.ToPixelCoordinates(coeff);
+                    if (MathUtil.IsInSquare(mouse.X, mouse.Y, markerX, markerY, PointCloudRenderer.MarkerRadius))
                     {
                         draggedCoeffIdx = i;
                         contextMenu.menuAutoCoeff.IsChecked = false;
@@ -258,7 +258,7 @@ namespace PolyFract
                 return false;
             }, (prev, curr) =>
             {
-                var delta = new Complex((curr.X - prev.X) / scene.Zoom, -(curr.Y - prev.Y) / scene.Zoom);
+                var delta = new Complex((curr.X - prev.X) / renderer.Zoom, -(curr.Y - prev.Y) / renderer.Zoom);
                 coefficients[draggedCoeffIdx.Value] += delta;
             });
         }
@@ -268,7 +268,7 @@ namespace PolyFract
             currentPreset = preset;
             order = preset.Order;
             dt = preset.DT;
-            scene.Intensity = preset.Intensity;
+            renderer.Intensity = preset.Intensity;
             AutoCoefficientsChange();
 
             ResetTime();
@@ -285,9 +285,9 @@ namespace PolyFract
             coefficients = [new Complex(-1, 0), new Complex(1, 0)];
             contextMenu.menuPaused.IsChecked = false;
             contextMenu.menuShowCoeff.IsChecked = true;
-            scene.Intensity = 1.0;
-            scene.Origin = Complex.Zero;
-            scene.Zoom = DefaultZoom;
+            renderer.Intensity = 1.0;
+            renderer.Origin = Complex.Zero;
+            renderer.Zoom = DefaultZoom;
             recordingDir = null;
             UpdateContextMenu();
         }
@@ -322,15 +322,15 @@ namespace PolyFract
                         ChangeCoefficientsCount(coefficients.Length + 1);
                     break;
                 case Key.C:
-                    CopyCoordinatesToClipboard(Mouse.GetPosition(scene.Image));
+                    CopyCoordinatesToClipboard(Mouse.GetPosition(renderer.Image));
                     break;
                 case Key.O:
-                    if (scene.Intensity > 0.01)
-                        scene.Intensity -= 0.01;
+                    if (renderer.Intensity > 0.01)
+                        renderer.Intensity -= 0.01;
                     break;
                 case Key.P:
-                    if (scene.Intensity < 1.0)
-                        scene.Intensity += 0.01;
+                    if (renderer.Intensity < 1.0)
+                        renderer.Intensity += 0.01;
                     break;
                 case Key.D1: 
                     ApplyPreset(BasePreset.AllPresets[0]); 
@@ -352,8 +352,8 @@ namespace PolyFract
                     {
                         var last = redo.Last();
                         redo = redo.Take(redo.Count - 1).ToList();
-                        scene.Origin = last.Pov.Origin;
-                        scene.Zoom = last.Pov.Zoom;
+                        renderer.Origin = last.Pov.Origin;
+                        renderer.Zoom = last.Pov.Zoom;
                         coefficients = last.Coeffs;
                     }
                     break;
@@ -377,7 +377,7 @@ namespace PolyFract
                 fullscreen = new FullscreenWindow();
                 fullscreen.KeyDown += MainWindow_KeyDown;
                 fullscreen.ContentHost.Content = placeholder;
-                scene.Reset(placeholder);
+                renderer.Reset(placeholder);
                 fullscreen.ShowDialog();
             }
             else
@@ -386,7 +386,7 @@ namespace PolyFract
                 parent.Children.Add(placeholder);
                 fullscreen.Close();
                 fullscreen = null;
-                scene.Reset(placeholder);
+                renderer.Reset(placeholder);
             }
         }
 
@@ -398,10 +398,10 @@ namespace PolyFract
             if (timespan.TotalSeconds >= 0.0001)
             {
                 double fps = frames / timespan.TotalSeconds;
-                var pos = Mouse.GetPosition(scene.Image);
-                var mouseComplex = scene.ToComplexCoordinates(pos.X, pos.Y);
+                var pos = Mouse.GetPosition(renderer.Image);
+                var mouseComplex = renderer.ToComplexCoordinates(pos.X, pos.Y);
                 var mouseStr = $"r:{mouseComplex.Real.ToString("0.0000")},i:{mouseComplex.Imaginary.ToString("0.0000")}";
-                var originStr = $"r={scene.Origin.Real.ToString("0.0000")},i={scene.Origin.Imaginary.ToString("0.0000")}";
+                var originStr = $"r={renderer.Origin.Real.ToString("0.0000")},i={renderer.Origin.Imaginary.ToString("0.0000")}";
                 long pixelsCount = MathUtil.IntegerPower(coefficients.Length, order) * order;
                 Title = $"PolyFract. " +
                         $"{(contextMenu.menuPaused.IsChecked ? "[pause] " : "")} " +
@@ -411,8 +411,8 @@ namespace PolyFract
                         $"frameCount:{frameCount} " +
                         $"fps:{fps.ToString("0.00")} " +
                         $"mouse:({mouseStr}) origin:({originStr}) " +
-                        $"zoom:{scene.Zoom.ToString("0.00")} " +
-                        $"intensity:{(scene.Intensity*100).ToString("0.0")}% " +
+                        $"zoom:{renderer.Zoom.ToString("0.00")} " +
+                        $"intensity:{(renderer.Intensity*100).ToString("0.0")}% " +
                         $"{(string.IsNullOrWhiteSpace(recordingDir) ? "" : $"recording to:{recordingDir}")} " +
                         $"order: {order} " +
                         $"coeffsCount: {coefficients.Length} "+
@@ -436,12 +436,12 @@ namespace PolyFract
             var newPOV = currentPreset.GetPOV(GetTime());
             if (newPOV != null)
             {
-                scene.Origin = newPOV.Origin;
-                scene.Zoom = newPOV.Zoom;
+                renderer.Origin = newPOV.Origin;
+                renderer.Zoom = newPOV.Zoom;
             }
         }
 
-        private void UpdateContextMenu() => contextMenu.UpdateContextMenu(coefficients.Length, scene.Intensity, order, currentPreset);
+        private void UpdateContextMenu() => contextMenu.UpdateContextMenu(coefficients.Length, renderer.Intensity, order, currentPreset);
     }
 
     public class RedoItem

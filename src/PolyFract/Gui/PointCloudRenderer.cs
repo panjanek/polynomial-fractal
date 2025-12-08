@@ -9,7 +9,7 @@ using PolyFract.Maths;
 
 namespace PolyFract.Gui
 {
-    public class RasterScene
+    public class PointCloudRenderer
     {
         public const int MarkerRadius = 5;
 
@@ -60,7 +60,7 @@ namespace PolyFract.Gui
         int[,] coeffMarkerInt;
         int[,] rootMarkerInt;
 
-        public RasterScene(Panel placeholder)
+        public PointCloudRenderer(Panel placeholder)
         {
             CreateImage(placeholder);
             coeffMarkerInt = DoubleMatrixToInt(coeffMarker);
