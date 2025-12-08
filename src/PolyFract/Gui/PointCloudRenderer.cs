@@ -138,19 +138,14 @@ namespace PolyFract.Gui
             var bottomRight1 = ToComplexCoordinates(Image.Width, Image.Height);
             var zoomCenter = ToComplexCoordinates(Image.Width - pos.X, Image.Height - pos.Y);
 
-            var r1 = bottomRight1.Real - topLeft1.Real;
-            var i1 = bottomRight1.Imaginary - topLeft1.Imaginary;
-            var r2 = r1 * zoomRatio;
-            var i2 = i1 * zoomRatio;
+            var currentSize = bottomRight1 - topLeft1;
+            var newSize = currentSize * zoomRatio;
 
-            var cx = zoomCenter.Real - topLeft1.Real;
-            var bx = cx * r2 / r1;
+            var c = zoomCenter - topLeft1;
+            var b = c * zoomRatio;
 
-            var cy = zoomCenter.Imaginary - topLeft1.Imaginary;
-            var by = cy * i2 / i1;
-
-            var topLeft2 = new Complex(zoomCenter.Real - bx, zoomCenter.Imaginary - by);
-            var bottomRight2 = new Complex(topLeft2.Real + r2, topLeft2.Imaginary + i2);
+            var topLeft2 = zoomCenter - b; 
+            var bottomRight2 = topLeft2 + newSize;  
 
             Origin = (bottomRight2 + topLeft2) / 2;
             Zoom *= zoomRatio;
