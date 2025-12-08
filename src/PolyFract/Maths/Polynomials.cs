@@ -200,7 +200,7 @@ namespace PolyFract.Maths
 
             // ---- Initial guesses in reusable _z ----
             double twoPiOverN = 2.0 * Math.PI / n;
-            for (int k = 0; k < n; k++)
+            for (int k = 0; k <= n; k++)
             {
                 double angle = twoPiOverN * k;
 
@@ -214,7 +214,7 @@ namespace PolyFract.Maths
             {
                 double maxDelta = 0.0;
 
-                for (int i = 0; i < n; i++)
+                for (int i = 0; i <= n; i++)
                 {
                     //Complex zi = _z[i];
                     double zi_r = _z_r[i];
@@ -269,7 +269,7 @@ namespace PolyFract.Maths
                 }
 
                 // swap buffers (_z <= _newZ)
-                for (int i = 0; i < n; i++)
+                for (int i = 0; i <= n; i++)
                 {
                     //_z[i] = _newZ[i];
                     _z_r[i] = _newZ_r[i];

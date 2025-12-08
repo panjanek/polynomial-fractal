@@ -136,13 +136,13 @@ namespace PolyFract.Gui
 
             var topLeft1 = ToComplexCoordinates(0, 0);
             var bottomRight1 = ToComplexCoordinates(Image.Width, Image.Height);
-            var zoomCenter = ToComplexCoordinates(Image.Width - pos.X, Image.Height - pos.Y);
+            var zoomCenter = ToComplexCoordinates(pos.X, pos.Y);
 
             var currentSize = bottomRight1 - topLeft1;
-            var newSize = currentSize * zoomRatio;
+            var newSize = currentSize / zoomRatio;
 
             var c = zoomCenter - topLeft1;
-            var b = c * zoomRatio;
+            var b = c / zoomRatio;
 
             var topLeft2 = zoomCenter - b; 
             var bottomRight2 = topLeft2 + newSize;  

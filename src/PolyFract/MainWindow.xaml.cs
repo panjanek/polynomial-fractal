@@ -231,7 +231,7 @@ namespace PolyFract
                 if (i < coefficients.Length)
                     newCoeff[i] = coefficients[i];
                 else
-                    newCoeff[i] = Complex.FromPolarCoordinates(0.8, (i * 2 * System.Math.PI / 2) / newCoefficientCount);
+                    newCoeff[i] = Complex.FromPolarCoordinates(0.5, (i * 2 * System.Math.PI / 2) / newCoefficientCount);
             }
 
             coefficients = newCoeff;

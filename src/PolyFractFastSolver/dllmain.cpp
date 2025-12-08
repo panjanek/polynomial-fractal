@@ -8,7 +8,7 @@
 
 #define MaxIterations (32)
 #define Tolerance     (1e-10)
-#define ErrorMargin   (0.0001)
+#define ErrorMargin   (0.01)
 #define ErrorMarker   (1000000)
 
 
@@ -150,7 +150,7 @@ void FindRoots(
 
     // ---- Initial guesses in reusable _z ----
     double twoPiOverN = 2.0 * M_PI / n;
-    for (int k = 0; k < n; k++)
+    for (int k = 0; k <= n; k++)
     {
         double angle = twoPiOverN * k;
 
@@ -163,7 +163,7 @@ void FindRoots(
     for (int iter = 0; iter < MaxIterations; iter++)
     {
         double maxDelta2 = 0.0;
-        for (int i = 0; i < n; i++)
+        for (int i = 0; i <= n; i++)
         {
             //Complex zi = _z[i];
             double zi_r = _z_r[i];
@@ -220,7 +220,7 @@ void FindRoots(
         }
 
         // swap buffers (_z <= _newZ)
-        for (int i = 0; i < n; i++)
+        for (int i = 0; i <= n; i++)
         {
             //_z[i] = _newZ[i];
             _z_r[i] = _newZ_r[i];
