@@ -345,11 +345,8 @@ extern "C"
             for (int j = 0; j < _poly_len; j++)
             {
                 targetIdx = targetFirstIdx + j;
-                angle = _z[j].a;
-                roots[targetIdx].r = _z[j].r;
-                roots[targetIdx].i = _z[j].i;
-                roots[targetIdx].a = angle;
-                h = std::lroundl((255 * (M_PI + angle)) / (2 * M_PI));
+                roots[targetIdx] = _z[j];
+                h = std::lroundl((255 * (M_PI + _z[j].a)) / (2 * M_PI));
                 HsvToRgb(h, r, g, b);
                 roots[targetIdx].colorR = r;
                 roots[targetIdx].colorG = g;
