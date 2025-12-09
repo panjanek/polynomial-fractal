@@ -18,24 +18,24 @@ namespace PolyFract.Gui
 
         public WriteableBitmap Bitmap { get; set; }
 
-        public int Width { get; set; }
-
-        public int Height { get; set; }
-
         public double Intensity { get; set; } = 0.5;
-
-        public byte[] Pixels { get; set; }
 
         public Action DraggedOrZoommed { get; set; }
 
+        public Action<int, Complex> CoefficientChanged;
+
         public Complex Origin { get; set; } = Complex.Zero;
         public double Zoom { get; set; } = MainWindow.DefaultZoom;
+
+        private int? coefficientDragged = null;
 
         private Complex[] coefficients = [];
 
         private DraggingHandler dragging;
 
-        double[,] coeffMarker = new double[,]
+        private Panel placeholder;
+
+        private double[,] coeffMarker = new double[,]
             {
                 { 0.0, 0.3, 1.0, 1.0, 1.0, 1.0, 1.0, 0.3, 0.0 },
                 { 0.3, 1.0, 1.0, 0.3, 0.5, 0.3, 1.0, 1.0, 0.3 },
@@ -48,7 +48,7 @@ namespace PolyFract.Gui
                 { 0.0, 0.3, 1.0, 1.0, 1.0, 1.0, 1.0, 0.3, 0.0 },
             };
 
-        double[,] rootMarker = new double[,]
+        private double[,] rootMarker = new double[,]
             {
                 { 0.00, 0.02, 0.05, 0.02, 0.00 },
                 { 0.02, 0.10, 0.20, 0.10, 0.02 },
@@ -57,14 +57,69 @@ namespace PolyFract.Gui
                 { 0.00, 0.02, 0.05, 0.02, 0.00 }
             };
 
-        int[,] coeffMarkerInt;
-        int[,] rootMarkerInt;
+        private int[,] coeffMarkerInt;
+        private int[,] rootMarkerInt;
 
         public PointCloudRenderer(Panel placeholder)
         {
-            CreateImage(placeholder);
+            this.placeholder = placeholder;
+            placeholder.Children.Clear();
+
+            Image = new Image();
+            Image.Visibility = Visibility.Visible;
+            Image.HorizontalAlignment = HorizontalAlignment.Stretch;
+            Image.VerticalAlignment = VerticalAlignment.Stretch;
+            placeholder.Children.Add(Image);
+            Bitmap = new WriteableBitmap((int)placeholder.ActualWidth, (int)placeholder.ActualHeight, 96, 96, System.Windows.Media.PixelFormats.Bgr32, null);
+            Image.Source = Bitmap;
             coeffMarkerInt = DoubleMatrixToInt(coeffMarker);
             rootMarkerInt = DoubleMatrixToInt(rootMarker);
+
+            placeholder.SizeChanged += Placeholder_SizeChanged;
+            dragging = new DraggingHandler(placeholder, mouse =>
+            {
+                for (int i=0; i<coefficients.Length; i++)
+                {
+                    var coeff = coefficients[i];
+                    (var markerX, var markerY) = ToPixelCoordinates(coeff);
+                    if (MathUtil.IsInSquare(mouse.X, mouse.Y, markerX, markerY, MarkerRadius))
+                    {
+                        coefficientDragged = i;
+                        return true;
+                    }
+                }
+
+                coefficientDragged = null;
+                if (DraggedOrZoommed != null)
+                    DraggedOrZoommed();
+                return true;
+
+            }, (prev, curr) =>
+            {
+                var delta = new Complex((curr.X - prev.X) / Zoom, -(curr.Y - prev.Y) / Zoom);
+                if (coefficientDragged.HasValue)
+                {
+                    if (CoefficientChanged != null)
+                        CoefficientChanged(coefficientDragged.Value, delta);
+                }
+                else
+                {
+                    Origin -= delta;
+                }
+            });
+
+            placeholder.MouseWheel += Image_MouseWheel;
+        }
+
+        private void Placeholder_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            Bitmap = new WriteableBitmap((int)placeholder.ActualWidth, (int)placeholder.ActualHeight, 96, 96, System.Windows.Media.PixelFormats.Bgr32, null);
+            Image.Source = Bitmap;
+            if (e.PreviousSize.Width > 0 && e.NewSize.Width > 0)
+            {
+                var zoomCorrection = e.NewSize.Width / e.PreviousSize.Width;
+                Zoom *= zoomCorrection;
+            }
         }
 
         private int[,] DoubleMatrixToInt(double[,] matrix)
@@ -76,58 +131,6 @@ namespace PolyFract.Gui
             return result;
         }
 
-        public void Reset(Panel placeholder)
-        {
-            
-            CreateImage(placeholder);
-        }
-
-        public void CreateImage(Panel placeholder)
-        {
-            placeholder.Children.Clear();
-            Image = new Image();
-            if (!double.IsNaN(placeholder.ActualWidth) && !double.IsNaN(placeholder.ActualHeight) && placeholder.ActualWidth>0 && placeholder.ActualHeight > 0)
-            {
-                Image.Width = placeholder.ActualWidth;
-                Image.Height = placeholder.ActualHeight;
-            }
-            else
-            {
-                Image.Width = 1920;
-                Image.Height = 1080;
-            }
-
-            Image.Visibility = Visibility.Visible;
-            placeholder.Children.Add(Image);
-
-            Width = (int)Image.Width;
-            Height = (int)Image.Height;
-            Bitmap = new WriteableBitmap(Width, Height, 96, 96, System.Windows.Media.PixelFormats.Bgr32, null);
-            Image.Source = Bitmap;
-            Pixels = ClearRasterImage();
-
-            dragging = new DraggingHandler(Image, mouse =>
-            {
-                foreach (var coeff in coefficients)
-                {
-                    (var markerX, var markerY) = ToPixelCoordinates(coeff);
-                    if (MathUtil.IsInSquare(mouse.X, mouse.Y, markerX, markerY, MarkerRadius))
-                        return false;
-                }
-
-                if (DraggedOrZoommed != null)
-                    DraggedOrZoommed();
-                return true;
-
-            }, (prev, curr) =>
-            {
-                var delta = new Complex((curr.X - prev.X) / Zoom, -(curr.Y - prev.Y) / Zoom);
-                Origin -= delta;
-            });
-
-            Image.MouseWheel += Image_MouseWheel;
-        }
-
         private void Image_MouseWheel(object sender, System.Windows.Input.MouseWheelEventArgs e)
         {
             var pos = e.GetPosition(Image);
@@ -135,7 +138,7 @@ namespace PolyFract.Gui
             double zoomRatio = 1.0 + ZoomingSpeed * e.Delta;
 
             var topLeft1 = ToComplexCoordinates(0, 0);
-            var bottomRight1 = ToComplexCoordinates(Image.Width, Image.Height);
+            var bottomRight1 = ToComplexCoordinates(placeholder.ActualWidth, placeholder.ActualHeight);
             var zoomCenter = ToComplexCoordinates(pos.X, pos.Y);
 
             var currentSize = bottomRight1 - topLeft1;
@@ -161,14 +164,14 @@ namespace PolyFract.Gui
 
         public (int x, int y) ToPixelCoordinates(double real, double imaginary)
         {
-            int ix = (int)System.Math.Round(Width / 2 + (real - Origin.Real) * Zoom);
-            int iy = (int)System.Math.Round(Height / 2 - (imaginary - Origin.Imaginary) * Zoom);
+            int ix = (int)System.Math.Round(placeholder.ActualWidth / 2 + (real - Origin.Real) * Zoom);
+            int iy = (int)System.Math.Round(placeholder.ActualHeight / 2 - (imaginary - Origin.Imaginary) * Zoom);
             return (ix, iy);
         }
 
         public Complex ToComplexCoordinates(double x, double y)
         {
-            return new Complex((x - Width / 2)/Zoom + Origin.Real, (Height / 2 - y) / Zoom + Origin.Imaginary);
+            return new Complex((x - placeholder.ActualWidth / 2)/Zoom + Origin.Real, (placeholder.ActualHeight / 2 - y) / Zoom + Origin.Imaginary);
         }
 
         public void Draw(Solver solver, Complex[] coefficients)
@@ -239,9 +242,9 @@ namespace PolyFract.Gui
                     var strength = map[mx, my];
                     int x = cx - map.GetLength(0) / 2 + mx;
                     int y = cy - map.GetLength(1) / 2 + my;
-                    if (x >= 0 && y >= 0 && x < Width && y < Height)
+                    if (x >= 0 && y >= 0 && x < Bitmap.PixelWidth && y < Bitmap.PixelHeight)
                     {
-                        int coord = y * Width + x << 2;
+                        int coord = y * Bitmap.PixelWidth + x << 2;
                         var cr = (r * strength * intensity) >> 16;
                         var cg = (g * strength * intensity) >> 16;
                         var cb = (b * strength * intensity) >> 16;
@@ -269,7 +272,7 @@ namespace PolyFract.Gui
                 pBackBuffer[coord + 2] = Blend(pBackBuffer[coord + 2], r);
             }
 
-            Pixels[coord + 3] = 255;
+            pBackBuffer[coord + 3] = 255;
         }
 
         private byte Blend(int src, int dst)
@@ -278,25 +281,6 @@ namespace PolyFract.Gui
             if (res > 255)
                 res = 255;
             return (byte)res;
-        }
-
-        private byte[] ClearRasterImage()
-        {
-            byte[] pixels1d = new byte[Width * Height * 4];
-            for (int y = 0; y < Height; y++)
-            {
-                for (int x = 0; x < Width; x++)
-                {
-                    pixels1d[(y * Width + x) * 4 + 0] = 0;
-                    pixels1d[(y * Width + x) * 4 + 1] = 0;
-                    pixels1d[(y * Width + x) * 4 + 2] = 0;
-                    pixels1d[(y * Width + x) * 4 + 3] = 255;
-                }
-            }
-
-            Int32Rect rect = new Int32Rect(0, 0, Width, Height);
-            Bitmap.WritePixels(rect, pixels1d, 4 * Width, 0);
-            return pixels1d;
         }
 
         public void SaveToFile(string fileName)

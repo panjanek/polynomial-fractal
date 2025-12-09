@@ -23,8 +23,6 @@ namespace PolyFract
 
         private PointCloudRenderer renderer;
 
-        private DispatcherTimer infoTimer = new DispatcherTimer();
-
         private Complex[] coefficients = [];
 
         private int order = 4;
@@ -33,9 +31,7 @@ namespace PolyFract
 
         private double dt = 0.0005;
 
-        public DateTime tStart = DateTime.Now;
-
-        private int? draggedCoeffIdx;
+        private DateTime tStart = DateTime.Now;
 
         //combine PNGs into video: ffmpeg -f image2 -framerate 60 -i frame_%05d.png -r 60 -vcodec libx264 -pix_fmt yuv420p out.mp4 -y
         //cut: ffmpeg -ss 00:00:50 -t 00:00:50 -i vert60.mp4 -c copy tiktok.mp4
@@ -52,20 +48,30 @@ namespace PolyFract
 
         private List<RedoItem> redo = [];
 
-        private FullscreenWindow fullscreen = null;
+        private FullscreenWindow fullscreen;
 
-        private Solver solver = null;
+        private Solver solver;
 
-        private volatile bool uiPending = false;
+        private volatile bool uiPending;
 
         public MainWindow()
+            : base()
         {
             InitializeComponent();
             Polynomials.InitNative();
 
+        }
+
+        private void placeholder_Loaded(object sender, RoutedEventArgs e)
+        {
             renderer = new PointCloudRenderer(placeholder);
             renderer.DraggedOrZoommed = () => { contextMenu.menuAutoPOV.IsChecked = false; UpdateContextMenu(); };
-            AttachCoefficiensDragging();
+            renderer.CoefficientChanged = (i, delta) =>
+            {
+                contextMenu.menuAutoCoeff.IsChecked = false;
+                UpdateContextMenu();
+                coefficients[i] += delta;
+            };
 
             frameCount = 0;
             lastCheckTime = DateTime.Now;
@@ -91,11 +97,6 @@ namespace PolyFract
                 UpdateContextMenu();
             };
 
-            contextMenu.OrientationChanged = isVertical =>
-            {
-                renderer.Reset(placeholder);
-            };
-
             contextMenu.CoefficientCountChanged = newCoefficientCount => {
                 var pixelsCount = MathUtil.IntegerPower(newCoefficientCount, order);
                 if (pixelsCount > MaxPixelCount)
@@ -118,14 +119,11 @@ namespace PolyFract
                 recordingDir = recDir;
             };
 
-            
             SetDefaultValues();
-            placeholder.SizeChanged += Placeholder_SizeChanged;
-
-            infoTimer.Interval = TimeSpan.FromSeconds(1.0);
+            DispatcherTimer infoTimer = new DispatcherTimer() { Interval = TimeSpan.FromSeconds(1.0) };
             infoTimer.Tick += InfoTimer_Tick;
-            infoTimer.Start();           
-            
+            infoTimer.Start();
+
             Thread renderThread = new Thread(() =>
             {
                 Worker();
@@ -190,17 +188,6 @@ namespace PolyFract
             }
         }
 
-        private void Placeholder_SizeChanged(object sender, SizeChangedEventArgs e)
-        {
-            renderer.Reset(placeholder);
-            AttachCoefficiensDragging();
-            if (e.PreviousSize.Width > 0 && e.NewSize.Width > 0)
-            {
-                var zoomCorrection = e.NewSize.Width / e.PreviousSize.Width;
-                renderer.Zoom *= zoomCorrection;
-            }
-        }
-
         private void ResetTime()
         {
             tStart = DateTime.Now;
@@ -236,31 +223,6 @@ namespace PolyFract
 
             coefficients = newCoeff;
             UpdateContextMenu();
-        }
-
-        private void AttachCoefficiensDragging()
-        {
-            var coefficientsDragging = new DraggingHandler(renderer.Image, (mouse) =>
-            {
-                for (int i = 0; i < coefficients.Length; i++)
-                {
-                    var coeff = coefficients[i];
-                    (var markerX, var markerY) = renderer.ToPixelCoordinates(coeff);
-                    if (MathUtil.IsInSquare(mouse.X, mouse.Y, markerX, markerY, PointCloudRenderer.MarkerRadius))
-                    {
-                        draggedCoeffIdx = i;
-                        contextMenu.menuAutoCoeff.IsChecked = false;
-                        UpdateContextMenu();
-                        return true;
-                    }
-                }
-
-                return false;
-            }, (prev, curr) =>
-            {
-                var delta = new Complex((curr.X - prev.X) / renderer.Zoom, -(curr.Y - prev.Y) / renderer.Zoom);
-                coefficients[draggedCoeffIdx.Value] += delta;
-            });
         }
 
         private void ApplyPreset(BasePreset preset)
@@ -377,7 +339,6 @@ namespace PolyFract
                 fullscreen = new FullscreenWindow();
                 fullscreen.KeyDown += MainWindow_KeyDown;
                 fullscreen.ContentHost.Content = placeholder;
-                renderer.Reset(placeholder);
                 fullscreen.ShowDialog();
             }
             else
@@ -386,7 +347,6 @@ namespace PolyFract
                 parent.Children.Add(placeholder);
                 fullscreen.Close();
                 fullscreen = null;
-                renderer.Reset(placeholder);
             }
         }
 
