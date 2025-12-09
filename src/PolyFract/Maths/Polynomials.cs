@@ -57,31 +57,20 @@ namespace PolyFract.Maths
                               //actual parameters
                               int from,
                               int to,
-                              [In] double[] coeffsvalues_r,
-                              [In] double[] coeffsvalues_i,
+                              [In] CompactClomplex[] coeffsvalues,
                               int coeffsvalues_len,
 
                               //preallocated buffer for numbered polynomials
-                              [In] double[] _poly_r,
-                              [In] double[] _poly_i,
+                              [In] CompactClomplex[] _poly,
                               int _poly_len,
 
                               //preallocated buffer for kerner-durand
-                              [In] double[] _monic_r,
-                              [In] double[] _monic_i,
-                              [In] double[] _z_r,
-                              [In] double[] _z_i,
-                              [In] double[] _z_a,
-                              [In] double[] _newZ_r,
-                              [In] double[] _newZ_i,
+                              [In] CompactClomplex[] _monic,
+                              [In] CompactClomplexWithAngle[] _z,
+                              [In] CompactClomplex[] _newZ,
 
                               //outputs
-                              [Out] double[] roots_r,
-                              [Out] double[] roots_i,
-                              [Out] double[] roots_a,
-                              [Out] int[] color_r,
-                              [Out] int[] color_g,
-                              [Out] int[] color_b);
+                              [Out] CompactClomplexWithAngle[] roots);
 
         // managed code implementation used if native code library could not be loaded
         public static void FindRootsForPolysManaged(
@@ -356,11 +345,15 @@ namespace PolyFract.Maths
     }
 }
 
+[StructLayout(LayoutKind.Sequential)]
+
 public struct CompactClomplex
 {
     public double r;
     public double i;
 }
+
+[StructLayout(LayoutKind.Sequential)]
 
 public struct CompactClomplexWithAngle
 {

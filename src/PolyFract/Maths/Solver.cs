@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using System.Runtime.InteropServices;
 using System.Windows.Controls.Ribbon;
 
 namespace PolyFract.Maths
@@ -29,7 +30,7 @@ namespace PolyFract.Maths
                 threadCount = 1;
 
 
-            threadCount = 1;
+            //threadCount = 1;
 
             int polysPerThread = polynomialsCount / threadCount;
             threads = new ThreadContext[threadCount];
@@ -120,36 +121,25 @@ namespace PolyFract.Maths
         {
             if (Polynomials.IsNativeLibAvailable)
             {
-                /*
+                
                 Polynomials.FindRootsForPolys(
                           //actual parameters
                           from,
                           to,
-                          coeffs_r,
-                          coeffs_i,
-                          coeffs_r.Length,
+                          coeffs,
+                          coeffs.Length,
 
                           // pre-allocated buffer for numbered polynomials
-                          _poly_r,
-                          _poly_i,
-                          _poly_r.Length,
+                          _poly,
+                          _poly.Length,
 
                           // pre-allocated buffer for durand-kerner implementation
-                          _monic_r,
-                          _monic_i,
-                          _z_r,
-                          _z_i,
-                          _z_a,
-                          _newZ_r,
-                          _newZ_i,
+                          _monic,
+                          _z,
+                          _newZ,
 
                           //output
-                          real,
-                          imaginary,
-                          angle,
-                          color_r,
-                          color_g,
-                          color_b);*/
+                          roots);
             }
             else
             {
@@ -175,6 +165,7 @@ namespace PolyFract.Maths
         }
     }
 
+    [StructLayout(LayoutKind.Sequential)]
 
     public struct CompactPixel
     {

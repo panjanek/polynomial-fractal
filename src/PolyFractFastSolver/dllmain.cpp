@@ -35,6 +35,22 @@ BOOL APIENTRY DllMain( HMODULE hModule,
     return TRUE;
 }
 
+struct CompactClomplex
+{
+    double r;
+    double i;
+};
+
+struct CompactClomplexWithAngle
+{
+    double r;
+    double i;
+    double a;
+    int colorR;
+    int colorG;
+    int colorB;
+};
+
 extern "C"
 {
     __declspec(dllexport)
@@ -75,7 +91,7 @@ double UltraFastAtan2(double y, double x)
     return (y < 0) ? -angle : angle;
 }
 
-double AngleAt(double* coeffs_r, double* coeffs_i, int coeffs_len, double x_r, double x_i)
+double AngleAt(CompactClomplex* coeffs, int coeffs_len, double x_r, double x_i)
 {
     //evaluate derivative at x
     int n = coeffs_len - 1;
@@ -84,8 +100,8 @@ double AngleAt(double* coeffs_r, double* coeffs_i, int coeffs_len, double x_r, d
 
     for (int i = 0; i < n; i++)
     {
-        double d_r_tmp = d_r * x_r - d_i * x_i + coeffs_r[i] * (n - i);
-        double d_i_tmp = d_r * x_i + d_i * x_r + coeffs_i[i] * (n - 1);
+        double d_r_tmp = d_r * x_r - d_i * x_i + coeffs[i].r * (n - i);
+        double d_i_tmp = d_r * x_i + d_i * x_r + coeffs[i].i * (n - 1);
         d_r = d_r_tmp;
         d_i = d_i_tmp;
     }
@@ -96,25 +112,20 @@ double AngleAt(double* coeffs_r, double* coeffs_i, int coeffs_len, double x_r, d
 
 void FindRoots(
     //polynomial to solve
-    double* poly_r,
-    double* poly_i,
+    CompactClomplex* poly,
     int poly_len,
 
     // preallocated buffers
-    double* _monic_r,
-    double* _monic_i,
-    double* _z_r,
-    double* _z_i,
-    double* _z_a,
-    double* _newZ_r,
-    double* _newZ_i)
+    CompactClomplex* _monic,
+    CompactClomplexWithAngle* _z,
+    CompactClomplex* _newZ)
 {
     if (poly_len < 2)
         return;
 
     int n = poly_len - 1;
-    double a0_r = poly_r[0];
-    double a0_i = poly_i[0];
+    double a0_r = poly[0].r;
+    double a0_i = poly[0].i;
     if (a0_r == 0 && a0_i == 0)
         return;
 
@@ -123,18 +134,18 @@ void FindRoots(
 
     // ---- Build monic coefficients into reusable _monic ----
     // monic: [1, b1, ..., bn] for z^n + b1*z^(n-1) + ... + bn
-    _monic_r[0] = 1;
-    _monic_i[0] = 0;
+    _monic[0].r = 1;
+    _monic[0].i = 0;
 
     for (int i = 1; i <= n; ++i) {
         // complex division poly[i] / a0  => (p * conj(a0)) / |a0|^2
-        const double pr = poly_r[i];
-        const double pi = poly_i[i];
+        const double pr = poly[i].r;
+        const double pi = poly[i].i;
         // multiply by conj(a0) = (a0_r - i*a0_i)
         const double num_r = pr * a0_r + pi * a0_i;
         const double num_i = pi * a0_r - pr * a0_i;
-        _monic_r[i] = num_r * inv_a0_mag2;
-        _monic_i[i] = num_i * inv_a0_mag2;
+        _monic[i].r = num_r * inv_a0_mag2;
+        _monic[i].i = num_i * inv_a0_mag2;
     }
 
     // ---- Initial radius ----
@@ -142,7 +153,7 @@ void FindRoots(
     for (int i = 1; i <= n; i++)
     {
         //double m = Magnitude(_monic_r[i], _monic_i[i]); // _monic[i].Magnitude;
-        const double m2 = mag2(_monic_r[i], _monic_i[i]);
+        const double m2 = mag2(_monic[i].r, _monic[i].i);
         if (m2 > maxAbs * maxAbs) 
             maxAbs = std::sqrt(m2);
     }
@@ -155,8 +166,8 @@ void FindRoots(
         double angle = twoPiOverN * k;
 
         //_z[k] = Complex.FromPolarCoordinates(r, angle);
-        _z_r[k] = r * std::cos(angle);
-        _z_i[k] = r * std::sin(angle);
+        _z[k].r = r * std::cos(angle);
+        _z[k].i = r * std::sin(angle);
     }
 
     // ---- Iterations using _z and _newZ ----
@@ -166,18 +177,18 @@ void FindRoots(
         for (int i = 0; i <= n; i++)
         {
             //Complex zi = _z[i];
-            double zi_r = _z_r[i];
-            double zi_i = _z_i[i];
+            double zi_r = _z[i].r;
+            double zi_i = _z[i].i;
 
             // Horner evaluation with monic coeffs
             // Complex p = _monic[0];
-            double p_r = _monic_r[0];
-            double p_i = _monic_i[0];
+            double p_r = _monic[0].r;
+            double p_i = _monic[0].i;
             for (int k = 1; k <= n; k++)
             {
                 //p = p * zi + _monic[k];
-                double p_r_tmp = p_r * zi_r - p_i * zi_i + _monic_r[k];
-                double p_i_tmp = p_r * zi_i + p_i * zi_r + _monic_i[k];
+                double p_r_tmp = p_r * zi_r - p_i * zi_i + _monic[k].r;
+                double p_i_tmp = p_r * zi_i + p_i * zi_r + _monic[k].i;
                 p_r = p_r_tmp;
                 p_i = p_i_tmp;
             }
@@ -191,8 +202,8 @@ void FindRoots(
                     continue;
 
                 //denom *= (zi - _z[j]);
-                double mult_r = zi_r - _z_r[j];
-                double mult_i = zi_i - _z_i[j];
+                double mult_r = zi_r - _z[j].r;
+                double mult_i = zi_i - _z[j].i;
                 double denom_r_tmp = denom_r * mult_r - denom_i * mult_i;
                 double denom_i_tmp = denom_r * mult_i + denom_i * mult_r;
                 denom_r = denom_r_tmp;
@@ -209,8 +220,8 @@ void FindRoots(
             double ziNew_i = zi_i - delta_i;
 
             //_newZ[i] = ziNew;
-            _newZ_r[i] = ziNew_r;
-            _newZ_i[i] = ziNew_i;
+            _newZ[i].r = ziNew_r;
+            _newZ[i].i = ziNew_i;
 
             //double d = delta.Magnitude;
             //double d = Magnitude(delta_r, delta_i);
@@ -223,8 +234,8 @@ void FindRoots(
         for (int i = 0; i <= n; i++)
         {
             //_z[i] = _newZ[i];
-            _z_r[i] = _newZ_r[i];
-            _z_i[i] = _newZ_i[i];
+            _z[i].r = _newZ[i].r;
+            _z[i].i = _newZ[i].i;
         }
 
         //if (maxDelta < Tolerance) break;
@@ -234,29 +245,29 @@ void FindRoots(
     //compute angles
     for (int i = 0; i <= n; i++)
     {
-        _z_a[i] = AngleAt(poly_r, poly_i, poly_len, _z_r[i], _z_i[i]);
+        _z[i].a = AngleAt(poly, poly_len, _z[i].r, _z[i].i);
     }
 
     //remove errors
     for (int i = 0; i <= n; i++)
     {
-        double r_r = _z_r[i];
-        double r_i = _z_i[i];
+        double r_r = _z[i].r;
+        double r_i = _z[i].i;
 
-        double v_r = poly_r[0];
-        double v_i = poly_i[0];
+        double v_r = poly[0].r;
+        double v_i = poly[0].i;
         for (int j = 1; j <= n; j++)
         {
             //v = v * r + coeffsDescending[j];
-            double v_r_tmp = v_r * r_r - v_i * r_i + poly_r[j];
-            double v_i_tmp = v_r * r_i + v_i * r_r + poly_i[j];
+            double v_r_tmp = v_r * r_r - v_i * r_i + poly[j].r;
+            double v_i_tmp = v_r * r_i + v_i * r_r + poly[j].i;
             v_r = v_r_tmp;
             v_i = v_i_tmp;
         }
 
         double v_m = Magnitude(v_i, v_r);
         if (v_m > ErrorMargin)
-            _z_r[i] = ErrorMarker;
+            _z[i].r = ErrorMarker;
     }
 }
 
@@ -295,31 +306,20 @@ extern "C"
             //actual parameters
             int from,
             int to,
-            double* coeffsvalues_r,
-            double* coeffsvalues_i,
+            CompactClomplex* coeffsvalues,
             int coeffsvalues_len,
 
             //preallocated buffer for numbered polynomials
-            double* _poly_r,
-            double* _poly_i,
+            CompactClomplex* _poly,
             int _poly_len,
 
             //preallocated buffer for kerner-durand
-            double* _monic_r,
-            double* _monic_i,
-            double* _z_r,
-            double* _z_i,
-            double* _z_a,
-            double* _newZ_r,
-            double* _newZ_i,
+            CompactClomplex* _monic,
+            CompactClomplexWithAngle* _z,
+            CompactClomplex* _newZ,
 
             //outputs
-            double* roots_r,
-            double* roots_i,
-            double* roots_a,
-            int* color_r,
-            int* color_g,
-            int* color_b)
+            CompactClomplexWithAngle* roots)
     {
         int r, g, b, polyIdx, coeffIdx, targetFirstIdx, targetIdx, h;
         double angle;
@@ -330,36 +330,30 @@ extern "C"
             {
                 coeffIdx = polyIdx % coeffsvalues_len;
                 polyIdx = polyIdx / coeffsvalues_len;
-                _poly_r[j] = coeffsvalues_r[coeffIdx];
-                _poly_i[j] = coeffsvalues_i[coeffIdx];
+                _poly[j] = coeffsvalues[coeffIdx];
             }
 
             FindRoots(
-                _poly_r,
-                _poly_i,
+                _poly,
                 _poly_len,
 
-                _monic_r,
-                _monic_i,
-                _z_r,
-                _z_i,
-                _z_a,
-                _newZ_r,
-                _newZ_i);
+                _monic,
+                _z,
+                _newZ);
 
             targetFirstIdx = (i - from) * _poly_len;
             for (int j = 0; j < _poly_len; j++)
             {
                 targetIdx = targetFirstIdx + j;
-                angle = _z_a[j];
-                roots_r[targetIdx] = _z_r[j];
-                roots_i[targetIdx] = _z_i[j];
-                roots_a[targetIdx] = angle;
+                angle = _z[j].a;
+                roots[targetIdx].r = _z[j].r;
+                roots[targetIdx].i = _z[j].i;
+                roots[targetIdx].a = angle;
                 h = std::lroundl((255 * (M_PI + angle)) / (2 * M_PI));
                 HsvToRgb(h, r, g, b);
-                color_r[targetIdx] = r;
-                color_g[targetIdx] = g;
-                color_b[targetIdx] = b;
+                roots[targetIdx].colorR = r;
+                roots[targetIdx].colorG = g;
+                roots[targetIdx].colorB = b;
             }
         }
     }
