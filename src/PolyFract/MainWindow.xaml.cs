@@ -46,8 +46,6 @@ namespace PolyFract
 
         private BasePreset currentPreset;
 
-        private List<RedoItem> redo = [];
-
         private FullscreenWindow fullscreen;
 
         private Solver solver;
@@ -76,7 +74,6 @@ namespace PolyFract
             frameCount = 0;
             lastCheckTime = DateTime.Now;
             KeyDown += MainWindow_KeyDown;
-
             contextMenu = new PolyFractContextMenu(placeholder);
             contextMenu.OrderChanged = newOrder =>
             {
@@ -138,8 +135,6 @@ namespace PolyFract
             {
                 if (!contextMenu.Paused)
                 {
-                    var t = GetTime();
-
                     if (contextMenu.AutoPOV)
                         AutoPointOfViewMove();
 
@@ -150,6 +145,8 @@ namespace PolyFract
                 if (solver == null || solver.coefficientsValuesCount != coefficients.Length || solver.order != order)
                     solver = new Solver(coefficients.Length, order);
                 solver.Solve(coefficients);
+
+
 
                 if (Application.Current?.Dispatcher != null && !uiPending)
                 {
@@ -188,11 +185,6 @@ namespace PolyFract
             }
         }
 
-        private void ResetTime()
-        {
-            tStart = DateTime.Now;
-        }
-
         private double GetTime()
         {
             return (DateTime.Now - tStart).TotalSeconds * dt;
@@ -207,7 +199,6 @@ namespace PolyFract
             string coeffsStr = string.Join(", ", coefficients.Select(c => $"new Complex({c.Real}, {c.Imaginary})"));
             string clipboard = $"AddTimePoint({timeStr}, {originStr}, {zoomStr}, [{coeffsStr}]);";
             System.Windows.Clipboard.SetText(clipboard);
-            redo.Add(new RedoItem() { Coeffs = coefficients.ToArray(), Pov = new PointOfView(renderer.Origin, renderer.Zoom, GetTime()) });
         }
 
         private void ChangeCoefficientsCount(int newCoefficientCount)
@@ -233,7 +224,7 @@ namespace PolyFract
             renderer.Intensity = preset.Intensity;
             AutoCoefficientsChange();
 
-            ResetTime();
+            tStart = DateTime.Now;
             frameCount = 0;
             contextMenu.menuPaused.IsChecked = false;
             contextMenu.menuAutoCoeff.IsChecked = true;
@@ -245,7 +236,6 @@ namespace PolyFract
         {
             ApplyPreset(BasePreset.AllPresets[0]);
             coefficients = [new Complex(-1, 0), new Complex(1, 0)];
-            contextMenu.menuPaused.IsChecked = false;
             contextMenu.menuShowCoeff.IsChecked = true;
             renderer.Intensity = 1.0;
             renderer.Origin = Complex.Zero;
@@ -308,16 +298,6 @@ namespace PolyFract
                     break;
                 case Key.D5: 
                     ApplyPreset(BasePreset.AllPresets[4]); 
-                    break;
-                case Key.Z:
-                    if (redo.Count > 0)
-                    {
-                        var last = redo.Last();
-                        redo = redo.Take(redo.Count - 1).ToList();
-                        renderer.Origin = last.Pov.Origin;
-                        renderer.Zoom = last.Pov.Zoom;
-                        coefficients = last.Coeffs;
-                    }
                     break;
                 case Key.F:
                     ToggleFullscreen();
@@ -402,12 +382,5 @@ namespace PolyFract
         }
 
         private void UpdateContextMenu() => contextMenu.UpdateContextMenu(coefficients.Length, renderer.Intensity, order, currentPreset);
-    }
-
-    public class RedoItem
-    {
-        public PointOfView Pov { get; set; }
-
-        public Complex[] Coeffs { get; set; }
     }
 }
