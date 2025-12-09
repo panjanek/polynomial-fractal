@@ -141,7 +141,6 @@ namespace PolyFract.Gui
             int pixelHeight = (int)placeholder.ActualHeight;
             Parallel.ForEach(solver.threads, new ParallelOptions() { MaxDegreeOfParallelism = solver.threads.Length }, thread =>
             {
-                int x, y;
                 for (int i = 0; i < thread.roots.Length; i++)
                 {
                     var root = thread.roots[i];
@@ -151,7 +150,9 @@ namespace PolyFract.Gui
                     }
                     else
                     {
-                        (x, y) = GuiUtil.ToPixelCoordinates(root.r, root.i, pixelWidth, pixelHeight, origin, zoom);
+                        //(int x, int y) = GuiUtil.ToPixelCoordinates(root.r, root.i, pixelWidth, pixelHeight, origin, zoom);
+                        int x = unchecked((int)(pixelWidth / 2 + (root.r - origin.Real) * zoom));
+                        int y = unchecked((int)(pixelHeight / 2 - (root.i - origin.Imaginary) * zoom));
                         thread.pixels[i].x = x;
                         thread.pixels[i].y = y;
                         thread.pixels[i].r = root.colorR;
@@ -191,15 +192,6 @@ namespace PolyFract.Gui
 
             bitmap.AddDirtyRect(new Int32Rect(0, 0, bitmap.PixelWidth, bitmap.PixelHeight));
             bitmap.Unlock();
-        }
-
-        private int[,] DoubleMatrixToInt(double[,] matrix)
-        {
-            int[,] result = new int[matrix.GetLength(0), matrix.GetLength(1)];
-            for (int i = 0; i < matrix.GetLength(0); i++)
-                for (int j = 0; j < matrix.GetLength(1); j++)
-                    result[i, j] = (int)Math.Round(matrix[i, j] * 255);
-            return result;
         }
 
         private unsafe void AddGlyph(byte* pBackBuffer, int cx, int cy, int[,] map, System.Windows.Media.Color color, int intensity = 255, bool overwrite = false)
@@ -255,6 +247,15 @@ namespace PolyFract.Gui
             if (res > 255)
                 res = 255;
             return (byte)res;
+        }
+
+        private static int[,] DoubleMatrixToInt(double[,] matrix)
+        {
+            int[,] result = new int[matrix.GetLength(0), matrix.GetLength(1)];
+            for (int i = 0; i < matrix.GetLength(0); i++)
+                for (int j = 0; j < matrix.GetLength(1); j++)
+                    result[i, j] = (int)Math.Round(matrix[i, j] * 255);
+            return result;
         }
     }
 }
