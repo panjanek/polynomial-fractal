@@ -130,10 +130,14 @@ namespace PolyFract
                 if (!contextMenu.Paused)
                 {
                     if (contextMenu.AutoPOV)
-                        AutoPointOfViewMove();
+                    {
+                        var newPOV = currentPreset.GetPOV(GetTime());
+                        if (newPOV != null)
+                            renderer.SetProjection(newPOV.Origin, newPOV.Zoom);
+                    }
 
                     if (contextMenu.AutoCoeff)
-                        AutoCoefficientsChange();
+                        coefficients = currentPreset.GetCoefficients(GetTime());
                 }
 
                 if (solver == null || solver.coefficientsValuesCount != coefficients.Length || solver.order != order)
@@ -181,7 +185,7 @@ namespace PolyFract
             order = preset.Order;
             dt = preset.DT;
             renderer.Intensity = preset.Intensity;
-            AutoCoefficientsChange();
+            coefficients = currentPreset.GetCoefficients(GetTime());
 
             tStart = DateTime.Now;
             contextMenu.SetCheckboxes(null, true, true, false);
@@ -194,8 +198,7 @@ namespace PolyFract
             coefficients = [new Complex(-1, 0), new Complex(1, 0)];
             contextMenu.SetCheckboxes(true, null, null, null);
             renderer.Intensity = 1.0;
-            renderer.Origin = Complex.Zero;
-            renderer.Zoom = DefaultZoom;
+            renderer.SetProjection(Complex.Zero, DefaultZoom);
             recordingDir = null;
             UpdateContextMenu();
         }
@@ -319,22 +322,6 @@ namespace PolyFract
 
             lastCheckFrameCount = renderer.FrameCounter;
             lastCheckTime = now;
-        }
-
-        private void AutoCoefficientsChange()
-        {
-            var newCoeff = currentPreset.GetCoefficients(GetTime());
-            coefficients = newCoeff;
-        }
-
-        private void AutoPointOfViewMove()
-        {
-            var newPOV = currentPreset.GetPOV(GetTime());
-            if (newPOV != null)
-            {
-                renderer.Origin = newPOV.Origin;
-                renderer.Zoom = newPOV.Zoom;
-            }
         }
 
         private void UpdateContextMenu() => contextMenu.UpdateContextMenu(coefficients.Length, renderer.Intensity, order, currentPreset);

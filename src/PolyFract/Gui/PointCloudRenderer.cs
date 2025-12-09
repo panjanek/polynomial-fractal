@@ -23,8 +23,8 @@ namespace PolyFract.Gui
 
         public Action<int, Complex> CoefficientChanged;
 
-        public Complex Origin { get; set; } = Complex.Zero;
-        public double Zoom { get; set; } = MainWindow.DefaultZoom;
+        public Complex Origin { get; private set; } = Complex.Zero;
+        public double Zoom { get; private set; } = MainWindow.DefaultZoom;
 
         public int FrameCounter { get; private set; }
 
@@ -160,6 +160,12 @@ namespace PolyFract.Gui
 
             if (DraggedOrZoommed != null)
                 DraggedOrZoommed();
+        }
+
+        public void SetProjection(Complex origin, double zoom)
+        {
+            Origin = origin;
+            Zoom = zoom;
         }
 
         public (int x, int y) ToPixelCoordinates(Complex x)
