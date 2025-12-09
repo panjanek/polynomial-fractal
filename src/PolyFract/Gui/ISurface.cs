@@ -10,12 +10,13 @@ namespace PolyFract.Gui
 {
     public interface ISurface
     {
+        int FrameCounter { get; }
         void Draw(Solver solver, Complex[] coefficients, double intensity);
 
         void SizeChanged();
 
         void SetProjection(Complex origin, double zoom);
 
-        int FrameCounter { get; }
+        void SaveToFile(string fileName);
     }
 }

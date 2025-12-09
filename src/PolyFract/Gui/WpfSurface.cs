@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Numerics;
 using System.Text;
@@ -15,23 +16,21 @@ namespace PolyFract.Gui
 {
     public class WpfSurface : ISurface
     {
-        private Image Image { get; set; }
-
-        private WriteableBitmap Bitmap { get; set; }
-
-        private bool uiPending { get; set; }
-
         public int FrameCounter => frameCounter;
 
+        private readonly Image image;
+
+        private WriteableBitmap bitmap;
+
         private readonly Panel placeholder;
+
+        private bool uiPending;
 
         private Complex origin = Complex.Zero;
 
         private double zoom = MainWindow.DefaultZoom;
 
         private int frameCounter = 0;
-
-        
 
         private readonly double[,] coeffMarker = new double[,]
     {
@@ -56,19 +55,20 @@ namespace PolyFract.Gui
             };
 
         private readonly int[,] coeffMarkerInt;
+
         private readonly int[,] rootMarkerInt;
 
         public WpfSurface(Panel placeholder)
         {
             this.placeholder = placeholder;
             placeholder.Children.Clear();
-            Image = new Image();
-            Image.Visibility = Visibility.Visible;
-            Image.HorizontalAlignment = HorizontalAlignment.Stretch;
-            Image.VerticalAlignment = VerticalAlignment.Stretch;
-            placeholder.Children.Add(Image);
-            Bitmap = new WriteableBitmap((int)placeholder.ActualWidth, (int)placeholder.ActualHeight, 96, 96, System.Windows.Media.PixelFormats.Bgr32, null);
-            Image.Source = Bitmap;
+            image = new Image();
+            image.Visibility = Visibility.Visible;
+            image.HorizontalAlignment = HorizontalAlignment.Stretch;
+            image.VerticalAlignment = VerticalAlignment.Stretch;
+            placeholder.Children.Add(image);
+            bitmap = new WriteableBitmap((int)placeholder.ActualWidth, (int)placeholder.ActualHeight, 96, 96, System.Windows.Media.PixelFormats.Bgr32, null);
+            image.Source = bitmap;
             coeffMarkerInt = DoubleMatrixToInt(coeffMarker);
             rootMarkerInt = DoubleMatrixToInt(rootMarker);
             
@@ -76,8 +76,8 @@ namespace PolyFract.Gui
 
         public void SizeChanged()
         {
-            Bitmap = new WriteableBitmap((int)placeholder.ActualWidth, (int)placeholder.ActualHeight, 96, 96, System.Windows.Media.PixelFormats.Bgr32, null);
-            Image.Source = Bitmap;
+            bitmap = new WriteableBitmap((int)placeholder.ActualWidth, (int)placeholder.ActualHeight, 96, 96, System.Windows.Media.PixelFormats.Bgr32, null);
+            image.Source = bitmap;
         }
 
         public void SetProjection(Complex origin, double zoom)
@@ -86,8 +86,42 @@ namespace PolyFract.Gui
             this.zoom = zoom;
         }
 
+        public void SaveToFile(string fileName)
+        {
+            using (FileStream stream = new FileStream(fileName, FileMode.Create))
+            {
+                PngBitmapEncoder encoder = new PngBitmapEncoder();
+                encoder.Frames.Add(BitmapFrame.Create(bitmap));
+                encoder.Save(stream);
+            }
+        }
+
         public void Draw(Solver solver, Complex[] coefficients, double intensity)
         {
+            // compute pixel coordinates
+            Parallel.ForEach(solver.threads, new ParallelOptions() { MaxDegreeOfParallelism = solver.threads.Length }, thread =>
+            {
+                int x, y;
+                for (int i = 0; i < thread.roots.Length; i++)
+                {
+                    var root = thread.roots[i];
+                    if (root.r == Polynomials.ErrorMarker)
+                    {
+                        thread.pixels[i].x = Polynomials.ErrorMarker;
+                    }
+                    else
+                    {
+                        (x, y) = ToPixelCoordinates(root.r, root.i);
+                        thread.pixels[i].x = x;
+                        thread.pixels[i].y = y;
+                        thread.pixels[i].r = root.colorR;
+                        thread.pixels[i].g = root.colorG;
+                        thread.pixels[i].b = root.colorB;
+                    }
+                }
+            });
+
+            // schedule drawing for ui thread
             if (Application.Current?.Dispatcher != null && !uiPending)
             {
                 uiPending = true;
@@ -123,6 +157,37 @@ namespace PolyFract.Gui
             }
         }
 
+        private void InternalDraw(Solver solver, Complex[] coefficients, double intensity)
+        {
+            int intensityInt = (int)System.Math.Round(255 * intensity);
+            bitmap.Lock();
+            unsafe
+            {
+                byte* pBackBuffer = (byte*)bitmap.BackBuffer;
+                int size = bitmap.BackBufferStride * bitmap.PixelHeight;
+                System.Runtime.CompilerServices.Unsafe.InitBlock(pBackBuffer, 0, (uint)size);
+                foreach (var thread in solver.threads)
+                {
+                    for (int i = 0; i < thread.pixels.Length; i++)
+                    {
+                        var pixel = thread.pixels[i];
+                        if (pixel.x != Polynomials.ErrorMarker)
+                            AddGlyph(pBackBuffer, pixel.x, pixel.y, rootMarkerInt, pixel.r, pixel.g, pixel.b, intensityInt);
+                    }
+                }
+                ;
+
+                foreach (var coef in coefficients)
+                {
+                    (int cx, int cy) = ToPixelCoordinates(coef);
+                    AddGlyph(pBackBuffer, cx, cy, coeffMarkerInt, Colors.Red, 255, true);
+                }
+            }
+
+            bitmap.AddDirtyRect(new Int32Rect(0, 0, bitmap.PixelWidth, bitmap.PixelHeight));
+            bitmap.Unlock();
+        }
+
         private (int x, int y) ToPixelCoordinates(Complex x)
         {
             return ToPixelCoordinates(x.Real, x.Imaginary);
@@ -144,60 +209,6 @@ namespace PolyFract.Gui
             return result;
         }
 
-        private void InternalDraw(Solver solver, Complex[] coefficients, double intensity)
-        {
-            // compute pixel coordinates
-            Parallel.ForEach(solver.threads, new ParallelOptions() { MaxDegreeOfParallelism = solver.threads.Length }, thread =>
-            {
-                int x, y;
-                for (int i = 0; i < thread.roots.Length; i++)
-                {
-                    var root = thread.roots[i];
-                    if (root.r == Polynomials.ErrorMarker)
-                    {
-                        thread.pixels[i].x = Polynomials.ErrorMarker;
-                    }
-                    else
-                    {
-                        (x, y) = ToPixelCoordinates(root.r, root.i);
-                        thread.pixels[i].x = x;
-                        thread.pixels[i].y = y;
-                        thread.pixels[i].r = root.colorR;
-                        thread.pixels[i].g = root.colorG;
-                        thread.pixels[i].b = root.colorB;
-                    }
-                }
-            });
-
-            int intensityInt = (int)System.Math.Round(255 * intensity);
-            Bitmap.Lock();
-            unsafe
-            {
-                byte* pBackBuffer = (byte*)Bitmap.BackBuffer;
-                int size = Bitmap.BackBufferStride * Bitmap.PixelHeight;
-                System.Runtime.CompilerServices.Unsafe.InitBlock(pBackBuffer, 0, (uint)size);
-                foreach (var thread in solver.threads)
-                {
-                    for (int i = 0; i < thread.pixels.Length; i++)
-                    {
-                        var pixel = thread.pixels[i];
-                        if (pixel.x != Polynomials.ErrorMarker)
-                            AddGlyph(pBackBuffer, pixel.x, pixel.y, rootMarkerInt, pixel.r, pixel.g, pixel.b, intensityInt);
-                    }
-                }
-                ;
-
-                foreach (var coef in coefficients)
-                {
-                    (int cx, int cy) = ToPixelCoordinates(coef);
-                    AddGlyph(pBackBuffer, cx, cy, coeffMarkerInt, Colors.Red, 255, true);
-                }
-            }
-
-            Bitmap.AddDirtyRect(new Int32Rect(0, 0, Bitmap.PixelWidth, Bitmap.PixelHeight));
-            Bitmap.Unlock();
-        }
-
         private unsafe void AddGlyph(byte* pBackBuffer, int cx, int cy, int[,] map, System.Windows.Media.Color color, int intensity = 255, bool overwrite = false)
         {
             AddGlyph(pBackBuffer, cx, cy, map, color.R, color.G, color.B, intensity, overwrite);
@@ -212,9 +223,9 @@ namespace PolyFract.Gui
                     var strength = map[mx, my];
                     int x = cx - map.GetLength(0) / 2 + mx;
                     int y = cy - map.GetLength(1) / 2 + my;
-                    if (x >= 0 && y >= 0 && x < Bitmap.PixelWidth && y < Bitmap.PixelHeight)
+                    if (x >= 0 && y >= 0 && x < bitmap.PixelWidth && y < bitmap.PixelHeight)
                     {
-                        int coord = y * Bitmap.PixelWidth + x << 2;
+                        int coord = y * bitmap.PixelWidth + x << 2;
                         var cr = (r * strength * intensity) >> 16;
                         var cg = (g * strength * intensity) >> 16;
                         var cb = (b * strength * intensity) >> 16;
@@ -245,7 +256,7 @@ namespace PolyFract.Gui
             pBackBuffer[coord + 3] = 255;
         }
 
-        private byte Blend(int src, int dst)
+        private static byte Blend(int src, int dst)
         {
             int res = (246 * (src + dst)) >> 8;
             if (res > 255)

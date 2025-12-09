@@ -27,7 +27,7 @@ namespace PolyFract.Gui
 
         public int FrameCounter => surface?.FrameCounter ?? 0;
 
-        private ISurface surface;
+        private readonly ISurface surface;
 
         private int? coefficientDragged = null;
 
@@ -137,17 +137,6 @@ namespace PolyFract.Gui
             surface.Draw(solver, coefficients, Intensity);
         }
 
-        public void SaveToFile(string fileName)
-        {
-            /*
-            using (FileStream stream = new FileStream(fileName, FileMode.Create))
-            {
-                PngBitmapEncoder encoder = new PngBitmapEncoder();
-                encoder.Frames.Add(BitmapFrame.Create(Bitmap));
-                encoder.Save(stream);
-            }
-            */
-        }
-
+        public void SaveToFile(string fileName) =>  surface.SaveToFile(fileName);
      }
 }
