@@ -29,9 +29,6 @@ namespace PolyFract.Maths
             if (threadCount == 0)
                 threadCount = 1;
 
-
-            //threadCount = 1;
-
             int polysPerThread = polynomialsCount / threadCount;
             threads = new ThreadContext[threadCount];
             for(int t=0; t<threads.Length; t++)

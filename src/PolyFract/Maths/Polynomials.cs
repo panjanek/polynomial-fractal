@@ -42,8 +42,6 @@ namespace PolyFract.Maths
                 Console.WriteLine($"native dll not loaded: {ex.Message}");
                 IsNativeLibAvailable = false;
             }
-
-            IsNativeLibAvailable = false;
         }
 
         [DllImport("PolyFractFastSolver.dll", CallingConvention = CallingConvention.Cdecl)]
