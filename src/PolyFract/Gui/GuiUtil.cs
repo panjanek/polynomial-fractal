@@ -24,7 +24,6 @@ namespace PolyFract.Gui
             int frac = x & 255;     // fractional part in [0..255]
 
             // For V=1 and S=1, intermediate values:
-            int p = 0;
             int q = 255 - frac;
             int t = frac;
 

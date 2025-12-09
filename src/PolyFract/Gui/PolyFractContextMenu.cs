@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media.TextFormatting;
 using Microsoft.WindowsAPICodePack.Dialogs;
 using PolyFract.Presets;
 using static System.Formats.Asn1.AsnWriter;
@@ -18,31 +19,31 @@ namespace PolyFract.Gui
     {
         public ContextMenu menu;
 
-        public MenuItem menuPreset = new MenuItem { };
+        private readonly MenuItem menuPreset = new MenuItem { };
 
-        public MenuItem menuCapture = new MenuItem { Header = "Save screen capture" };
+        private readonly MenuItem menuCapture = new MenuItem { Header = "Save screen capture" };
 
-        public MenuItem menuRecord = new MenuItem { Header = "Record frames to folder", IsCheckable = true };
+        private readonly MenuItem menuRecord = new MenuItem { Header = "Record frames to folder", IsCheckable = true };
 
-        public MenuItem menuPaused = new MenuItem { Header = "Paused", IsCheckable = true, IsChecked = true };
+        private readonly MenuItem menuPaused = new MenuItem { Header = "Paused", IsCheckable = true, IsChecked = true };
 
-        public MenuItem menuAutoCoeff = new MenuItem { Header = "Automatic coefficients movement", IsCheckable = true };
+        private readonly MenuItem menuAutoCoeff = new MenuItem { Header = "Automatic coefficients movement", IsCheckable = true };
 
-        public MenuItem menuAutoPOV = new MenuItem { Header = "Automatic POV movement", IsCheckable = true };
+        private readonly MenuItem menuAutoPOV = new MenuItem { Header = "Automatic POV movement", IsCheckable = true };
 
-        public MenuItem menuCopyPos = new MenuItem { Header = "Copy coordinates (C)" };
+        private readonly MenuItem menuCopyPos = new MenuItem { Header = "Copy coordinates (C)" };
 
-        public MenuItem menuCoeffCount = new MenuItem { };
+        private readonly MenuItem menuCoeffCount = new MenuItem { };
 
-        public MenuItem menuOrder = new MenuItem { };
+        private readonly MenuItem menuOrder = new MenuItem { };
 
-        public MenuItem menuIntensity = new MenuItem { };
+        private readonly MenuItem menuIntensity = new MenuItem { };
 
-        public MenuItem menuShowCoeff = new MenuItem { Header = "Show coefficients markers", IsCheckable = true, IsChecked = true };
+        private readonly MenuItem menuShowCoeff = new MenuItem { Header = "Show coefficients markers", IsCheckable = true, IsChecked = true };
 
-        public MenuItem menuReset = new MenuItem { Header = "Reset to defaults" };
+        private readonly MenuItem menuReset = new MenuItem { Header = "Reset to defaults" };
 
-        public Panel placeholder;
+        private readonly Panel placeholder;
 
         public Action<BasePreset, string> PresetSelected { get; set; }
 
@@ -62,12 +63,14 @@ namespace PolyFract.Gui
 
         public Point LastRightClick { get; set; }
 
-        public bool AutoPOV { get; set; }
+        public bool AutoPOV { get; private set; }
 
-        public bool AutoCoeff { get; set; }
+        public bool AutoCoeff { get; private set; }
 
-        public bool Paused { get; set; }
-            
+        public bool Paused { get; private set; }
+
+        public bool ShowCoeff { get; private set; }
+
         public PolyFractContextMenu(Panel placeholder)
         {
             this.placeholder = placeholder;
@@ -105,25 +108,33 @@ namespace PolyFract.Gui
             menuReset.Click += MenuReset_Click;
             menuCapture.Click += MenuCapture_Click;
             menuRecord.Click += MenuRecord_Click;
-            menuPaused.Click += MenuPaused_Click;
-            menuAutoPOV.Click += MenuAutoPOV_Click;
-            menuAutoCoeff.Click += MenuAutoCoeff_Click;
+            menuPaused.Click += Checkbox_Click;
+            menuAutoPOV.Click += Checkbox_Click;
+            menuAutoCoeff.Click += Checkbox_Click;
+            menuShowCoeff.Click += Checkbox_Click;
             placeholder.PreviewMouseRightButtonDown += Placeholder_PreviewMouseRightButtonDown;
+            Checkbox_Click(this);
         }
 
-        private void MenuAutoCoeff_Click(object sender, RoutedEventArgs e)
+        private void Checkbox_Click(object sender, RoutedEventArgs e = null)
         {
+            ShowCoeff = menuShowCoeff.IsChecked;
             AutoCoeff = menuAutoCoeff.IsChecked;
-        }
-
-        private void MenuAutoPOV_Click(object sender, RoutedEventArgs e)
-        {
             AutoPOV = menuAutoPOV.IsChecked;
+            Paused = menuPaused.IsChecked;
         }
 
-        private void MenuPaused_Click(object sender, RoutedEventArgs e)
+        public void SetCheckboxes(bool? showCoeff, bool? autoCoeff, bool? autoPOV, bool? paused)
         {
-            Paused = menuPaused.IsChecked;
+            if (showCoeff.HasValue)
+                menuShowCoeff.IsChecked = showCoeff.Value;
+            if (autoCoeff.HasValue)
+                menuAutoCoeff.IsChecked = autoCoeff.Value;
+            if (autoPOV.HasValue)
+                menuAutoPOV.IsChecked = autoPOV.Value;
+            if (paused.HasValue)
+                menuPaused.IsChecked = paused.Value;
+            Checkbox_Click(this);
         }
 
         private void MenuRecord_Click(object sender, RoutedEventArgs e)
@@ -131,27 +142,19 @@ namespace PolyFract.Gui
             if (menuRecord.IsChecked)
             {
                 var dialog = new CommonOpenFileDialog { IsFolderPicker = true, Title = "Select folder to save frames as PNG files" };
-                if (dialog.ShowDialog() == CommonFileDialogResult.Ok)
-                {
-                    if (ToggleRecording != null)
-                        ToggleRecording(dialog.FileName);
-                }
+                if (dialog.ShowDialog() == CommonFileDialogResult.Ok && ToggleRecording != null)
+                    ToggleRecording(dialog.FileName);
             }
-            else
-            {
+            else if (ToggleRecording != null)
                 ToggleRecording(null);
-            }
         }
 
         private void MenuCapture_Click(object sender, RoutedEventArgs e)
         {
             var dialog = new CommonSaveFileDialog { Title = "Select filename to save capture PNG", DefaultExtension = "png" };
             dialog.Filters.Add(new CommonFileDialogFilter("PNG files", "*.png"));
-            if (dialog.ShowDialog() == CommonFileDialogResult.Ok)
-            {
-                if (SaveCapture != null)
-                    SaveCapture(dialog.FileName);
-            }
+            if (dialog.ShowDialog() == CommonFileDialogResult.Ok && SaveCapture != null)
+                SaveCapture(dialog.FileName);
         }
 
         private void Placeholder_PreviewMouseRightButtonDown(object sender, MouseButtonEventArgs e)

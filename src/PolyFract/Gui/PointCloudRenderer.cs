@@ -5,6 +5,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using System.Windows.Threading;
 using PolyFract.Maths;
 
 namespace PolyFract.Gui
@@ -14,9 +15,7 @@ namespace PolyFract.Gui
         public const int MarkerRadius = 5;
 
         public const double ZoomingSpeed = 0.0002;
-        public Image Image { get; set; }
 
-        public WriteableBitmap Bitmap { get; set; }
 
         public double Intensity { get; set; } = 0.5;
 
@@ -27,15 +26,21 @@ namespace PolyFract.Gui
         public Complex Origin { get; set; } = Complex.Zero;
         public double Zoom { get; set; } = MainWindow.DefaultZoom;
 
+        public int FrameCounter { get; private set; }
+
+        private Image Image { get; set; }
+
+        private WriteableBitmap Bitmap { get; set; }
+
+        private bool uiPending { get; set; }
+
         private int? coefficientDragged = null;
 
         private Complex[] coefficients = [];
 
-        private DraggingHandler dragging;
+        private readonly Panel placeholder;
 
-        private Panel placeholder;
-
-        private double[,] coeffMarker = new double[,]
+        private readonly double[,] coeffMarker = new double[,]
             {
                 { 0.0, 0.3, 1.0, 1.0, 1.0, 1.0, 1.0, 0.3, 0.0 },
                 { 0.3, 1.0, 1.0, 0.3, 0.5, 0.3, 1.0, 1.0, 0.3 },
@@ -48,7 +53,7 @@ namespace PolyFract.Gui
                 { 0.0, 0.3, 1.0, 1.0, 1.0, 1.0, 1.0, 0.3, 0.0 },
             };
 
-        private double[,] rootMarker = new double[,]
+        private readonly double[,] rootMarker = new double[,]
             {
                 { 0.00, 0.02, 0.05, 0.02, 0.00 },
                 { 0.02, 0.10, 0.20, 0.10, 0.02 },
@@ -57,8 +62,8 @@ namespace PolyFract.Gui
                 { 0.00, 0.02, 0.05, 0.02, 0.00 }
             };
 
-        private int[,] coeffMarkerInt;
-        private int[,] rootMarkerInt;
+        private readonly int[,] coeffMarkerInt;
+        private readonly int[,] rootMarkerInt;
 
         public PointCloudRenderer(Panel placeholder)
         {
@@ -76,7 +81,7 @@ namespace PolyFract.Gui
             rootMarkerInt = DoubleMatrixToInt(rootMarker);
 
             placeholder.SizeChanged += Placeholder_SizeChanged;
-            dragging = new DraggingHandler(placeholder, mouse =>
+            var dragging = new DraggingHandler(placeholder, mouse =>
             {
                 for (int i=0; i<coefficients.Length; i++)
                 {
@@ -175,6 +180,44 @@ namespace PolyFract.Gui
         }
 
         public void Draw(Solver solver, Complex[] coefficients)
+        {
+
+            if (Application.Current?.Dispatcher != null && !uiPending)
+            {
+                uiPending = true;
+                try
+                {
+                    Application.Current.Dispatcher.BeginInvoke(
+                        DispatcherPriority.Background,
+                        (Action)(() =>
+                        {
+
+                            try
+                            {
+                                if (solver != null)
+                                {
+                                    InternalDraw(solver, coefficients);
+                                    FrameCounter++;
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                Console.WriteLine(ex);
+                            }
+                            finally
+                            {
+                                uiPending = false;
+                            }
+                        }));
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex);
+                }
+            }
+        }
+
+        private void InternalDraw(Solver solver, Complex[] coefficients)
         {
             // compute pixel coordinates
             Parallel.ForEach(solver.threads, new ParallelOptions() { MaxDegreeOfParallelism = solver.threads.Length }, thread =>
