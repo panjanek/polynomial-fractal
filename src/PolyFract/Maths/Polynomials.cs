@@ -42,6 +42,8 @@ namespace PolyFract.Maths
                 Console.WriteLine($"native dll not loaded: {ex.Message}");
                 IsNativeLibAvailable = false;
             }
+
+            //IsNativeLibAvailable = false;
         }
 
         [DllImport("PolyFractFastSolver.dll", CallingConvention = CallingConvention.Cdecl)]
@@ -162,7 +164,7 @@ namespace PolyFract.Maths
 
             // ---- Initial guesses in reusable _z ----
             double twoPiOverN = 2.0 * Math.PI / n;
-            for (int k = 0; k <= n; k++)
+            for (int k = 0; k < n; k++)
             {
                 double angle = twoPiOverN * k;
 
@@ -176,7 +178,7 @@ namespace PolyFract.Maths
             {
                 double maxDelta = 0.0;
 
-                for (int i = 0; i <= n; i++)
+                for (int i = 0; i < n; i++)
                 {
                     //Complex zi = _z[i];
                     double zi_r = _z[i].r;
@@ -231,7 +233,7 @@ namespace PolyFract.Maths
                 }
 
                 // swap buffers (_z <= _newZ)
-                for (int i = 0; i <= n; i++)
+                for (int i = 0; i < n; i++)
                 {
                     //_z[i] = _newZ[i];
                     _z[i].r = _newZ[i].r;
@@ -243,13 +245,13 @@ namespace PolyFract.Maths
             }
 
             //compute angles
-            for (int i = 0; i <= n; i++)
+            for (int i = 0; i < n; i++)
             {
                 _z[i].a = AngleAt(poly, _z[i].r, _z[i].i);
             }
 
             //remove errors
-            for (int i = 0; i <= n; i++)
+            for (int i = 0; i < n; i++)
             {
                 var r_r = _z[i].r;
                 var r_i = _z[i].i;

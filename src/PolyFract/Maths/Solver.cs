@@ -55,7 +55,7 @@ namespace PolyFract.Maths
                 threads[t]._monic = new CompactClomplex[order + 1];
                 threads[t]._z = new CompactClomplexWithAngle[order];
                 threads[t]._newZ = new CompactClomplex[order];
-                threads[t]._poly = new CompactClomplex[order];
+                threads[t]._poly = new CompactClomplex[order+1];
             }
         }
 

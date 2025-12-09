@@ -161,7 +161,7 @@ void FindRoots(
 
     // ---- Initial guesses in reusable _z ----
     double twoPiOverN = 2.0 * M_PI / n;
-    for (int k = 0; k <= n; k++)
+    for (int k = 0; k < n; k++)
     {
         double angle = twoPiOverN * k;
 
@@ -174,7 +174,7 @@ void FindRoots(
     for (int iter = 0; iter < MaxIterations; iter++)
     {
         double maxDelta2 = 0.0;
-        for (int i = 0; i <= n; i++)
+        for (int i = 0; i < n; i++)
         {
             //Complex zi = _z[i];
             double zi_r = _z[i].r;
@@ -231,7 +231,7 @@ void FindRoots(
         }
 
         // swap buffers (_z <= _newZ)
-        for (int i = 0; i <= n; i++)
+        for (int i = 0; i < n; i++)
         {
             //_z[i] = _newZ[i];
             _z[i].r = _newZ[i].r;
@@ -243,13 +243,13 @@ void FindRoots(
     }
 
     //compute angles
-    for (int i = 0; i <= n; i++)
+    for (int i = 0; i < n; i++)
     {
         _z[i].a = AngleAt(poly, poly_len, _z[i].r, _z[i].i);
     }
 
     //remove errors
-    for (int i = 0; i <= n; i++)
+    for (int i = 0; i < n; i++)
     {
         double r_r = _z[i].r;
         double r_i = _z[i].i;
