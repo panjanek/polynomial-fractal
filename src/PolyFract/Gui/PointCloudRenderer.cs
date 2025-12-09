@@ -84,12 +84,14 @@ namespace PolyFract.Gui
 
         private void Placeholder_SizeChanged(object sender, SizeChangedEventArgs e)
         {
-            surface.SizeChanged();
             if (e.PreviousSize.Width > 0 && e.NewSize.Width > 0)
             {
                 var zoomCorrection = e.NewSize.Width / e.PreviousSize.Width;
                 Zoom *= zoomCorrection;
+                surface.SetProjection(Origin, Zoom);
             }
+
+            surface.SizeChanged();
         }
 
         private void Image_MouseWheel(object sender, System.Windows.Input.MouseWheelEventArgs e)
@@ -98,9 +100,9 @@ namespace PolyFract.Gui
 
             double zoomRatio = 1.0 + ZoomingSpeed * e.Delta;
 
-            var topLeft1 = ToComplexCoordinates(0, 0);
-            var bottomRight1 = ToComplexCoordinates(placeholder.ActualWidth, placeholder.ActualHeight);
-            var zoomCenter = ToComplexCoordinates(pos.X, pos.Y);
+            var topLeft1 = GuiUtil.ToComplexCoordinates(0, 0, (int)placeholder.ActualWidth, (int)placeholder.ActualHeight, Origin, Zoom);
+            var bottomRight1 = GuiUtil.ToComplexCoordinates(placeholder.ActualWidth, placeholder.ActualHeight, (int)placeholder.ActualWidth, (int)placeholder.ActualHeight, Origin, Zoom);
+            var zoomCenter = GuiUtil.ToComplexCoordinates(pos.X, pos.Y, (int)placeholder.ActualWidth, (int)placeholder.ActualHeight, Origin, Zoom);
 
             var currentSize = bottomRight1 - topLeft1;
             var newSize = currentSize / zoomRatio;
@@ -124,11 +126,6 @@ namespace PolyFract.Gui
             Origin = origin;
             Zoom = zoom;
             surface.SetProjection(origin, zoom);
-        }
-
-        public Complex ToComplexCoordinates(double x, double y)
-        {
-            return new Complex((x - placeholder.ActualWidth / 2)/Zoom + Origin.Real, (placeholder.ActualHeight / 2 - y) / Zoom + Origin.Imaginary);
         }
 
         public void Draw(Solver solver, Complex[] coefficients)

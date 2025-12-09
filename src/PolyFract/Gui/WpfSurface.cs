@@ -98,29 +98,6 @@ namespace PolyFract.Gui
 
         public void Draw(Solver solver, Complex[] coefficients, double intensity)
         {
-            // compute pixel coordinates
-            Parallel.ForEach(solver.threads, new ParallelOptions() { MaxDegreeOfParallelism = solver.threads.Length }, thread =>
-            {
-                int x, y;
-                for (int i = 0; i < thread.roots.Length; i++)
-                {
-                    var root = thread.roots[i];
-                    if (root.r == Polynomials.ErrorMarker)
-                    {
-                        thread.pixels[i].x = Polynomials.ErrorMarker;
-                    }
-                    else
-                    {
-                        (x, y) = ToPixelCoordinates(root.r, root.i);
-                        thread.pixels[i].x = x;
-                        thread.pixels[i].y = y;
-                        thread.pixels[i].r = root.colorR;
-                        thread.pixels[i].g = root.colorG;
-                        thread.pixels[i].b = root.colorB;
-                    }
-                }
-            });
-
             // schedule drawing for ui thread
             if (Application.Current?.Dispatcher != null && !uiPending)
             {
@@ -136,6 +113,7 @@ namespace PolyFract.Gui
                             {
                                 if (solver != null)
                                 {
+                                    CalculatePixelCoords(solver);
                                     InternalDraw(solver, coefficients, intensity);
                                     frameCounter++;
                                 }
@@ -155,6 +133,33 @@ namespace PolyFract.Gui
                     Console.WriteLine(ex);
                 }
             }
+        }
+
+        private void CalculatePixelCoords(Solver solver)
+        {
+            int pixelWidth = (int)placeholder.ActualWidth;
+            int pixelHeight = (int)placeholder.ActualHeight;
+            Parallel.ForEach(solver.threads, new ParallelOptions() { MaxDegreeOfParallelism = solver.threads.Length }, thread =>
+            {
+                int x, y;
+                for (int i = 0; i < thread.roots.Length; i++)
+                {
+                    var root = thread.roots[i];
+                    if (root.r == Polynomials.ErrorMarker)
+                    {
+                        thread.pixels[i].x = Polynomials.ErrorMarker;
+                    }
+                    else
+                    {
+                        (x, y) = GuiUtil.ToPixelCoordinates(root.r, root.i, pixelWidth, pixelHeight, origin, zoom);
+                        thread.pixels[i].x = x;
+                        thread.pixels[i].y = y;
+                        thread.pixels[i].r = root.colorR;
+                        thread.pixels[i].g = root.colorG;
+                        thread.pixels[i].b = root.colorB;
+                    }
+                }
+            });
         }
 
         private void InternalDraw(Solver solver, Complex[] coefficients, double intensity)
@@ -179,25 +184,13 @@ namespace PolyFract.Gui
 
                 foreach (var coef in coefficients)
                 {
-                    (int cx, int cy) = ToPixelCoordinates(coef);
+                    (int cx, int cy) = GuiUtil.ToPixelCoordinates(coef, bitmap.PixelWidth, bitmap.PixelHeight, origin, zoom);
                     AddGlyph(pBackBuffer, cx, cy, coeffMarkerInt, Colors.Red, 255, true);
                 }
             }
 
             bitmap.AddDirtyRect(new Int32Rect(0, 0, bitmap.PixelWidth, bitmap.PixelHeight));
             bitmap.Unlock();
-        }
-
-        private (int x, int y) ToPixelCoordinates(Complex x)
-        {
-            return ToPixelCoordinates(x.Real, x.Imaginary);
-        }
-
-        private (int x, int y) ToPixelCoordinates(double real, double imaginary)
-        {
-            int ix = (int)System.Math.Round(placeholder.ActualWidth / 2 + (real - origin.Real) * zoom);
-            int iy = (int)System.Math.Round(placeholder.ActualHeight / 2 - (imaginary - origin.Imaginary) * zoom);
-            return (ix, iy);
         }
 
         private int[,] DoubleMatrixToInt(double[,] matrix)

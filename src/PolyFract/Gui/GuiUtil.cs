@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
@@ -37,6 +38,23 @@ namespace PolyFract.Gui
                 default:
                 case 5: r = 255; g = 0; b = q; return;
             }
+        }
+
+        public static Complex ToComplexCoordinates(double x, double y, int pixelWidth, int pixelHeight, Complex origin, double zoom)
+        {
+            return new Complex((x - pixelWidth / 2) / zoom + origin.Real, (pixelHeight / 2 - y) / zoom + origin.Imaginary);
+        }
+
+        public static (int x, int y) ToPixelCoordinates(Complex x, int pixelWidth, int pixelHeight, Complex origin, double zoom)
+        {
+            return ToPixelCoordinates(x.Real, x.Imaginary, pixelWidth, pixelHeight, origin, zoom);
+        }
+
+        public static  (int x, int y) ToPixelCoordinates(double real, double imaginary, int pixelWidth, int pixelHeight, Complex origin, double zoom)
+        {
+            int ix = (int)System.Math.Round(pixelWidth / 2 + (real - origin.Real) * zoom);
+            int iy = (int)System.Math.Round(pixelHeight / 2 - (imaginary - origin.Imaginary) * zoom);
+            return (ix, iy);
         }
 
         public static string ShowInputDialog(string text, string title)

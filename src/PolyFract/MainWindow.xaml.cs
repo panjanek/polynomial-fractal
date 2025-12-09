@@ -8,7 +8,8 @@ using PolyFract.Maths;
 using PolyFract.Presets;
 
 // TODO:
-// - directx
+// - time correction on +/-
+// - opengl
 
 namespace PolyFract
 {
@@ -120,7 +121,6 @@ namespace PolyFract
             });
             renderThread.IsBackground = true;
             renderThread.Start();
-
         }
 
         private void Worker()
@@ -155,7 +155,7 @@ namespace PolyFract
 
         private void CopyCoordinatesToClipboard(Point clikPoint)
         {
-            var clickedOrigin = renderer.ToComplexCoordinates(clikPoint.X, clikPoint.Y);
+            var clickedOrigin = GuiUtil.ToComplexCoordinates(clikPoint.X, clikPoint.Y, (int)placeholder.ActualWidth, (int)placeholder.ActualHeight, renderer.Origin, renderer.Zoom);
             string timeStr = GetTime().ToString("0.0000");
             string zoomStr = renderer.Zoom.ToString("0.0");
             string originStr = $"new Complex({clickedOrigin.Real}, {clickedOrigin.Imaginary})";
@@ -298,7 +298,7 @@ namespace PolyFract
             {
                 double fps = frames / timespan.TotalSeconds;
                 var pos = Mouse.GetPosition(placeholder);
-                var mouseComplex = renderer.ToComplexCoordinates(pos.X, pos.Y);
+                var mouseComplex = GuiUtil.ToComplexCoordinates(pos.X, pos.Y, (int)placeholder.ActualWidth, (int)placeholder.ActualHeight, renderer.Origin, renderer.Zoom);
                 var mouseStr = $"r:{mouseComplex.Real.ToString("0.0000")},i:{mouseComplex.Imaginary.ToString("0.0000")}";
                 var originStr = $"r={renderer.Origin.Real.ToString("0.0000")},i={renderer.Origin.Imaginary.ToString("0.0000")}";
                 long pixelsCount = MathUtil.IntegerPower(coefficients.Length, order) * order;
