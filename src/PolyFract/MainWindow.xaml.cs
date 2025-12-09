@@ -41,6 +41,10 @@ namespace PolyFract
 
         private long lastCheckFrameCount;
 
+        private int cycleCounter = 0;
+
+        private int lastCheckCycleCounter = 0;
+
         private PolyFractContextMenu contextMenu;
 
         private BasePreset currentPreset;
@@ -142,7 +146,9 @@ namespace PolyFract
 
                 if (solver == null || solver.coefficientsValuesCount != coefficients.Length || solver.order != order)
                     solver = new Solver(coefficients.Length, order);
+                
                 solver.Solve(coefficients);
+                cycleCounter++;
 
                 renderer.Draw(solver, contextMenu.ShowCoeff ? coefficients : []);
             }
@@ -294,9 +300,11 @@ namespace PolyFract
             var now = DateTime.Now;
             var timespan = now - lastCheckTime;
             double frames = renderer.FrameCounter - lastCheckFrameCount;
+            double cycles = cycleCounter - lastCheckCycleCounter;
             if (timespan.TotalSeconds >= 0.0001)
             {
                 double fps = frames / timespan.TotalSeconds;
+                double cps = cycles / timespan.TotalSeconds;
                 var pos = Mouse.GetPosition(placeholder);
                 var mouseComplex = GuiUtil.ToComplexCoordinates(pos.X, pos.Y, (int)placeholder.ActualWidth, (int)placeholder.ActualHeight, renderer.Origin, renderer.Zoom);
                 var mouseStr = $"r:{mouseComplex.Real.ToString("0.0000")},i:{mouseComplex.Imaginary.ToString("0.0000")}";
@@ -307,8 +315,8 @@ namespace PolyFract
                         $"pixels:{pixelsCount} " +
                         $"polys:{MathUtil.IntegerPower(coefficients.Length, order)} " +
                         $"t:{GetTime().ToString("0.000")} " +
-                        $"frameCount:{renderer.FrameCounter} " +
-                        $"fps:{fps.ToString("0.00")} " +
+                        $"frameCount:{renderer.FrameCounter}/{cycleCounter} " +
+                        $"fps:{fps.ToString("0.0")}/{cps.ToString("0.0")} " +
                         $"mouse:({mouseStr}) origin:({originStr}) " +
                         $"zoom:{renderer.Zoom.ToString("0.00")} " +
                         $"intensity:{(renderer.Intensity*100).ToString("0.0")}% " +
@@ -321,6 +329,7 @@ namespace PolyFract
             }
 
             lastCheckFrameCount = renderer.FrameCounter;
+            lastCheckCycleCounter = cycleCounter;
             lastCheckTime = now;
         }
 

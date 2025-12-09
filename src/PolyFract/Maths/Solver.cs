@@ -74,8 +74,6 @@ namespace PolyFract.Maths
             }
 
             Parallel.ForEach(threads, ctx => ctx.Run());
-
-            var debug = threads.Select(t => new { rts = t.roots.Select(r => r.r).ToArray() }).ToList();
         }
         public int GetErrorsCount()
         {
@@ -163,7 +161,6 @@ namespace PolyFract.Maths
     }
 
     [StructLayout(LayoutKind.Sequential)]
-
     public struct CompactPixel
     {
         public int x;
