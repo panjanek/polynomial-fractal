@@ -42,8 +42,6 @@ namespace PolyFract.Maths
                 Console.WriteLine($"native dll not loaded: {ex.Message}");
                 IsNativeLibAvailable = false;
             }
-
-            //IsNativeLibAvailable = false;
         }
 
         [DllImport("PolyFractFastSolver.dll", CallingConvention = CallingConvention.Cdecl)]
@@ -145,7 +143,7 @@ namespace PolyFract.Maths
             // monic: [1, b1, ..., bn] for z^n + b1*z^(n-1) + ... + bn
             _monic[0].r = 1;
             _monic[0].i = 0;
-            for (int i = 1; i <= n; i++)
+            for (int i = 1; i <= n; ++i)
             {
                 //_monic[i] = coeffsDescending[i] / a0;
                 double div = a0_r * a0_r + a0_i * a0_i;

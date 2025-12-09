@@ -341,8 +341,9 @@ extern "C"
                 _z,
                 _newZ);
 
-            targetFirstIdx = (i - from) * _poly_len;
-            for (int j = 0; j < _poly_len; j++)
+            int order = _poly_len - 1;
+            targetFirstIdx = (i - from) * order;
+            for (int j = 0; j < order; j++)
             {
                 targetIdx = targetFirstIdx + j;
                 roots[targetIdx] = _z[j];
