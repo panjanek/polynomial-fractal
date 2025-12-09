@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using System.Windows.Controls.Ribbon;
 
 namespace PolyFract.Maths
 {
@@ -27,6 +28,9 @@ namespace PolyFract.Maths
             if (threadCount == 0)
                 threadCount = 1;
 
+
+            threadCount = 1;
+
             int polysPerThread = polynomialsCount / threadCount;
             threads = new ThreadContext[threadCount];
             for(int t=0; t<threads.Length; t++)
@@ -35,10 +39,8 @@ namespace PolyFract.Maths
                 threads[t].order = order;
                 threads[t].from = t * polysPerThread;
                 threads[t].to = (t + 1) * polysPerThread;
-                threads[t].poly_r = new double[order + 1];
-                threads[t].poly_i = new double[order + 1];
-                threads[t].coeffs_r = new double[coefficientsValuesCount];
-                threads[t].coeffs_i = new double[coefficientsValuesCount];
+                threads[t].poly = new CompactClomplex[order + 1];
+                threads[t].coeffs = new CompactClomplex[coefficientsValuesCount];
                 if (t == threads.Length - 1)
                 {
                     threads[t].to = polynomialsCount;
@@ -46,25 +48,16 @@ namespace PolyFract.Maths
 
                 // buffer for thread output
                 int rootsInThisThread = (threads[t].to - threads[t].from) * order;
-                threads[t].real = new double[rootsInThisThread];
-                threads[t].imaginary = new double[rootsInThisThread];
-                threads[t].angle = new double[rootsInThisThread];
-                threads[t].color_r = new int[rootsInThisThread];
-                threads[t].color_g = new int[rootsInThisThread];
-                threads[t].color_b = new int[rootsInThisThread];
-                threads[t].pixel_x = new int[rootsInThisThread];
-                threads[t].pixel_y = new int[rootsInThisThread];
+                threads[t].roots = new CompactClomplexWithAngle[rootsInThisThread];
+
+                //buffer for renderer
+                threads[t].pixels = new CompactPixel[rootsInThisThread];
 
                 //buffers for solving algorithm
-                threads[t]._monic_r = new double[order + 1];
-                threads[t]._monic_i = new double[order + 1];
-                threads[t]._z_r = new double[order];
-                threads[t]._z_i = new double[order];
-                threads[t]._z_a = new double[order];
-                threads[t]._newZ_r = new double[order];
-                threads[t]._newZ_i = new double[order];
-                threads[t]._poly_r = new double[order];
-                threads[t]._poly_i = new double[order];
+                threads[t]._monic = new CompactClomplex[order + 1];
+                threads[t]._z = new CompactClomplexWithAngle[order];
+                threads[t]._newZ = new CompactClomplex[order];
+                threads[t]._poly = new CompactClomplex[order];
             }
         }
 
@@ -77,12 +70,14 @@ namespace PolyFract.Maths
             {
                 for (int c = 0; c < coefficients.Length; c++)
                 {
-                    thread.coeffs_r[c] = coefficients[c].Real;
-                    thread.coeffs_i[c] = coefficients[c].Imaginary;
+                    thread.coeffs[c].r = coefficients[c].Real;
+                    thread.coeffs[c].i = coefficients[c].Imaginary;
                 }
             }
 
             Parallel.ForEach(threads, ctx => ctx.Run());
+
+            var debug = threads.Select(t => new { rts = t.roots.Select(r => r.r).ToArray() }).ToList();
         }
         public int GetErrorsCount()
         {
@@ -104,40 +99,28 @@ namespace PolyFract.Maths
         public int errorsCount;
 
         // coefficient values to be used
-        public double[] coeffs_r;
-        public double[] coeffs_i;
+        public CompactClomplex[] coeffs;
 
         // preallocated buffer for actual polynomial
-        public double[] poly_r;
-        public double[] poly_i;
+        public CompactClomplex[] poly;
 
         // output of the solver
-        public double[] real;
-        public double[] imaginary;
-        public double[] angle;
-        public int[] color_r;
-        public int[] color_g;
-        public int[] color_b;
+        public CompactClomplexWithAngle[] roots;
 
         // variables allocated for DurandKerner helper
-        public double[] _poly_r;
-        public double[] _poly_i;
-        public double[] _monic_r;
-        public double[] _monic_i;
-        public double[] _z_r;
-        public double[] _z_i;
-        public double[] _z_a;
-        public double[] _newZ_r;
-        public double[] _newZ_i;
+        public CompactClomplex[] _poly;
+        public CompactClomplex[] _monic;
+        public CompactClomplexWithAngle[] _z;
+        public CompactClomplex[] _newZ;
 
         //pre allocated buffer for pixel coords
-        public int[] pixel_x;
-        public int[] pixel_y;
+        public CompactPixel[] pixels;
 
         public void Run()
         {
             if (Polynomials.IsNativeLibAvailable)
             {
+                /*
                 Polynomials.FindRootsForPolys(
                           //actual parameters
                           from,
@@ -166,7 +149,7 @@ namespace PolyFract.Maths
                           angle,
                           color_r,
                           color_g,
-                          color_b);
+                          color_b);*/
             }
             else
             {
@@ -174,32 +157,31 @@ namespace PolyFract.Maths
                               //actual parameters
                               from,
                               to,
-                              coeffs_r,
-                              coeffs_i,
+                              coeffs,
 
                               // pre-allocated buffer for numbered polynomials
-                              _poly_r,
-                              _poly_i,
+                              _poly,
 
                               // pre-allocated buffer for durand-kerner implementation
-                              _monic_r,
-                              _monic_i,
-                              _z_r,
-                              _z_i,
-                              _z_a,
-                              _newZ_r,
-                              _newZ_i,
+                              _monic,
+                              _z,
+                              _newZ,
 
                               //output
-                              real,
-                              imaginary,
-                              angle,
-                              color_r,
-                              color_g,
-                              color_b);
+                              roots);
             }
 
-            errorsCount = real.Count(r => r == Polynomials.ErrorMarker);
+            errorsCount = roots.Count(x => x.r == Polynomials.ErrorMarker);
         }
+    }
+
+
+    public struct CompactPixel
+    {
+        public int x;
+        public int y;
+        public int r;
+        public int g;
+        public int b;
     }
 }

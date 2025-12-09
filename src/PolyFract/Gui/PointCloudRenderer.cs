@@ -177,11 +177,22 @@ namespace PolyFract.Gui
             Parallel.ForEach(solver.threads, new ParallelOptions() { MaxDegreeOfParallelism = solver.threads.Length }, thread =>
             {
                 int x, y;
-                for (int i = 0; i < thread.real.Length; i++)
+                for (int i = 0; i < thread.roots.Length; i++)
                 {
-                    (x, y) = ToPixelCoordinates(thread.real[i], thread.imaginary[i]);
-                    thread.pixel_x[i] = x;
-                    thread.pixel_y[i] = y;
+                    var root = thread.roots[i];
+                    if (root.r == Polynomials.ErrorMarker)
+                    {
+                        thread.pixels[i].x = Polynomials.ErrorMarker;
+                    }
+                    else
+                    {
+                        (x, y) = ToPixelCoordinates(root.r, root.i);
+                        thread.pixels[i].x = x;
+                        thread.pixels[i].y = y;
+                        thread.pixels[i].r = root.colorR;
+                        thread.pixels[i].g = root.colorG;
+                        thread.pixels[i].b = root.colorB;
+                    }
                 }
             });
 
@@ -195,10 +206,11 @@ namespace PolyFract.Gui
                 System.Runtime.CompilerServices.Unsafe.InitBlock(pBackBuffer, 0, (uint)size);
                 foreach (var thread in solver.threads)
                 {
-                    for (int i = 0; i < thread.real.Length; i++)
+                    for (int i = 0; i < thread.pixels.Length; i++)
                     {
-                        if (thread.real[i] != Polynomials.ErrorMarker)
-                            AddGlyph(pBackBuffer, thread.pixel_x[i], thread.pixel_y[i], rootMarkerInt, thread.color_r[i], thread.color_g[i], thread.color_b[i], intensityInt);
+                        var pixel = thread.pixels[i];
+                        if (pixel.x != Polynomials.ErrorMarker)
+                            AddGlyph(pBackBuffer, pixel.x, pixel.y, rootMarkerInt, pixel.r, pixel.g, pixel.b, intensityInt);
                     }
                 };
 
