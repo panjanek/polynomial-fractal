@@ -1,6 +1,7 @@
 ﻿using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Windows.Controls.Ribbon;
+using System.Windows.Media.TextFormatting;
 
 namespace PolyFract.Maths
 {

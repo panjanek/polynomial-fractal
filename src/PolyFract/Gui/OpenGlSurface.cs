@@ -142,10 +142,16 @@ namespace PolyFract.Gui
                 int offset = thread.from * solver.order;
                 for (int i = 0; i < thread.roots.Length; i++)
                 {
-                    points[offset+i].Position = new Vector2((float)thread.roots[i].r, (float)thread.roots[i].i);
+                    points[offset+i].Position = new Vector2((float)thread.roots[i].r, -(float)thread.roots[i].i);
                     points[offset + i].Color = new Vector3((float)thread.roots[i].colorR / 255.0f, (float)thread.roots[i].colorG / 255.0f, (float)thread.roots[i].colorB / 255.0f);
                 }
             });
+
+            for(int i=0; i<solver.coefficientsValuesCount; i++)
+            {
+                points[solver.rootsCount + i].Position = new Vector2((float)solver.threads[0].coeffs[i].r, -(float)solver.threads[0].coeffs[i].i);
+                points[solver.rootsCount + i].Color = new Vector3(255,255,255);
+            }
         }
 
         private void GlControl_Paint(object? sender, PaintEventArgs e)
@@ -153,7 +159,7 @@ namespace PolyFract.Gui
             if (solver == null)
                 return;
 
-            if (points==null || points.Length != solver.rootsCount)
+            if (points==null || points.Length != solver.rootsCount + solver.coefficientsValuesCount)
             { 
                 ResetGl();
             }
@@ -188,7 +194,8 @@ namespace PolyFract.Gui
 
         private void ResetGl()
         {
-            points = new PointVertex[solver.threads.Sum(t => t.roots.Length)];
+            int pointsCount = solver.rootsCount + solver.coefficientsValuesCount;
+            points = new PointVertex[pointsCount];
 
             vao = GL.GenVertexArray();
             vbo = GL.GenBuffer();
@@ -243,7 +250,7 @@ namespace PolyFract.Gui
             {
                 var w = (float)(glControl.Width / zoom)/2;
                 var h = (float)(glControl.Height / zoom)/2;
-                Matrix4 translate = Matrix4.CreateTranslation(new Vector3((float)-origin.Real, (float)-origin.Imaginary, 0.0f));
+                Matrix4 translate = Matrix4.CreateTranslation(new Vector3((float)-origin.Real, (float)-origin.Imaginary, 1.0f));
                 projectionMatrix = Matrix4.CreateOrthographicOffCenter(-w, w, h, -h, -1f,1f) * translate;
             }
 
@@ -266,6 +273,12 @@ namespace PolyFract.Gui
                 {
                     vColor = aColor;
                     gl_PointSize = 1.0;
+                    if (aColor.r >= 255) {
+                        gl_PointSize = 10.0;
+                    } else {
+                        gl_PointSize = 1.0;
+                    }
+
                     gl_Position = projection * vec4(aPosition, 0.0, 1.0);
                 }
                 ";
@@ -279,6 +292,9 @@ out vec4 outputColor;
 
 void main()
 {
+//    vec2 coord = gl_PointCoord - vec2(0.5);
+ //   if (length(coord) > 0.7071069)
+   //     discard; 
     outputColor = vec4(vColor, 1.0);
 }
 
