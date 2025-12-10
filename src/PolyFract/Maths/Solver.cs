@@ -12,6 +12,8 @@ namespace PolyFract.Maths
 
         public int polynomialsCount;
 
+        public int rootsCount;
+
         public ThreadContext[] threads;
 
         public Solver(int coefficientsValuesCount, int order)
@@ -21,7 +23,7 @@ namespace PolyFract.Maths
             polynomialsCount = 1;
             for (int i = 0; i < order + 1; i++)
                 polynomialsCount *= coefficientsValuesCount;
-            int rootsCount = polynomialsCount * order;
+            rootsCount = polynomialsCount * order;
 
             int threadCount = Environment.ProcessorCount;
             if (polynomialsCount < 10 * threadCount)

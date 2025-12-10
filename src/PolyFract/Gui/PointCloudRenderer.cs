@@ -39,7 +39,8 @@ namespace PolyFract.Gui
         public PointCloudRenderer(Panel placeholder)
         {
             this.placeholder = placeholder;
-            surface = new WpfSurface(placeholder);
+            //surface = new WpfSurface(placeholder);
+            surface = new OpenGlSurface(placeholder);
             placeholder.SizeChanged += Placeholder_SizeChanged;
             var dragging = new DraggingHandler(placeholder, mouse =>
             {
