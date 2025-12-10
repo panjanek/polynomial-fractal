@@ -11,6 +11,7 @@ using System.Windows.Controls;
 using System.Windows.Forms;
 using System.Windows.Forms.Integration;
 using System.Windows.Media;
+using System.Windows.Threading;
 using OpenTK;
 using OpenTK.GLControl;
 using OpenTK.GLControl;
@@ -19,10 +20,12 @@ using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.Common;
 using PolyFract.Maths;
+using Application = System.Windows.Application;
 using Brushes = System.Windows.Media.Brushes;
 using Color = System.Windows.Media.Color;
 using HorizontalAlignment = System.Windows.HorizontalAlignment;
 using Panel = System.Windows.Controls.Panel;
+using Point = System.Windows.Point;
 using Vector2 = OpenTK.Mathematics.Vector2;
 using Vector3 = OpenTK.Mathematics.Vector3;
 
@@ -61,6 +64,8 @@ namespace PolyFract.Gui
         int vao;
         int vbo;
         Matrix4 projectionMatrix;
+        MouseEventArgs? prevMouseMove;
+
         public OpenGlSurface(Panel placeholder)
         {
             this.placeholder = placeholder;
@@ -99,10 +104,19 @@ namespace PolyFract.Gui
 
         private void GlControl_MouseMove(object? sender, MouseEventArgs e)
         {
-            var args = new System.Windows.Input.MouseEventArgs(System.Windows.Input.Mouse.PrimaryDevice, 0);
-            args.RoutedEvent = UIElement.MouseMoveEvent;
-            DraggingHandler.ProxyPoint = new System.Windows.Point(e.X, e.Y);
-            mouseProxy.RaiseEvent(args);
+            
+            if (e.Button == MouseButtons.Left)
+            {
+                if (prevMouseMove?.X == e.X && prevMouseMove?.Y == e.Y)
+                    return;
+
+                prevMouseMove = e;
+
+                var args = new System.Windows.Input.MouseEventArgs(System.Windows.Input.Mouse.PrimaryDevice, 0);
+                args.RoutedEvent = UIElement.MouseMoveEvent;
+                DraggingHandler.ProxyPoint = new System.Windows.Point(e.X, e.Y); //new System.Windows.Point(_pendingMove.Value.X, _pendingMove.Value.Y);      //
+                mouseProxy.RaiseEvent(args);
+            }
         }
 
         private void GlControl_MouseUp(object? sender, MouseEventArgs e)
@@ -223,7 +237,7 @@ namespace PolyFract.Gui
             GL.EnableVertexAttribArray(1);
             GL.VertexAttribPointer(1, 3, VertexAttribPointerType.Float, false, stride, Marshal.OffsetOf<PointVertex>("Color"));
 
-            projectionMatrix = Matrix4.CreateOrthographicOffCenter(-4, 4, 4, -4, -1, 1);
+            projectionMatrix = GetProjectionMatrix();
 
             shaderProgram = CompileAndLinkShaders();
             projLocation = GL.GetUniformLocation(shaderProgram, "projection");
@@ -242,18 +256,20 @@ namespace PolyFract.Gui
             SizeChanged();
         }
 
+        private Matrix4 GetProjectionMatrix()
+        {
+            var w = (float)(glControl.Width / zoom) / 2;
+            var h = (float)(glControl.Height / zoom) / 2;
+            var translate = Matrix4.CreateTranslation((float)-origin.Real,(float)origin.Imaginary, 0.0f);
+            var ortho = Matrix4.CreateOrthographicOffCenter(-w, w, h, -h, -1f, 1f);
+            projectionMatrix = translate * ortho;
+            return projectionMatrix;
+        }
+
         public void SizeChanged()
         {
             GL.Viewport(0, 0, glControl.Width, glControl.Height);
-            var a = placeholder.ActualWidth;
-            if (projectionMatrix != null)
-            {
-                var w = (float)(glControl.Width / zoom)/2;
-                var h = (float)(glControl.Height / zoom)/2;
-                Matrix4 translate = Matrix4.CreateTranslation(new Vector3((float)-origin.Real, (float)-origin.Imaginary, 1.0f));
-                projectionMatrix = Matrix4.CreateOrthographicOffCenter(-w, w, h, -h, -1f,1f) * translate;
-            }
-
+            projectionMatrix = GetProjectionMatrix();
             glControl.Invalidate();
         }
 
