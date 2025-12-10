@@ -84,20 +84,27 @@ namespace PolyFract.Gui
 
         private void WritePixels()
         {
-            Parallel.ForEach(solver.threads, thread => 
+            try
             {
-                int offset = thread.from * solver.order;
-                for (int i = 0; i < thread.roots.Length; i++)
+                Parallel.ForEach(solver.threads, thread =>
                 {
-                    points[offset+i].Position = new Vector2((float)thread.roots[i].r, -(float)thread.roots[i].i);
-                    points[offset + i].Color = new Vector3((float)thread.roots[i].colorR / 255.0f, (float)thread.roots[i].colorG / 255.0f, (float)thread.roots[i].colorB / 255.0f);
-                }
-            });
+                    int offset = thread.from * solver.order;
+                    for (int i = 0; i < thread.roots.Length; i++)
+                    {
+                        points[offset + i].Position = new Vector2((float)thread.roots[i].r, -(float)thread.roots[i].i);
+                        points[offset + i].Color = new Vector3((float)thread.roots[i].colorR / 255.0f, (float)thread.roots[i].colorG / 255.0f, (float)thread.roots[i].colorB / 255.0f);
+                    }
+                });
 
-            for(int i=0; i<this.coefficients.Length; i++)
+                for (int i = 0; i < this.coefficients.Length; i++)
+                {
+                    points[solver.rootsCount + i].Position = new Vector2((float)this.coefficients[i].Real, -(float)this.coefficients[i].Imaginary);
+                    points[solver.rootsCount + i].Color = new Vector3(255, 255, 255);
+                }
+            }
+            catch (Exception ex)
             {
-                points[solver.rootsCount + i].Position = new Vector2((float)this.coefficients[i].Real, -(float)this.coefficients[i].Imaginary);
-                points[solver.rootsCount + i].Color = new Vector3(255,255,255);
+                //this can fail for some single frames
             }
         }
 
@@ -134,7 +141,12 @@ namespace PolyFract.Gui
             GL.Enable(EnableCap.Blend);
             //GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.One);
             //GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);   // meh
-            GL.BlendFunc(BlendingFactor.One, BlendingFactor.OneMinusSrcAlpha);
+            //GL.BlendFunc(BlendingFactor.One, BlendingFactor.OneMinusSrcAlpha);
+
+            GL.BlendFunc(BlendingFactor.One, BlendingFactor.One);
+            
+            //GL.BlendEquation(OpenTK.Graphics.OpenGL.BlendEquationMode.FuncAdd);
+
             GL.Enable(EnableCap.PointSprite);
 
             vao = GL.GenVertexArray();
@@ -233,10 +245,24 @@ namespace PolyFract.Gui
                         else {
                             if (r > 1.0)
                                 discard;
+
+//use with GL.BlendFunc(BlendingFactor.One, BlendingFactor.One);
+
+float inputAlpha = smoothstep(1.0, 0.0, r);
+inputAlpha = inputAlpha*0.8+0.2;
+vec3 linear = pow(vColor.rgb, vec3(2.2));  // to linear
+float a = inputAlpha * 0.1;
+vec3 premul = linear * a;
+outputColor = vec4(pow(premul, vec3(1.0/2.2)), a); // back to sRGB
+
+                            //this is good with GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.One);
                             //float alpha = smoothstep(1.0, 0.0, r);
                             //alpha = alpha*0.5+0.5;
-                            float alpha = 1.0 - smoothstep(0.0, 1.0, r);  
-                            outputColor = vec4(vColor*alpha, alpha);
+                            //outputColor = vec4(vColor*alpha, alpha);
+
+                            //this makes sense with GL.BlendFunc(BlendingFactor.One, BlendingFactor.OneMinusSrcAlpha);
+                            //float alpha = 1.0 - smoothstep(0.0, 1.0, r);  
+                            //outputColor = vec4(vColor*alpha, alpha);
                         }
 
                     }
