@@ -340,8 +340,9 @@ void main()
     else {
         if (r > 1.0)
             discard;
-        float alpha = smoothstep(1.0, 0.0, r);
-        alpha = alpha/2 + 0.5;
+        //float alpha = smoothstep(1.0, 0.0, r);
+        //alpha = alpha*0.5+0.5;
+        float alpha = 1.0 - smoothstep(0.0, 1.0, r);  
         outputColor = vec4(vColor*alpha, alpha);
     }
 
