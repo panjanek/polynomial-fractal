@@ -6,6 +6,9 @@ using System.Windows.Threading;
 using PolyFract.Gui;
 using PolyFract.Maths;
 using PolyFract.Presets;
+using KeyEventArgs = System.Windows.Input.KeyEventArgs;
+using MessageBox = System.Windows.MessageBox;
+using Point = System.Windows.Point;
 
 // TODO:
 // - time correction on +/-

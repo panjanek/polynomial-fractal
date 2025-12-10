@@ -7,6 +7,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using PolyFract.Maths;
+using Panel = System.Windows.Controls.Panel;
 
 namespace PolyFract.Gui
 {

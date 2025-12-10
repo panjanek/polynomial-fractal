@@ -12,6 +12,9 @@ using System.Windows.Media.TextFormatting;
 using Microsoft.WindowsAPICodePack.Dialogs;
 using PolyFract.Presets;
 using static System.Formats.Asn1.AsnWriter;
+using MessageBox = System.Windows.MessageBox;
+using Panel = System.Windows.Controls.Panel;
+using Point = System.Windows.Point;
 
 namespace PolyFract.Gui
 {
