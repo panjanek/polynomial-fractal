@@ -42,7 +42,7 @@ namespace PolyFract.Gui
             //surface = new WpfSurface(placeholder);
             surface = new OpenGlSurface(placeholder);
             placeholder.SizeChanged += Placeholder_SizeChanged;
-            var dragging = new DraggingHandler(placeholder, mouse =>
+            var dragging = new DraggingHandler(surface.MouseEventSource, mouse =>
             {
                 for (int i=0; i<coefficients.Length; i++)
                 {
@@ -74,7 +74,7 @@ namespace PolyFract.Gui
                 }
             });
 
-            placeholder.MouseWheel += Image_MouseWheel;
+            surface.MouseEventSource.MouseWheel += Image_MouseWheel;
         }
 
         private (int x, int y) ToPixelCoordinates(Complex x)

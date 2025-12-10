@@ -11,6 +11,7 @@ namespace PolyFract.Gui
 {
     public class DraggingHandler
     {
+        public static Point ProxyPoint { get; set; }
         public bool IsDragging { get; set; }
 
         FrameworkElement Parent { get; set; }
@@ -41,7 +42,8 @@ namespace PolyFract.Gui
         {
             if (IsDragging)
             {
-                CurrentPoint = e.GetPosition(Parent);
+                var pos = GetPosition(e);
+                CurrentPoint = pos;
                 if (Dragging != null && PreviousPoint.HasValue && CurrentPoint.HasValue)
                     Dragging(PreviousPoint.Value, CurrentPoint.Value);
                 PreviousPoint = CurrentPoint;
@@ -50,12 +52,23 @@ namespace PolyFract.Gui
 
         private void Parent_MouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
-            var point = e.GetPosition(Parent);
+            var point = GetPosition(e);
             if (CanDrag == null || CanDrag(point))
             {
                 IsDragging = true;
                 PreviousPoint = point;
             }
+        }
+
+        private Point GetPosition(System.Windows.Input.MouseEventArgs e)
+        {
+            var pos = e.GetPosition(Parent);
+            if (pos.X==0 && pos.Y==0)
+            {
+                pos = ProxyPoint;
+            }
+
+            return pos;
         }
     }
 }

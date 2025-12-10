@@ -4,6 +4,7 @@ using System.Linq;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -18,6 +19,8 @@ using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.Common;
 using PolyFract.Maths;
+using Brushes = System.Windows.Media.Brushes;
+using Color = System.Windows.Media.Color;
 using HorizontalAlignment = System.Windows.HorizontalAlignment;
 using Panel = System.Windows.Controls.Panel;
 using Vector2 = OpenTK.Mathematics.Vector2;
@@ -27,11 +30,17 @@ namespace PolyFract.Gui
 {
     public class OpenGlSurface : ISurface
     {
+        public System.Windows.Controls.Panel MouseEventSource => this.mouseProxy;
+
+        public int FrameCounter => frameCounter;
+
         private Panel placeholder;
 
         private WindowsFormsHost host;
 
         private GLControl glControl;
+
+        private Panel mouseProxy;
 
         private int frameCounter = 0;
 
@@ -55,11 +64,16 @@ namespace PolyFract.Gui
         public OpenGlSurface(Panel placeholder)
         {
             this.placeholder = placeholder;
+
+
+
+
             host = new WindowsFormsHost();
+        
             host.Visibility = Visibility.Visible;
             host.HorizontalAlignment = HorizontalAlignment.Stretch;
             host.VerticalAlignment = VerticalAlignment.Stretch;
-            
+
             glControl = new GLControl(new GLControlSettings
             {
                 API = OpenTK.Windowing.Common.ContextAPI.OpenGL,
@@ -71,9 +85,66 @@ namespace PolyFract.Gui
             glControl.Dock = DockStyle.Fill;
             host.Child = glControl;
             placeholder.Children.Add(host);
-
-            //glControl.Resize += GlControl_Resize;
             glControl.Paint += GlControl_Paint;
+
+
+            glControl.MouseWheel += GlControl_MouseWheel;
+            glControl.MouseDown += GlControl_MouseDown;
+            glControl.MouseUp += GlControl_MouseUp;
+            glControl.MouseMove += GlControl_MouseMove;
+
+
+            mouseProxy = new StackPanel();
+        }
+
+        private void GlControl_MouseMove(object? sender, MouseEventArgs e)
+        {
+            var args = new System.Windows.Input.MouseEventArgs(System.Windows.Input.Mouse.PrimaryDevice, 0);
+            args.RoutedEvent = UIElement.MouseMoveEvent;
+            DraggingHandler.ProxyPoint = new System.Windows.Point(e.X, e.Y);
+            mouseProxy.RaiseEvent(args);
+        }
+
+        private void GlControl_MouseUp(object? sender, MouseEventArgs e)
+        {
+            if (e.Button == MouseButtons.Left)
+            {
+                var args = new System.Windows.Input.MouseButtonEventArgs(System.Windows.Input.Mouse.PrimaryDevice, 0, System.Windows.Input.MouseButton.Left);
+                args.RoutedEvent = UIElement.MouseLeftButtonUpEvent;
+                DraggingHandler.ProxyPoint = new System.Windows.Point(e.X, e.Y);
+                mouseProxy.RaiseEvent(args);
+            }
+        }
+
+        private void GlControl_MouseDown(object? sender, MouseEventArgs e)
+        {
+            if (e.Button == MouseButtons.Left)
+            {
+                var args = new System.Windows.Input.MouseButtonEventArgs(System.Windows.Input.Mouse.PrimaryDevice, 0, System.Windows.Input.MouseButton.Left);
+                args.RoutedEvent = UIElement.MouseLeftButtonDownEvent;
+                DraggingHandler.ProxyPoint = new System.Windows.Point(e.X, e.Y);
+                mouseProxy.RaiseEvent(args);
+            }
+        }
+
+        private void GlControl_MouseWheel(object? sender, MouseEventArgs e)
+        {
+            var args = new System.Windows.Input.MouseWheelEventArgs(System.Windows.Input.Mouse.PrimaryDevice, 0, e.Delta);
+            args.RoutedEvent = UIElement.MouseWheelEvent;
+            mouseProxy.RaiseEvent(args);
+        }
+
+        private void WritePixels()
+        {
+            Parallel.ForEach(solver.threads, thread => 
+            {
+                int offset = thread.from * solver.order;
+                for (int i = 0; i < thread.roots.Length; i++)
+                {
+                    points[offset+i].Position = new Vector2((float)thread.roots[i].r, (float)thread.roots[i].i);
+                    points[offset + i].Color = new Vector3((float)thread.roots[i].colorR / 255.0f, (float)thread.roots[i].colorG / 255.0f, (float)thread.roots[i].colorB / 255.0f);
+                }
+            });
         }
 
         private void GlControl_Paint(object? sender, PaintEventArgs e)
@@ -86,52 +157,24 @@ namespace PolyFract.Gui
                 ResetGl();
             }
 
+            WritePixels();
 
-            int c = 0;
-            foreach (var thread in solver.threads)
-            {
-                for (int i = 0; i < thread.roots.Length; i++)
-                {
-                    points[c].Position = new Vector2((float)thread.roots[i].r, (float)thread.roots[i].i);
-                    points[c].Color = new Vector3((float)thread.roots[i].colorR / 255.0f, (float)thread.roots[i].colorG / 255.0f, (float)thread.roots[i].colorB / 255.0f);
-                    c++;
-                }
-            }
-            /*
-            GL.BufferData(BufferTarget.ArrayBuffer,
-              points.Length * Marshal.SizeOf<PointVertex>(),
-              points,
-              BufferUsageHint.StaticDraw);
-            */
             GL.BindBuffer(BufferTarget.ArrayBuffer, vbo);
-
-            // Update the whole buffer (most common case):
-            GL.BufferSubData(
-                BufferTarget.ArrayBuffer,
-                IntPtr.Zero,
-                points.Length * Marshal.SizeOf<PointVertex>(),
-                points
-            );
-
+            GL.BufferSubData(BufferTarget.ArrayBuffer, IntPtr.Zero, points.Length * Marshal.SizeOf<PointVertex>(), points);
             GL.Clear(ClearBufferMask.ColorBufferBit);
-
             GL.UseProgram(shaderProgram);
             GL.BindVertexArray(vao);
-
             GL.UniformMatrix4(projLocation, false, ref projectionMatrix);
-
             GL.DrawArrays(PrimitiveType.Points, 0, points.Length);
 
             glControl.SwapBuffers();
-
+            frameCounter++;
         }
 
         private void GlControl_Resize(object? sender, EventArgs e)
         {
             SizeChanged();
         }
-
-        public int FrameCounter => frameCounter;
 
         public void Draw(Solver solver, Complex[] coefficients, double intensity)
         {
@@ -150,6 +193,8 @@ namespace PolyFract.Gui
             vbo = GL.GenBuffer();
 
             GL.Enable(EnableCap.ProgramPointSize);
+            GL.Enable(EnableCap.Blend);
+            GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
 
             GL.BindVertexArray(vao);
             GL.BindBuffer(BufferTarget.ArrayBuffer, vbo);
@@ -192,12 +237,13 @@ namespace PolyFract.Gui
         public void SizeChanged()
         {
             GL.Viewport(0, 0, glControl.Width, glControl.Height);
-
+            var a = placeholder.ActualWidth;
             if (projectionMatrix != null)
             {
                 var w = (float)(glControl.Width / zoom)/2;
                 var h = (float)(glControl.Height / zoom)/2;
-                projectionMatrix = Matrix4.CreateOrthographicOffCenter(-w, w, h, -h, -1, 1);
+                Matrix4 translate = Matrix4.CreateTranslation(new Vector3((float)-origin.Real, (float)-origin.Imaginary, 0.0f));
+                projectionMatrix = Matrix4.CreateOrthographicOffCenter(-w, w, h, -h, -0.5f, 0.5f) * translate;
             }
 
             glControl.Invalidate();
@@ -223,18 +269,48 @@ namespace PolyFract.Gui
                 }
                 ";
 
+
             string fragmentSource = @"
-                #version 330 core
+#version 330 core
 
-                in vec3 vColor;
-                out vec4 outputColor;
+in vec3 vColor;
+out vec4 outputColor;
 
-                void main()
-                {
-                    outputColor = vec4(vColor, 1.0);
-                }
+void main()
+{
+    outputColor = vec4(vColor, 1.0);
+}
 
-                ";
+";
+
+
+
+
+            /*
+            string fragmentSource = @"
+#version 330 core
+
+in vec3 vColor;
+out vec4 FragColor;
+
+void main() {
+    vec2 uv = gl_PointCoord * 2.0 - 1.0;
+    float r2 = dot(uv, uv);
+
+    if (r2 > 1.0)
+        discard;
+
+    float sigma = 0.4;
+    float alpha = exp(-r2 / (2.0 * sigma * sigma));
+
+    FragColor = vec4(vColor, alpha);
+}
+
+";
+
+*/
+
+
             // Compile vertex shader
             int vertexShader = GL.CreateShader(ShaderType.VertexShader);
             GL.ShaderSource(vertexShader, vertexSource);

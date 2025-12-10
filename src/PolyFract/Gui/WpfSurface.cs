@@ -22,6 +22,8 @@ namespace PolyFract.Gui
     {
         public int FrameCounter => frameCounter;
 
+        public System.Windows.Controls.Panel MouseEventSource => this.placeholder;
+
         private readonly Image image;
 
         private WriteableBitmap bitmap;
@@ -75,7 +77,6 @@ namespace PolyFract.Gui
             image.Source = bitmap;
             coeffMarkerInt = DoubleMatrixToInt(coeffMarker);
             rootMarkerInt = DoubleMatrixToInt(rootMarker);
-            
         }
 
         public void SizeChanged()
