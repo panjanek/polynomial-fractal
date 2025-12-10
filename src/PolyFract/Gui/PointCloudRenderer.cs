@@ -26,6 +26,8 @@ namespace PolyFract.Gui
         public Complex Origin { get; private set; } = Complex.Zero;
         public double Zoom { get; private set; } = MainWindow.DefaultZoom;
 
+        public System.Windows.Controls.Panel MouseEventSource => this.surface.MouseEventSource;
+
         public int FrameCounter => surface?.FrameCounter ?? 0;
 
         private readonly ISurface surface;
@@ -101,8 +103,8 @@ namespace PolyFract.Gui
         private void Image_MouseWheel(object sender, System.Windows.Input.MouseWheelEventArgs e)
         {
             var pos = e.GetPosition(placeholder);
-            if (DraggingHandler.ProxyPoint.X != 0 && DraggingHandler.ProxyPoint.X != 0)
-                pos = DraggingHandler.ProxyPoint;
+            if (DraggingHandler.ProxyPoint.HasValue)
+                pos = DraggingHandler.ProxyPoint.Value;
 
             double zoomRatio = 1.0 + ZoomingSpeed * e.Delta;
 

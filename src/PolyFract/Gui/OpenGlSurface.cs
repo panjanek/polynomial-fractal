@@ -97,6 +97,7 @@ namespace PolyFract.Gui
             glControl.MouseDown += GlControl_MouseDown;
             glControl.MouseUp += GlControl_MouseUp;
             glControl.MouseMove += GlControl_MouseMove;
+        
 
             mouseProxy = new StackPanel();
         }
@@ -138,6 +139,14 @@ namespace PolyFract.Gui
                 DraggingHandler.ProxyPoint = new System.Windows.Point(e.X, e.Y);
                 mouseProxy.RaiseEvent(args);
             }
+            else if (e.Button == MouseButtons.Right)
+            {
+                var args = new System.Windows.Input.MouseButtonEventArgs(System.Windows.Input.Mouse.PrimaryDevice, 0, System.Windows.Input.MouseButton.Right);
+                args.RoutedEvent = UIElement.PreviewMouseRightButtonDownEvent;
+                DraggingHandler.ProxyPoint = new System.Windows.Point(e.X, e.Y);
+                mouseProxy.RaiseEvent(args);
+            }
+
         }
 
         private void GlControl_MouseWheel(object? sender, MouseEventArgs e)

@@ -76,7 +76,7 @@ namespace PolyFract
 
             lastCheckTime = DateTime.Now;
             KeyDown += MainWindow_KeyDown;
-            contextMenu = new PolyFractContextMenu(placeholder);
+            contextMenu = new PolyFractContextMenu(placeholder, renderer.MouseEventSource);
             contextMenu.OrderChanged = newOrder =>
             {
                 var pixelsCount = MathUtil.IntegerPower(coefficients.Length, newOrder);

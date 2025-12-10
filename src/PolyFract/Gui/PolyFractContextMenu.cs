@@ -74,7 +74,7 @@ namespace PolyFract.Gui
 
         public bool ShowCoeff { get; private set; }
 
-        public PolyFractContextMenu(Panel placeholder)
+        public PolyFractContextMenu(Panel placeholder, Panel mouseSource)
         {
             this.placeholder = placeholder;
             menu = new ContextMenu();
@@ -115,7 +115,7 @@ namespace PolyFract.Gui
             menuAutoPOV.Click += Checkbox_Click;
             menuAutoCoeff.Click += Checkbox_Click;
             menuShowCoeff.Click += Checkbox_Click;
-            placeholder.PreviewMouseRightButtonDown += Placeholder_PreviewMouseRightButtonDown;
+            mouseSource.PreviewMouseRightButtonDown += Placeholder_PreviewMouseRightButtonDown;
             Checkbox_Click(this);
         }
 
@@ -164,7 +164,18 @@ namespace PolyFract.Gui
         {
             LastRightClick = e.GetPosition(placeholder);
             menu.PlacementTarget = placeholder;
-            menu.Placement = System.Windows.Controls.Primitives.PlacementMode.MousePoint;
+            if (DraggingHandler.ProxyPoint.HasValue)
+            {
+                menu.Placement = System.Windows.Controls.Primitives.PlacementMode.AbsolutePoint;
+                menu.HorizontalOffset = DraggingHandler.ProxyPoint.Value.X;
+                menu.VerticalOffset = DraggingHandler.ProxyPoint.Value.Y;
+
+            }
+            else
+            {
+                menu.Placement = System.Windows.Controls.Primitives.PlacementMode.MousePoint;
+            }
+
             menu.IsOpen = true;
             e.Handled = true;
         }
