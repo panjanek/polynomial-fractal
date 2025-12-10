@@ -98,7 +98,6 @@ namespace PolyFract.Gui
             glControl.MouseUp += GlControl_MouseUp;
             glControl.MouseMove += GlControl_MouseMove;
 
-
             mouseProxy = new StackPanel();
         }
 
@@ -211,12 +210,15 @@ namespace PolyFract.Gui
             int pointsCount = solver.rootsCount + solver.coefficientsValuesCount;
             points = new PointVertex[pointsCount];
 
-            vao = GL.GenVertexArray();
-            vbo = GL.GenBuffer();
 
             GL.Enable(EnableCap.ProgramPointSize);
             GL.Enable(EnableCap.Blend);
-            GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
+            GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.One);
+            GL.Enable(EnableCap.PointSprite);
+
+            vao = GL.GenVertexArray();
+            vbo = GL.GenBuffer();
+
 
             GL.BindVertexArray(vao);
             GL.BindBuffer(BufferTarget.ArrayBuffer, vbo);
@@ -288,11 +290,11 @@ namespace PolyFract.Gui
                 void main()
                 {
                     vColor = aColor;
-                    gl_PointSize = 1.0;
+                   // gl_PointSize = 1.0;
                     if (aColor.r >= 255) {
                         gl_PointSize = 10.0;
                     } else {
-                        gl_PointSize = 1.0;
+                        gl_PointSize = 3.0;
                     }
 
                     gl_Position = projection * vec4(aPosition, 0.0, 1.0);
@@ -308,10 +310,21 @@ out vec4 outputColor;
 
 void main()
 {
-//    vec2 coord = gl_PointCoord - vec2(0.5);
- //   if (length(coord) > 0.7071069)
-   //     discard; 
-    outputColor = vec4(vColor, 1.0);
+ 
+
+    if (vColor.r >= 255) {
+        outputColor = vec4(vColor, 1.0);
+    }
+    else {
+        vec2 uv = gl_PointCoord * 2.0 - 1.0; 
+        float r = length(uv); 
+        if (r > 1.0)
+            discard;  
+        float alpha = smoothstep(1.0, 0.0, r);
+        alpha = alpha/2+0.5;
+        outputColor = vec4(vColor*alpha, alpha);
+    }
+
 }
 
 ";
