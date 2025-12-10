@@ -12,7 +12,6 @@ using Point = System.Windows.Point;
 
 // TODO:
 // - time correction on +/-
-// save capture
 
 namespace PolyFract
 {
@@ -133,10 +132,9 @@ namespace PolyFract
             renderThread.Start();
             */
 
-            var renderTimer = new System.Timers.Timer(15);
+            var renderTimer = new System.Timers.Timer(12);
             renderTimer.Elapsed += RenderTimer_Elapsed;
             renderTimer.Start();
-
         }
 
         private void RenderTimer_Elapsed(object? sender, System.Timers.ElapsedEventArgs e)
@@ -219,7 +217,6 @@ namespace PolyFract
             dt = preset.DT;
             renderer.Intensity = preset.Intensity;
             coefficients = currentPreset.GetCoefficients(GetTime());
-
             tStart = DateTime.Now;
             contextMenu.SetCheckboxes(null, true, true, false);
             UpdateContextMenu();
@@ -352,7 +349,8 @@ namespace PolyFract
                         $"coeffsCount: {coefficients.Length} "+
                         $"threads: {Environment.ProcessorCount} " +
                         $"errors: {solver?.GetErrorsCount()} ({(100.0 * solver?.GetErrorsCount() / pixelsCount)?.ToString("0.00000")}%) "+
-                        $"solver: {(Polynomials.IsNativeLibAvailable ? "[native]" : "[managed]")}";
+                        $"solver: {(Polynomials.IsNativeLibAvailable ? "[native]" : "[managed]")} "+
+                        $"renderer: {renderer.RendererName}";
             }
 
             lastCheckFrameCount = renderer.FrameCounter;

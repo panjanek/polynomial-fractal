@@ -12,6 +12,8 @@ namespace PolyFract.Gui
     {
         int FrameCounter { get; }
 
+        string Name { get; }
+
         System.Windows.Controls.Panel MouseEventSource { get; }
         void Draw(Solver solver, Complex[] coefficients, double intensity);
 

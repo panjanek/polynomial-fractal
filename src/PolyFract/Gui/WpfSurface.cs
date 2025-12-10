@@ -22,6 +22,8 @@ namespace PolyFract.Gui
     {
         public int FrameCounter => frameCounter;
 
+        public string Name => "wpf";
+
         public System.Windows.Controls.Panel MouseEventSource => this.placeholder;
 
         private readonly Image image;

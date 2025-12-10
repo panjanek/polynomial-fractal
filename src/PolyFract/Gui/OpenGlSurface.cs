@@ -1,4 +1,5 @@
-﻿using System.Numerics;
+﻿using System.Drawing.Imaging;
+using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Forms.Integration;
@@ -19,6 +20,8 @@ namespace PolyFract.Gui
         public Panel MouseEventSource => this.mouseProxy;
 
         public int FrameCounter => frameCounter;
+
+        public string Name => "opengl";
 
         private readonly Panel placeholder;
 
@@ -162,11 +165,6 @@ namespace PolyFract.Gui
             SizeChanged();
         }
 
-        public void SaveToFile(string fileName)
-        {
-            throw new NotImplementedException();
-        }
-
         public void SetProjection(Complex origin, double zoom)
         {
             this.origin = origin;
@@ -206,7 +204,6 @@ namespace PolyFract.Gui
                 void main()
                 {
                     vColor = aColor;
-                   // gl_PointSize = 1.0;
                     if (aColor.r >= 255) {
                         gl_PointSize = 15.0;
                     } else {
@@ -290,6 +287,36 @@ namespace PolyFract.Gui
             GL.DeleteShader(fragmentShader);
 
             return program;
+        }
+
+        public void SaveToFile(string fileName)
+        {
+            glControl.MakeCurrent();
+            int width = glControl.Width;
+            int height = glControl.Height;
+            byte[] pixels = new byte[width * height * 4];
+
+            GL.ReadPixels(
+                0, 0,
+                width, height,
+                OpenTK.Graphics.OpenGL.PixelFormat.Bgra,
+                PixelType.UnsignedByte,
+                pixels
+            );
+
+            using (Bitmap bmp = new Bitmap(width, height, System.Drawing.Imaging.PixelFormat.Format32bppArgb))
+            {
+                var data = bmp.LockBits(
+                    new Rectangle(0, 0, width, height),
+                    ImageLockMode.WriteOnly,
+                    System.Drawing.Imaging.PixelFormat.Format32bppArgb
+                );
+
+                System.Runtime.InteropServices.Marshal.Copy(pixels, 0, data.Scan0, pixels.Length);
+                bmp.UnlockBits(data);
+                //bmp.RotateFlip(RotateFlipType.RotateNoneFlipY);
+                bmp.Save(fileName, ImageFormat.Png);
+            }
         }
     }
 

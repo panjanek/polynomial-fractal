@@ -17,6 +17,8 @@ namespace PolyFract.Gui
 
         public const double ZoomingSpeed = 0.0002;
 
+        public string RendererName => surface?.Name;
+
         public double Intensity { get; set; } = 0.5;
 
         public Action DraggedOrZoommed { get; set; }
