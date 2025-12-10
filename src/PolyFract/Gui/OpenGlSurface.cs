@@ -70,9 +70,6 @@ namespace PolyFract.Gui
         {
             this.placeholder = placeholder;
 
-
-
-
             host = new WindowsFormsHost();
         
             host.Visibility = Visibility.Visible;
@@ -100,6 +97,26 @@ namespace PolyFract.Gui
         
 
             mouseProxy = new StackPanel();
+
+
+            //var renderTimer = new System.Timers.Timer();
+            //renderTimer.Interval = 10;
+            //renderTimer.Elapsed += RenderTimer_Elapsed;
+            //renderTimer.Start();
+        }
+
+        /*
+        private void RenderTimer_Elapsed(object? sender, System.Timers.ElapsedEventArgs e)
+        {
+            glControl.Invalidate();
+        }*/
+
+        public void Draw(Solver solver, Complex[] coefficients, double intensity)
+        {
+            this.solver = solver;
+            this.coefficients = coefficients;
+            this.intensity = intensity;
+            glControl.Invalidate();
         }
 
         private void GlControl_MouseMove(object? sender, MouseEventArgs e)
@@ -203,15 +220,6 @@ namespace PolyFract.Gui
         private void GlControl_Resize(object? sender, EventArgs e)
         {
             SizeChanged();
-        }
-
-        public void Draw(Solver solver, Complex[] coefficients, double intensity)
-        {
-            this.solver = solver;
-            this.coefficients = coefficients;
-            this.intensity = intensity;
-
-            glControl.Invalidate();
         }
 
         private void ResetGl()

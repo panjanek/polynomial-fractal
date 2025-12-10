@@ -55,6 +55,8 @@ namespace PolyFract
 
         private Solver solver;
 
+        private bool isOccupied;
+
         public MainWindow()
             : base()
         {
@@ -121,39 +123,61 @@ namespace PolyFract
             infoTimer.Tick += InfoTimer_Tick;
             infoTimer.Start();
 
+            /*
             Thread renderThread = new Thread(() =>
             {
                 Worker();
             });
             renderThread.IsBackground = true;
             renderThread.Start();
+            */
+
+            var renderTimer = new System.Timers.Timer(15);
+            renderTimer.Elapsed += RenderTimer_Elapsed;
+            renderTimer.Start();
+
+        }
+
+        private void RenderTimer_Elapsed(object? sender, System.Timers.ElapsedEventArgs e)
+        {
+            if (!isOccupied)
+            {
+                isOccupied = true;
+                WorkerStep();
+                isOccupied = false;
+            }
         }
 
         private void Worker()
         {
             while (true)
             {
-                if (!contextMenu.Paused)
-                {
-                    if (contextMenu.AutoPOV)
-                    {
-                        var newPOV = currentPreset.GetPOV(GetTime());
-                        if (newPOV != null)
-                            renderer.SetProjection(newPOV.Origin, newPOV.Zoom);
-                    }
+                WorkerStep();
+            }
+        }
 
-                    if (contextMenu.AutoCoeff)
-                        coefficients = currentPreset.GetCoefficients(GetTime());
+        private void WorkerStep()
+        {
+            if (!contextMenu.Paused)
+            {
+                if (contextMenu.AutoPOV)
+                {
+                    var newPOV = currentPreset.GetPOV(GetTime());
+                    if (newPOV != null)
+                        renderer.SetProjection(newPOV.Origin, newPOV.Zoom);
                 }
 
-                if (solver == null || solver.coefficientsValuesCount != coefficients.Length || solver.order != order)
-                    solver = new Solver(coefficients.Length, order);
-                
-                solver.Solve(coefficients);
-                cycleCounter++;
-
-                renderer.Draw(solver, contextMenu.ShowCoeff ? coefficients : []);
+                if (contextMenu.AutoCoeff)
+                    coefficients = currentPreset.GetCoefficients(GetTime());
             }
+
+            if (solver == null || solver.coefficientsValuesCount != coefficients.Length || solver.order != order)
+                solver = new Solver(coefficients.Length, order);
+
+            solver.Solve(coefficients);
+            cycleCounter++;
+
+            renderer.Draw(solver, contextMenu.ShowCoeff ? coefficients : []);
         }
 
         private double GetTime()
