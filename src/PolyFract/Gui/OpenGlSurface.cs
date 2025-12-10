@@ -130,6 +130,7 @@ namespace PolyFract.Gui
         private void GlControl_MouseWheel(object? sender, MouseEventArgs e)
         {
             var args = new System.Windows.Input.MouseWheelEventArgs(System.Windows.Input.Mouse.PrimaryDevice, 0, e.Delta);
+            DraggingHandler.ProxyPoint = new System.Windows.Point(e.X, e.Y);
             args.RoutedEvent = UIElement.MouseWheelEvent;
             mouseProxy.RaiseEvent(args);
         }
@@ -243,7 +244,7 @@ namespace PolyFract.Gui
                 var w = (float)(glControl.Width / zoom)/2;
                 var h = (float)(glControl.Height / zoom)/2;
                 Matrix4 translate = Matrix4.CreateTranslation(new Vector3((float)-origin.Real, (float)-origin.Imaginary, 0.0f));
-                projectionMatrix = Matrix4.CreateOrthographicOffCenter(-w, w, h, -h, -0.5f, 0.5f) * translate;
+                projectionMatrix = Matrix4.CreateOrthographicOffCenter(-w, w, h, -h, -1f,1f) * translate;
             }
 
             glControl.Invalidate();
