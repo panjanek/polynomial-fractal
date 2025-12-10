@@ -164,11 +164,11 @@ namespace PolyFract.Gui
         {
             LastRightClick = e.GetPosition(placeholder);
             menu.PlacementTarget = placeholder;
-            if (DraggingHandler.ProxyPoint.HasValue)
+            if (WinFormsMouseProxy.ProxyPoint.HasValue)
             {
                 menu.Placement = System.Windows.Controls.Primitives.PlacementMode.AbsolutePoint;
-                menu.HorizontalOffset = DraggingHandler.ProxyPoint.Value.X;
-                menu.VerticalOffset = DraggingHandler.ProxyPoint.Value.Y;
+                menu.HorizontalOffset = WinFormsMouseProxy.ProxyPoint.Value.X;
+                menu.VerticalOffset = WinFormsMouseProxy.ProxyPoint.Value.Y;
 
             }
             else

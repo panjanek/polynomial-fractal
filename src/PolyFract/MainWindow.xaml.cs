@@ -12,6 +12,7 @@ using Point = System.Windows.Point;
 
 // TODO:
 // - time correction on +/-
+// save capture
 
 namespace PolyFract
 {

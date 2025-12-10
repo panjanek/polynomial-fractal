@@ -103,8 +103,8 @@ namespace PolyFract.Gui
         private void Image_MouseWheel(object sender, System.Windows.Input.MouseWheelEventArgs e)
         {
             var pos = e.GetPosition(placeholder);
-            if (DraggingHandler.ProxyPoint.HasValue)
-                pos = DraggingHandler.ProxyPoint.Value;
+            if (WinFormsMouseProxy.ProxyPoint.HasValue)
+                pos = WinFormsMouseProxy.ProxyPoint.Value;
 
             double zoomRatio = 1.0 + ZoomingSpeed * e.Delta;
 
