@@ -12,8 +12,6 @@ using Point = System.Windows.Point;
 
 // TODO:
 // - time correction on +/-
-// - pixel blending
-// - pixel blur
 
 namespace PolyFract
 {

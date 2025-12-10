@@ -222,7 +222,9 @@ namespace PolyFract.Gui
 
             GL.Enable(EnableCap.ProgramPointSize);
             GL.Enable(EnableCap.Blend);
-            GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.One);
+            //GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.One);
+            //GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);   // meh
+            GL.BlendFunc(BlendingFactor.One, BlendingFactor.OneMinusSrcAlpha);
             GL.Enable(EnableCap.PointSprite);
 
             vao = GL.GenVertexArray();
@@ -301,7 +303,7 @@ namespace PolyFract.Gui
                     vColor = aColor;
                    // gl_PointSize = 1.0;
                     if (aColor.r >= 255) {
-                        gl_PointSize = 10.0;
+                        gl_PointSize = 15.0;
                     } else {
                         gl_PointSize = 3.0;
                     }
@@ -319,18 +321,19 @@ out vec4 outputColor;
 
 void main()
 {
- 
+    vec2 uv = gl_PointCoord * 2.0 - 1.0; 
+    float r = length(uv); 
 
     if (vColor.r >= 255) {
-        outputColor = vec4(vColor, 1.0);
+        if (r > 1.0 || r < 0.5)
+            discard;
+        outputColor = vec4(vColor*0.5, 0.5);
     }
     else {
-        vec2 uv = gl_PointCoord * 2.0 - 1.0; 
-        float r = length(uv); 
         if (r > 1.0)
-            discard;  
+            discard;
         float alpha = smoothstep(1.0, 0.0, r);
-        alpha = alpha/2+0.5;
+        alpha = alpha/2 + 0.5;
         outputColor = vec4(vColor*alpha, alpha);
     }
 
