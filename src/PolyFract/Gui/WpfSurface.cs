@@ -157,7 +157,6 @@ namespace PolyFract.Gui
                     }
                     else
                     {
-                        //(int x, int y) = GuiUtil.ToPixelCoordinates(root.r, root.i, pixelWidth, pixelHeight, origin, zoom);
                         int x = unchecked((int)(pixelWidth / 2 + (root.r - origin.Real) * zoom));
                         int y = unchecked((int)(pixelHeight / 2 - (root.i - origin.Imaginary) * zoom));
                         thread.pixels[i].x = x;

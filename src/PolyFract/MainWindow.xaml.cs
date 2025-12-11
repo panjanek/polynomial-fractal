@@ -123,15 +123,6 @@ namespace PolyFract
             infoTimer.Tick += InfoTimer_Tick;
             infoTimer.Start();
 
-            /*
-            Thread renderThread = new Thread(() =>
-            {
-                Worker();
-            });
-            renderThread.IsBackground = true;
-            renderThread.Start();
-            */
-
             var renderTimer = new System.Timers.Timer(12);
             renderTimer.Elapsed += RenderTimer_Elapsed;
             renderTimer.Start();
@@ -144,14 +135,6 @@ namespace PolyFract
                 isOccupied = true;
                 WorkerStep();
                 isOccupied = false;
-            }
-        }
-
-        private void Worker()
-        {
-            while (true)
-            {
-                WorkerStep();
             }
         }
 

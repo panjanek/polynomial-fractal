@@ -82,7 +82,6 @@ namespace PolyFract.Gui
                 }
                 else
                 {
-                    //var d = new Complex(delta.Real / 3.2, delta.Imaginary / 1.65);
                     var d = delta;
                     SetProjection(Origin - d, Zoom);
                 }

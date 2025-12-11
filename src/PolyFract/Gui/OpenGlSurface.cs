@@ -225,15 +225,16 @@ namespace PolyFract.Gui
                             if (r > 1.0)
                                 discard;
 
-//use with GL.BlendFunc(BlendingFactor.One, BlendingFactor.One);
-/*
-float inputAlpha = smoothstep(1.0, 0.0, r);
-inputAlpha = inputAlpha;
-vec3 linear = pow(vColor.rgb, vec3(2.2));  // to linear
-float a = inputAlpha * 0.2;
-vec3 premul = linear * a;
-outputColor = vec4(pow(premul, vec3(1.0/2.2)), a); // back to sRGB
-*/
+                            //use with GL.BlendFunc(BlendingFactor.One, BlendingFactor.One);
+                            /*
+                            float inputAlpha = smoothstep(1.0, 0.0, r);
+                            inputAlpha = inputAlpha;
+                            vec3 linear = pow(vColor.rgb, vec3(2.2));  // to linear
+                            float a = inputAlpha * 0.2;
+                            vec3 premul = linear * a;
+                            outputColor = vec4(pow(premul, vec3(1.0/2.2)), a); // back to sRGB
+                            */
+
                             //this is good with GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.One);
                             float alpha = smoothstep(1.0, 0.0, r);
                             alpha = alpha*alpha;
@@ -324,7 +325,6 @@ outputColor = vec4(pow(premul, vec3(1.0/2.2)), a); // back to sRGB
 
                 System.Runtime.InteropServices.Marshal.Copy(pixels, 0, data.Scan0, pixels.Length);
                 bmp.UnlockBits(data);
-                //bmp.RotateFlip(RotateFlipType.RotateNoneFlipY);
                 bmp.Save(fileName, ImageFormat.Png);
             }
         }
