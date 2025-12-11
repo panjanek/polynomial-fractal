@@ -1,6 +1,7 @@
 ﻿using System.Drawing.Imaging;
 using System.Numerics;
 using System.Runtime.InteropServices;
+using System.Threading;
 using System.Windows;
 using System.Windows.Forms.Integration;
 using OpenTK.GLControl;
@@ -43,7 +44,7 @@ namespace PolyFract.Gui
 
         private int shaderProgram;
 
-        private PointVertex[] points;
+        private int pointsCount;
 
         private int projLocation;
 
@@ -78,34 +79,7 @@ namespace PolyFract.Gui
         public void Draw(Solver solver, Complex[] coefficients, double intensity)
         {
             this.solver = solver;
-            this.coefficients = coefficients;
             glControl.Invalidate();
-        }
-
-        private void WritePixels()
-        {
-            try
-            {
-                Parallel.ForEach(solver.threads, thread =>
-                {
-                    int offset = thread.from * solver.order;
-                    for (int i = 0; i < thread.roots.Length; i++)
-                    {
-                        points[offset + i].Position = new Vector2(thread.roots[i].r, -thread.roots[i].i);
-                        points[offset + i].Color = new Vector3(thread.roots[i].colorR, thread.roots[i].colorG, thread.roots[i].colorB);
-                    }
-                });
-
-                for (int i = 0; i < this.coefficients.Length; i++)
-                {
-                    points[solver.rootsCount + i].Position = new Vector2((float)this.coefficients[i].Real, -(float)this.coefficients[i].Imaginary);
-                    points[solver.rootsCount + i].Color = new Vector3(255, 255, 255);
-                }
-            }
-            catch (Exception ex)
-            {
-                //this can fail for some single frames
-            }
         }
 
         private void GlControl_Paint(object? sender, PaintEventArgs e)
@@ -113,20 +87,29 @@ namespace PolyFract.Gui
             if (solver == null)
                 return;
 
-            if (points==null || points.Length != solver.rootsCount + this.coefficients.Length)
+            if (pointsCount == 0 || pointsCount != solver.rootsCount + solver.coeffValues.Length)
             { 
                 ResetGl();
             }
 
-            WritePixels();
-
             GL.BindBuffer(BufferTarget.ArrayBuffer, vbo);
-            GL.BufferSubData(BufferTarget.ArrayBuffer, IntPtr.Zero, points.Length * Marshal.SizeOf<PointVertex>(), points);
+
+            //copy roots coordinated to GPU
+            nint structSize = Marshal.SizeOf<CompactClomplexFloatWithColor>();
+            foreach (var thread in solver.threads)
+            {
+                nint offset = thread.from * thread.order;
+                GL.BufferSubData(BufferTarget.ArrayBuffer, offset * structSize, thread.roots.Length * structSize, thread.roots);
+            }
+
+            //copy coeff values to GPU to draw them as bigger circles in shader
+            GL.BufferSubData(BufferTarget.ArrayBuffer, solver.rootsCount * structSize, solver.coeffValues.Length * structSize, solver.coeffValues);
+
             GL.Clear(ClearBufferMask.ColorBufferBit);
             GL.UseProgram(shaderProgram);
             GL.BindVertexArray(vao);
             GL.UniformMatrix4(projLocation, false, ref projectionMatrix);
-            GL.DrawArrays(PrimitiveType.Points, 0, points.Length);
+            GL.DrawArrays(PrimitiveType.Points, 0, solver.rootsCount + solver.coeffValues.Length);
 
             glControl.SwapBuffers();
             frameCounter++;
@@ -134,9 +117,6 @@ namespace PolyFract.Gui
 
         private void ResetGl()
         {
-            int pointsCount = solver.rootsCount + solver.coefficientsValuesCount;
-            points = new PointVertex[pointsCount];
-
             GL.Enable(EnableCap.ProgramPointSize);
             GL.Enable(EnableCap.Blend);
             GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.One);
@@ -154,21 +134,18 @@ namespace PolyFract.Gui
             GL.BindVertexArray(vao);
             GL.BindBuffer(BufferTarget.ArrayBuffer, vbo);
 
-            // Upload raw data:
-            GL.BufferData(BufferTarget.ArrayBuffer,
-                          points.Length * Marshal.SizeOf<PointVertex>(),
-                          points,
-                          BufferUsageHint.StaticDraw);
-
-            int stride = Marshal.SizeOf<PointVertex>();
-
+            // Init VAO buffer to current point count
+            pointsCount = solver.rootsCount + solver.coeffValues.Length;
+            int structSize = Marshal.SizeOf<CompactClomplexFloatWithColor>();
+            GL.BufferData(BufferTarget.ArrayBuffer, this.pointsCount * structSize, nint.Zero, BufferUsageHint.DynamicDraw);
+            
             // Position attribute (location 0)
             GL.EnableVertexAttribArray(0);
-            GL.VertexAttribPointer(0, 2, VertexAttribPointerType.Float, false, stride, 0);
+            GL.VertexAttribPointer(0, 2, VertexAttribPointerType.Float, false, structSize, 0);
 
             // Color attribute (location 1)
             GL.EnableVertexAttribArray(1);
-            GL.VertexAttribPointer(1, 3, VertexAttribPointerType.Float, false, stride, Marshal.OffsetOf<PointVertex>("Color"));
+            GL.VertexAttribPointer(1, 3, VertexAttribPointerType.Float, false, structSize, Marshal.OffsetOf<CompactClomplexFloatWithColor>("colorR"));
 
             projectionMatrix = GetProjectionMatrix();
             shaderProgram = CompileAndLinkShaders();
@@ -346,11 +323,5 @@ outputColor = vec4(pow(premul, vec3(1.0/2.2)), a); // back to sRGB
                 bmp.Save(fileName, ImageFormat.Png);
             }
         }
-    }
-
-    struct PointVertex
-    {
-        public Vector2 Position;   // float x, y
-        public Vector3 Color;      // float r, g, b
     }
 }

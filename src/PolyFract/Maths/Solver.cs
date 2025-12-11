@@ -15,11 +15,14 @@ namespace PolyFract.Maths
 
         public int rootsCount;
 
+        public CompactClomplexFloatWithColor[] coeffValues;
+
         public ThreadContext[] threads;
 
         public Solver(int coefficientsValuesCount, int order)
         {
             this.coefficientsValuesCount = coefficientsValuesCount;
+            this.coeffValues = new CompactClomplexFloatWithColor[coefficientsValuesCount];
             this.order = order;
             polynomialsCount = 1;
             for (int i = 0; i < order + 1; i++)
@@ -64,8 +67,17 @@ namespace PolyFract.Maths
 
         public void Solve(Complex[] coefficients)
         {
-            if (coefficients.Length != coefficientsValuesCount)
+            if (coefficients.Length != coefficientsValuesCount || coefficients.Length != coeffValues.Length)
                 throw new Exception($"Solver created for {coefficientsValuesCount} coefficients count but got {coefficients.Length}");
+
+            for(int c=0; c<coefficients.Length; c++)
+            {
+                coeffValues[c].r = (float)coefficients[c].Real;
+                coeffValues[c].i = -(float)coefficients[c].Imaginary;
+                coeffValues[c].colorR = 255.0f;
+                coeffValues[c].colorG = 255.0f;
+                coeffValues[c].colorB = 255.0f;
+            }
 
             foreach (var thread in threads)
             {
