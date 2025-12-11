@@ -139,13 +139,12 @@ namespace PolyFract.Gui
 
             GL.Enable(EnableCap.ProgramPointSize);
             GL.Enable(EnableCap.Blend);
-            //GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.One);
+            GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.One);
             //GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);   // meh
             //GL.BlendFunc(BlendingFactor.One, BlendingFactor.OneMinusSrcAlpha);
-
-            GL.BlendFunc(BlendingFactor.One, BlendingFactor.One);
+            //GL.BlendFunc(BlendingFactor.One, BlendingFactor.One);
             
-            //GL.BlendEquation(OpenTK.Graphics.OpenGL.BlendEquationMode.FuncAdd);
+            GL.BlendEquation(OpenTK.Graphics.OpenGL.BlendEquationMode.FuncAdd);
 
             GL.Enable(EnableCap.PointSprite);
 
@@ -219,7 +218,7 @@ namespace PolyFract.Gui
                     if (aColor.r >= 255) {
                         gl_PointSize = 15.0;
                     } else {
-                        gl_PointSize = 3.0;
+                        gl_PointSize = 7.0;
                     }
 
                     gl_Position = projection * vec4(aPosition, 0.0, 1.0);
@@ -238,27 +237,30 @@ namespace PolyFract.Gui
                         float r = length(uv); 
 
                         if (vColor.r >= 255) {
-                            if (r > 1.0 || r < 0.5)
+                            if (r > 1.0)
                                 discard;
-                            outputColor = vec4(vColor*0.5, 0.5);
+                            if (r < 0.5) 
+                                outputColor = vec4(1.0, 0.0, 0.0, 1.0);
+                            else
+                                outputColor = vec4(vColor, 1);
                         }
                         else {
                             if (r > 1.0)
                                 discard;
 
 //use with GL.BlendFunc(BlendingFactor.One, BlendingFactor.One);
-
+/*
 float inputAlpha = smoothstep(1.0, 0.0, r);
-inputAlpha = inputAlpha*0.8+0.2;
+inputAlpha = inputAlpha;
 vec3 linear = pow(vColor.rgb, vec3(2.2));  // to linear
-float a = inputAlpha * 0.1;
+float a = inputAlpha * 0.2;
 vec3 premul = linear * a;
 outputColor = vec4(pow(premul, vec3(1.0/2.2)), a); // back to sRGB
-
+*/
                             //this is good with GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.One);
-                            //float alpha = smoothstep(1.0, 0.0, r);
-                            //alpha = alpha*0.5+0.5;
-                            //outputColor = vec4(vColor*alpha, alpha);
+                            float alpha = smoothstep(1.0, 0.0, r);
+                            alpha = alpha*alpha;
+                            outputColor = vec4(vColor*alpha, alpha);
 
                             //this makes sense with GL.BlendFunc(BlendingFactor.One, BlendingFactor.OneMinusSrcAlpha);
                             //float alpha = 1.0 - smoothstep(0.0, 1.0, r);  
