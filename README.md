@@ -14,8 +14,8 @@ Inspired by this youtube video by 2swap: https://www.youtube.com/watch?v=9HIy5dJ
 
 ## Example captures
 
+![order 13, coeffs 2](https://github.com/panjanek/polynomial-fractal/blob/a5dbe956196074dc35873e9517b88e9b5c0456f3/captures/order13coeff2.png "order 13, coeff 2, coeffs 3")
 ![order 13, coeffs 2](https://github.com/panjanek/polynomial-fractal/blob/a5dbe956196074dc35873e9517b88e9b5c0456f3/captures/order10-zoomed.png "order 10, coeffs 2")
-![order 13, coeffs 2, zoomed](https://github.com/panjanek/polynomial-fractal/blob/a5dbe956196074dc35873e9517b88e9b5c0456f3/captures/order10coeff3.png "order 10, coeffs 3, zoomed")
-![order 8, coeffs 3](https://github.com/panjanek/polynomial-fractal/blob/a5dbe956196074dc35873e9517b88e9b5c0456f3/captures/order13coeff2.png "order 13, zoeff3, coeffs 3")
-![order 11, coeffs 2](https://github.com/panjanek/polynomial-fractal/blob/332b6bc757b8e5c534c03f474f37aecd8bce32e1/captures/context-menu.png "order 10, coeffs 2")
+![order 10, coeffs 3, zoomed](https://github.com/panjanek/polynomial-fractal/blob/a5dbe956196074dc35873e9517b88e9b5c0456f3/captures/order10coeff3.png "order 10, coeffs 3, zoomed")
+![order 13, coeffs 2](https://github.com/panjanek/polynomial-fractal/blob/332b6bc757b8e5c534c03f474f37aecd8bce32e1/captures/context-menu.png "order 10, coeffs 2")
 
