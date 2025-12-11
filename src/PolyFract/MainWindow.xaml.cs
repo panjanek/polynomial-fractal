@@ -341,9 +341,7 @@ namespace PolyFract
                         $"t:{GetTime().ToString("0.000")} " +
                         $"frameCount:{renderer.FrameCounter}/{cycleCounter} " +
                         $"fps:{fps.ToString("0.0")}/{cps.ToString("0.0")} " +
-                        $"mouse:({mouseStr}) origin:({originStr}) " +
                         $"zoom:{renderer.Zoom.ToString("0.00")} " +
-                        $"intensity:{(renderer.Intensity*100).ToString("0.0")}% " +
                         $"{(string.IsNullOrWhiteSpace(recordingDir) ? "" : $"recording to:{recordingDir}")} " +
                         $"order: {order} " +
                         $"coeffsCount: {coefficients.Length} "+

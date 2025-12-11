@@ -309,6 +309,11 @@ outputColor = vec4(pow(premul, vec3(1.0/2.2)), a); // back to sRGB
                 pixels
             );
 
+            for (int i = 0; i < pixels.Length; i += 4)
+            {
+                pixels[i + 3] = 255;   // force A = 255 for BGRA
+            }
+
             using (Bitmap bmp = new Bitmap(width, height, System.Drawing.Imaging.PixelFormat.Format32bppArgb))
             {
                 var data = bmp.LockBits(
