@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
 using Application = System.Windows.Application;
 using Button = System.Windows.Controls.Button;
 using HorizontalAlignment = System.Windows.HorizontalAlignment;
@@ -16,6 +17,18 @@ namespace PolyFract.Gui
 {
     public static class GuiUtil
     {
+        private static DpiScale? dpi;
+       
+        public static DpiScale Dpi
+        { 
+            get
+            {
+                if (!dpi.HasValue)
+                    dpi = VisualTreeHelper.GetDpi(Application.Current.MainWindow);
+
+                return dpi.Value;
+            }
+        }
         public static void HsvToRgb(int h, out int r, out int g, out int b)
         {
             if (h < 0)

@@ -73,7 +73,7 @@ namespace PolyFract.Maths
             for(int c=0; c<coefficients.Length; c++)
             {
                 coeffValues[c].r = (float)coefficients[c].Real;
-                coeffValues[c].i = -(float)coefficients[c].Imaginary;
+                coeffValues[c].i = (float)coefficients[c].Imaginary;
                 coeffValues[c].colorR = 255.0f;
                 coeffValues[c].colorG = 255.0f;
                 coeffValues[c].colorB = 255.0f;

@@ -350,7 +350,7 @@ namespace PolyFract
                         $"threads: {Environment.ProcessorCount} " +
                         $"errors: {solver?.GetErrorsCount()} ({(100.0 * solver?.GetErrorsCount() / pixelsCount)?.ToString("0.00000")}%) "+
                         $"solver: {(Polynomials.IsNativeLibAvailable ? "[native]" : "[managed]")} "+
-                        $"renderer: {renderer.RendererName}";
+                        $"renderer: [{renderer.RendererName}]";
             }
 
             lastCheckFrameCount = renderer.FrameCounter;

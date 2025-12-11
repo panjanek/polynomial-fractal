@@ -1,5 +1,6 @@
 ﻿using System.Drawing.Imaging;
 using System.Numerics;
+using System.Reflection.Metadata.Ecma335;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows;
@@ -158,21 +159,22 @@ namespace PolyFract.Gui
             SizeChanged();
         }
 
-        private Matrix4 GetProjectionMatrix()
-        {
-            var w = (float)(glControl.Width / zoom) / 2;
-            var h = (float)(glControl.Height / zoom) / 2;
-            var translate = Matrix4.CreateTranslation((float)-origin.Real,(float)origin.Imaginary, 0.0f);
-            var ortho = Matrix4.CreateOrthographicOffCenter(-w, w, h, -h, -1f, 1f);
-            projectionMatrix = translate * ortho;
-            return projectionMatrix;
-        }
-
         public void SizeChanged()
         {
             GL.Viewport(0, 0, glControl.Width, glControl.Height);
             projectionMatrix = GetProjectionMatrix();
             glControl.Invalidate();
+        }
+
+        private Matrix4 GetProjectionMatrix()
+        {
+            // rescale by windows display scale setting to match WPF coordinates
+            var w = (float)((glControl.Width / GuiUtil.Dpi.DpiScaleX) / zoom) / 2;
+            var h = (float)((glControl.Height / GuiUtil.Dpi.DpiScaleY) / zoom) / 2;
+            var translate = Matrix4.CreateTranslation((float)-origin.Real, (float)-origin.Imaginary, 0.0f);
+            var ortho = Matrix4.CreateOrthographicOffCenter(-w, w, -h, h, -1f, 1f);
+            var projectionMatrix = translate * ortho;
+            return projectionMatrix;
         }
 
         public static int CompileAndLinkShaders()

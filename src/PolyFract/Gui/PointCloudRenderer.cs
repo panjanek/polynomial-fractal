@@ -43,8 +43,16 @@ namespace PolyFract.Gui
         public PointCloudRenderer(Panel placeholder)
         {
             this.placeholder = placeholder;
-            //surface = new WpfSurface(placeholder);
-            surface = new OpenGlSurface(placeholder);
+            try
+            {
+                surface = new OpenGlSurface(placeholder);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Could not init OpenGL, fallback to WPF Writable bitmap.");
+                surface = new WpfSurface(placeholder);
+            }
+            
             placeholder.SizeChanged += Placeholder_SizeChanged;
             var dragging = new DraggingHandler(surface.MouseEventSource, mouse =>
             {

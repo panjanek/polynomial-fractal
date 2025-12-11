@@ -38,7 +38,7 @@ namespace PolyFract.Gui
 
                 var args = new System.Windows.Input.MouseEventArgs(System.Windows.Input.Mouse.PrimaryDevice, 0);
                 args.RoutedEvent = UIElement.MouseMoveEvent;
-                ProxyPoint = new System.Windows.Point(e.X, e.Y); //new System.Windows.Point(_pendingMove.Value.X, _pendingMove.Value.Y);      //
+                ProxyPoint = ToWpfPoint(e);
                 RaiseEvent(args);
             }
         }
@@ -49,7 +49,7 @@ namespace PolyFract.Gui
             {
                 var args = new System.Windows.Input.MouseButtonEventArgs(System.Windows.Input.Mouse.PrimaryDevice, 0, System.Windows.Input.MouseButton.Left);
                 args.RoutedEvent = UIElement.MouseLeftButtonUpEvent;
-                ProxyPoint = new System.Windows.Point(e.X, e.Y);
+                ProxyPoint = ToWpfPoint(e);
                 RaiseEvent(args);
             }
         }
@@ -60,14 +60,14 @@ namespace PolyFract.Gui
             {
                 var args = new System.Windows.Input.MouseButtonEventArgs(System.Windows.Input.Mouse.PrimaryDevice, 0, System.Windows.Input.MouseButton.Left);
                 args.RoutedEvent = UIElement.MouseLeftButtonDownEvent;
-                ProxyPoint = new System.Windows.Point(e.X, e.Y);
+                ProxyPoint = ToWpfPoint(e);
                 RaiseEvent(args);
             }
             else if (e.Button == MouseButtons.Right)
             {
                 var args = new System.Windows.Input.MouseButtonEventArgs(System.Windows.Input.Mouse.PrimaryDevice, 0, System.Windows.Input.MouseButton.Right);
                 args.RoutedEvent = UIElement.PreviewMouseRightButtonDownEvent;
-                ProxyPoint = new System.Windows.Point(e.X, e.Y);
+                ProxyPoint = ToWpfPoint(e);
                 RaiseEvent(args);
             }
 
@@ -76,9 +76,15 @@ namespace PolyFract.Gui
         private void GlControl_MouseWheel(object? sender, MouseEventArgs e)
         {
             var args = new System.Windows.Input.MouseWheelEventArgs(System.Windows.Input.Mouse.PrimaryDevice, 0, e.Delta);
-            ProxyPoint = new System.Windows.Point(e.X, e.Y);
+            ProxyPoint = ToWpfPoint(e);
             args.RoutedEvent = UIElement.MouseWheelEvent;
             RaiseEvent(args);
+        }
+        System.Windows.Point ToWpfPoint(System.Windows.Forms.MouseEventArgs e)
+        {
+            // resacle by windows display scale setting to match WPF coordinates
+            var p = new System.Windows.Point(e.X / GuiUtil.Dpi.DpiScaleX, e.Y / GuiUtil.Dpi.DpiScaleY);
+            return p;
         }
     }
 }
