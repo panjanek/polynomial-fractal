@@ -49,7 +49,7 @@ namespace PolyFract.Maths
 
                 // buffer for thread output
                 int rootsInThisThread = (threads[t].to - threads[t].from) * order;
-                threads[t].roots = new CompactClomplexWithAngle[rootsInThisThread];
+                threads[t].roots = new CompactClomplexFloatWithColor[rootsInThisThread];
 
                 //buffer for renderer
                 threads[t].pixels = new CompactPixel[rootsInThisThread];
@@ -104,7 +104,7 @@ namespace PolyFract.Maths
         public CompactClomplex[] poly;
 
         // output of the solver
-        public CompactClomplexWithAngle[] roots;
+        public CompactClomplexFloatWithColor[] roots;
 
         // variables allocated for DurandKerner helper
         public CompactClomplex[] _poly;
@@ -119,7 +119,7 @@ namespace PolyFract.Maths
         {
             if (Polynomials.IsNativeLibAvailable)
             {
-                
+                /*
                 Polynomials.FindRootsForPolys(
                           //actual parameters
                           from,
@@ -137,7 +137,7 @@ namespace PolyFract.Maths
                           _newZ,
 
                           //output
-                          roots);
+                          roots);*/
             }
             else
             {

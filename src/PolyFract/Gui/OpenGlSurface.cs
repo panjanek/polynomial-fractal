@@ -91,8 +91,8 @@ namespace PolyFract.Gui
                     int offset = thread.from * solver.order;
                     for (int i = 0; i < thread.roots.Length; i++)
                     {
-                        points[offset + i].Position = new Vector2((float)thread.roots[i].r, -(float)thread.roots[i].i);
-                        points[offset + i].Color = new Vector3((float)thread.roots[i].colorR / 255.0f, (float)thread.roots[i].colorG / 255.0f, (float)thread.roots[i].colorB / 255.0f);
+                        points[offset + i].Position = new Vector2(thread.roots[i].r, -thread.roots[i].i);
+                        points[offset + i].Color = new Vector3(thread.roots[i].colorR, thread.roots[i].colorG, thread.roots[i].colorB);
                     }
                 });
 

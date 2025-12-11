@@ -162,9 +162,9 @@ namespace PolyFract.Gui
                         int y = unchecked((int)(pixelHeight / 2 - (root.i - origin.Imaginary) * zoom));
                         thread.pixels[i].x = x;
                         thread.pixels[i].y = y;
-                        thread.pixels[i].r = root.colorR;
-                        thread.pixels[i].g = root.colorG;
-                        thread.pixels[i].b = root.colorB;
+                        thread.pixels[i].r = (int)(root.colorR*255);
+                        thread.pixels[i].g = (int)(root.colorG*255);
+                        thread.pixels[i].b = (int)(root.colorB*255);
                     }
                 }
             });

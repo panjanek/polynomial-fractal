@@ -42,6 +42,8 @@ namespace PolyFract.Maths
                 Console.WriteLine($"native dll not loaded: {ex.Message}");
                 IsNativeLibAvailable = false;
             }
+
+            IsNativeLibAvailable = false;
         }
 
         [DllImport("PolyFractFastSolver.dll", CallingConvention = CallingConvention.Cdecl)]
@@ -86,7 +88,7 @@ namespace PolyFract.Maths
                                       CompactClomplex[] _newZ,
 
                                       //outputs
-                                      CompactClomplexWithAngle[] roots)
+                                      CompactClomplexFloatWithColor[] roots)
         {
             for (int i = from; i < to; i++)
             {
@@ -108,14 +110,16 @@ namespace PolyFract.Maths
                 for (int j = 0; j < _z.Length; j++)
                 {
                     int targetIdx = targetFirstIdx + j;
-                    roots[targetIdx] = _z[j];
+                    roots[targetIdx].r = (float)_z[j].r;
+                    roots[targetIdx].i = (float)_z[j].i;
+                    var angle = _z[j].a;
 
-                    var h = (int)Math.Round((255 * (Math.PI + roots[targetIdx].a)) / (2 * System.Math.PI));
+                    var h = (int)Math.Round((255 * (Math.PI + angle)) / (2 * System.Math.PI));
                     GuiUtil.HsvToRgb(h, out var r, out var g, out var b);
 
-                    roots[targetIdx].colorR = r;
-                    roots[targetIdx].colorG = g;
-                    roots[targetIdx].colorB = b;
+                    roots[targetIdx].colorR = r / 255.0f;
+                    roots[targetIdx].colorG = g / 255.0f;
+                    roots[targetIdx].colorB = b / 255.0f;
                 }
             }
         }
@@ -358,7 +362,13 @@ public struct CompactClomplexWithAngle
     public double r;
     public double i;
     public double a;
-    public int colorR;
-    public int colorG;
-    public int colorB;
+}
+
+public struct CompactClomplexFloatWithColor
+{  
+    public float r;
+    public float i;
+    public float colorR;
+    public float colorG;
+    public float colorB;
 }
