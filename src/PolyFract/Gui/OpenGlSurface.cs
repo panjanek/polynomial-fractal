@@ -173,8 +173,8 @@ namespace PolyFract.Gui
             var h = (float)((glControl.Height / GuiUtil.Dpi.DpiScaleY) / zoom) / 2;
             var translate = Matrix4.CreateTranslation((float)-origin.Real, (float)-origin.Imaginary, 0.0f);
             var ortho = Matrix4.CreateOrthographicOffCenter(-w, w, -h, h, -1f, 1f);
-            var projectionMatrix = translate * ortho;
-            return projectionMatrix;
+            var matrix = translate * ortho;
+            return matrix;
         }
 
         public static int CompileAndLinkShaders()
