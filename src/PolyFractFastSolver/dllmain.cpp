@@ -46,9 +46,15 @@ struct CompactClomplexWithAngle
     double r;
     double i;
     double a;
-    int colorR;
-    int colorG;
-    int colorB;
+};
+
+struct CompactClomplexFloatWithColor
+{
+    float r;
+    float i;
+    float colorR;
+    float colorG;
+    float colorB;
 };
 
 extern "C"
@@ -271,7 +277,7 @@ void FindRoots(
     }
 }
 
-void HsvToRgb(int h, int& r, int& g, int& b)
+void HsvToRgb(float h, float& r, float& g, float& b)
 {
     if (h < 0)
         h = 0;
@@ -319,10 +325,12 @@ extern "C"
             CompactClomplex* _newZ,
 
             //outputs
-            CompactClomplexWithAngle* roots)
+            CompactClomplexFloatWithColor* roots)
     {
-        int r, g, b, polyIdx, coeffIdx, targetFirstIdx, targetIdx, h;
+        int polyIdx, coeffIdx, targetFirstIdx, targetIdx;
         double angle;
+        float r, g, b;
+        float h;
         for (int i = from; i < to; i++)
         {
             polyIdx = i;
@@ -346,12 +354,14 @@ extern "C"
             for (int j = 0; j < order; j++)
             {
                 targetIdx = targetFirstIdx + j;
-                roots[targetIdx] = _z[j];
-                h = std::lroundl((255 * (M_PI + _z[j].a)) / (2 * M_PI));
+                roots[targetIdx].r = static_cast<float>(_z[j].r);
+                roots[targetIdx].i = static_cast<float>(_z[j].i);
+                angle = (255 * (M_PI + _z[j].a)) / (2 * M_PI);
+                h = static_cast<float>(angle);
                 HsvToRgb(h, r, g, b);
-                roots[targetIdx].colorR = r;
-                roots[targetIdx].colorG = g;
-                roots[targetIdx].colorB = b;
+                roots[targetIdx].colorR = r / 255.0f;
+                roots[targetIdx].colorG = g / 255.0f;
+                roots[targetIdx].colorB = b / 255.0f;
             }
         }
     }

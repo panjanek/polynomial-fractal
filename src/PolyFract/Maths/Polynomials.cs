@@ -42,8 +42,6 @@ namespace PolyFract.Maths
                 Console.WriteLine($"native dll not loaded: {ex.Message}");
                 IsNativeLibAvailable = false;
             }
-
-            IsNativeLibAvailable = false;
         }
 
         [DllImport("PolyFractFastSolver.dll", CallingConvention = CallingConvention.Cdecl)]
@@ -70,7 +68,7 @@ namespace PolyFract.Maths
                               [In] CompactClomplex[] _newZ,
 
                               //outputs
-                              [Out] CompactClomplexWithAngle[] roots);
+                              [Out] CompactClomplexFloatWithColor[] roots);
 
         // managed code implementation used if native code library could not be loaded
         public static void FindRootsForPolysManaged(

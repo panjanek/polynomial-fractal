@@ -119,7 +119,7 @@ namespace PolyFract.Maths
         {
             if (Polynomials.IsNativeLibAvailable)
             {
-                /*
+
                 Polynomials.FindRootsForPolys(
                           //actual parameters
                           from,
@@ -137,7 +137,7 @@ namespace PolyFract.Maths
                           _newZ,
 
                           //output
-                          roots);*/
+                          roots);
             }
             else
             {
