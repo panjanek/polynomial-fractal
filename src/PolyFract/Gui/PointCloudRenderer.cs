@@ -13,7 +13,7 @@ namespace PolyFract.Gui
 {
     public class PointCloudRenderer
     {
-        public const int MarkerRadius = 5;
+        public const int MarkerRadius = 8;
 
         public const double ZoomingSpeed = 0.0002;
 

@@ -87,6 +87,7 @@ namespace PolyFract.Gui
             if (solver == null)
                 return;
 
+            
             if (pointsCount == 0 || pointsCount != solver.rootsCount + solver.coeffValues.Length)
             { 
                 ResetGl();
@@ -122,15 +123,12 @@ namespace PolyFract.Gui
             GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.One);
             //GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);   // meh
             //GL.BlendFunc(BlendingFactor.One, BlendingFactor.OneMinusSrcAlpha);
-            //GL.BlendFunc(BlendingFactor.One, BlendingFactor.One);
-            
+            //GL.BlendFunc(BlendingFactor.One, BlendingFactor.One);   
             GL.BlendEquation(OpenTK.Graphics.OpenGL.BlendEquationMode.FuncAdd);
-
             GL.Enable(EnableCap.PointSprite);
 
             vao = GL.GenVertexArray();
             vbo = GL.GenBuffer();
-
             GL.BindVertexArray(vao);
             GL.BindBuffer(BufferTarget.ArrayBuffer, vbo);
 
