@@ -153,11 +153,12 @@ namespace PolyFract.Gui
 
         private void PaintUsingComputeShaders()
         {
+            //prepare config for compute shader
             unsafe
             {
                 computeShaderConfig.order = solver.order;
                 computeShaderConfig.coeffValuesCount = solver.coefficientsValuesCount;
-                computeShaderConfig.rootsCount = solver.rootsCount;
+                computeShaderConfig.polysCount = solver.polynomialsCount;
                 for (int i = 0; i < solver.coeffValues.Length; i++)
                 {
                     computeShaderConfig.coeffsValues_r[i] = solver.coeffValues[i].r;
@@ -165,6 +166,7 @@ namespace PolyFract.Gui
                 }
             }
             
+            //upload config
             GL.BindBuffer(BufferTarget.ShaderStorageBuffer, ubo);
             GL.BufferSubData(
                 BufferTarget.ShaderStorageBuffer,
@@ -176,9 +178,8 @@ namespace PolyFract.Gui
             //compute
             GL.UseProgram(computeProgram);
             int localSizeX = 256;
-            GL.DispatchCompute((solver.polynomialsCount + solver.coefficientsValuesCount / localSizeX), 1, 1);
+            GL.DispatchCompute(localSizeX + (solver.polynomialsCount + 1) / localSizeX, 1, 1);
             GL.MemoryBarrier(MemoryBarrierFlags.ShaderStorageBarrierBit);
-
 
             //draw
             GL.Clear(ClearBufferMask.ColorBufferBit);
@@ -400,7 +401,7 @@ namespace PolyFract.Gui
     {
         public int order;
         public int coeffValuesCount;
-        public int rootsCount;
+        public int polysCount;
         public fixed float coeffsValues_r[16];
         public fixed float coeffsValues_i[16];
     }

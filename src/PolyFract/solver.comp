@@ -5,7 +5,7 @@ layout(local_size_x = 256) in;
 struct ComputeShaderConfig {
     int order;
     int coeffValuesCount;
-    int rootsCount;
+    int polysCount;
     float coeffsValues_r[16];
     float coeffsValues_i[16];
 };
@@ -28,25 +28,59 @@ layout(std430, binding = 1) buffer OutputBuffer {
     CompactComplexFloatWithColor points[];
 };
 
+void evaluate_poly(in float poly_r[32], 
+                   in float poly_i[32],
+                   in int poly_len)
+{
+
+}
+
+
+
 void main()
 {
     uint idx = gl_GlobalInvocationID.x;
 
+    float poly_r[32];
+    float poly_i[32];
+    uint poly_len = config.order + 1; 
+
+
     //if (idx >= 1000) return;
     //if (idx >= config.rootsCount + coeffValuesCount) return;
 
-    if (idx >=0 && idx < config.rootsCount) {
-        points[idx].r = idx*0.001*cos(float(idx) * 0.1);
-        points[idx].i = idx*0.001*sin(float(idx) * 0.1);
-        points[idx].colorR = 0.8;
-        points[idx].colorG = 0.5;
-        points[idx].colorB = 0.3;
-    } else if (idx < config.rootsCount + config.coeffValuesCount) {
-        uint coeffIdx = idx - config.rootsCount;
-        points[idx].r = config.coeffsValues_r[coeffIdx];
-        points[idx].i = config.coeffsValues_i[coeffIdx];
-        points[idx].colorR = 255.0;
-        points[idx].colorG = 255.0;
-        points[idx].colorB = 255.0;  
+    uint rootsCount = config.polysCount * config.order; 
+    if (idx >=0 && idx < config.polysCount) {
+
+
+        // create poly from number
+        uint polyIdx = idx;
+        for (int j = 0; j < poly_len; j++)
+        {
+            uint coeffIdx = polyIdx % config.coeffValuesCount;
+            polyIdx = polyIdx / config.coeffValuesCount;
+            poly_r[j] = config.coeffsValues_r[coeffIdx];
+            poly_r[j] = config.coeffsValues_i[coeffIdx];
+        }
+        evaluate_poly(poly_r, poly_i, config.order+1);
+
+        polyIdx = idx;
+        for(int i=0; i<config.order; i++)
+        {
+            uint pointIdx = polyIdx * config.order + i; 
+            points[pointIdx].r = idx*0.0001*cos(float(idx) * 0.1);
+            points[pointIdx].i = idx*0.0001*sin(float(idx) * 0.1);
+            points[pointIdx].colorR = 0.8;
+            points[pointIdx].colorG = 0.5;
+            points[pointIdx].colorB = 0.3;
+        }
+
+    } else if (idx < config.polysCount + config.coeffValuesCount) {
+        uint coeffIdx = idx - config.polysCount;
+        points[rootsCount + coeffIdx].r = config.coeffsValues_r[coeffIdx];
+        points[rootsCount + coeffIdx].i = config.coeffsValues_i[coeffIdx];
+        points[rootsCount + coeffIdx].colorR = 255.0;
+        points[rootsCount + coeffIdx].colorG = 255.0;
+        points[rootsCount + coeffIdx].colorB = 255.0;  
     }
 }
