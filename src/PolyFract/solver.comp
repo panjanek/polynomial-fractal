@@ -5,6 +5,7 @@ layout(local_size_x = 256) in;
 struct ComputeShaderConfig {
     int order;
     int coeffValuesCount;
+    int rootsCount;
     float coeffsValues_r[16];
     float coeffsValues_i[16];
 };
@@ -31,12 +32,21 @@ void main()
 {
     uint idx = gl_GlobalInvocationID.x;
 
-    if (idx > 10000u)
-        return;
+    //if (idx >= 1000) return;
+    //if (idx >= config.rootsCount + coeffValuesCount) return;
 
-    points[idx].r = idx*0.001*cos(float(idx) * 0.1);
-    points[idx].i = idx*0.001*sin(float(idx) * 0.1);
-    points[idx].colorR = 0.8;
-    points[idx].colorG = 0.5;
-    points[idx].colorB = 0.3;
+    if (idx >=0 && idx < config.rootsCount) {
+        points[idx].r = idx*0.001*cos(float(idx) * 0.1);
+        points[idx].i = idx*0.001*sin(float(idx) * 0.1);
+        points[idx].colorR = 0.8;
+        points[idx].colorG = 0.5;
+        points[idx].colorB = 0.3;
+    } else if (idx < config.rootsCount + config.coeffValuesCount) {
+        uint coeffIdx = idx - config.rootsCount;
+        points[idx].r = config.coeffsValues_r[coeffIdx];
+        points[idx].i = config.coeffsValues_i[coeffIdx];
+        points[idx].colorR = 255.0;
+        points[idx].colorG = 255.0;
+        points[idx].colorB = 255.0;  
+    }
 }

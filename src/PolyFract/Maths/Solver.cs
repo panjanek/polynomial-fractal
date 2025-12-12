@@ -28,9 +28,7 @@ namespace PolyFract.Maths
             polynomialsCount = 1;
             for (int i = 0; i < order + 1; i++)
                 polynomialsCount *= coefficientsValuesCount;
-            rootsCount = polynomialsCount * order;
-
-            
+            rootsCount = polynomialsCount * order;     
 
             int threadCount = Environment.ProcessorCount;
             if (polynomialsCount < 10 * threadCount)
@@ -81,6 +79,9 @@ namespace PolyFract.Maths
                 coeffValues[c].colorG = 255.0f;
                 coeffValues[c].colorB = 255.0f;
             }
+
+            if (OpenGlSurface.ComputeShaderSupported)
+                return;
 
             foreach (var thread in threads)
             {
