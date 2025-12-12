@@ -46,7 +46,9 @@ namespace PolyFract.Gui
 
         private Complex[] coefficients;
 
-        private int shaderProgram;
+        private int computeProgram;
+
+        private int vertexProgram;
 
         private int pointsCount;
 
@@ -57,6 +59,8 @@ namespace PolyFract.Gui
         private int vbo;
 
         private int ubo;
+
+        private int pointsBuffer;
 
         private Matrix4 projectionMatrix;
 
@@ -112,53 +116,39 @@ namespace PolyFract.Gui
 
         public void ResetForComputeShaders()
         {
-            int polySsbo = GL.GenBuffer();
-            int rootSsbo = GL.GenBuffer();
-            GL.BindBuffer(BufferTarget.ShaderStorageBuffer, polySsbo);
+            //int polySsbo = GL.GenBuffer();;
+            //GL.BindBuffer(BufferTarget.ShaderStorageBuffer, polySsbo);
 
-            var a = Marshal.SizeOf<ComputeShaderConfig>();
-            int ubo = GL.GenBuffer();
+            // allocate space for ComputeShaderConfig passed to each compute shader
+            ubo = GL.GenBuffer();
             GL.BindBuffer(BufferTarget.UniformBuffer, ubo);
             GL.BufferData(BufferTarget.UniformBuffer, Marshal.SizeOf<ComputeShaderConfig>(), IntPtr.Zero, BufferUsageHint.DynamicDraw);
             GL.BindBufferBase(BufferRangeTarget.UniformBuffer, 2, ubo);
 
-            /*
-            int shader = GL.CreateShader(ShaderType.ComputeShader);
-            string source = File.ReadAllText("solver.comp");
-            GL.ShaderSource(shader, source);
-            GL.CompileShader(shader);
+            //GL.GenVertexArrays(1, out vao);
+            //GL.BindVertexArray(vao);
 
-            // Check compilation
-            GL.GetShader(shader, ShaderParameter.CompileStatus, out int status);
-            if (status != (int)All.True)
-            {
-                throw new Exception(GL.GetShaderInfoLog(shader));
-            }
 
-            int program = GL.CreateProgram();
-            GL.AttachShader(program, shader);
-            GL.LinkProgram(program);
+            GL.GenBuffers(1, out pointsBuffer);
+            GL.BindBuffer(BufferTarget.ShaderStorageBuffer, pointsBuffer);
+            int totalPoints = solver.rootsCount;
+            int elementSize = Marshal.SizeOf<CompactClomplexFloatWithColor>();
+            int sizeBytes = totalPoints * elementSize;
+            GL.BufferData(BufferTarget.ShaderStorageBuffer,
+                          sizeBytes,
+                          IntPtr.Zero,
+                          BufferUsageHint.DynamicDraw);
+            GL.BindBufferBase(BufferRangeTarget.ShaderStorageBuffer, 1, pointsBuffer);
 
-            GL.GetProgram(program, GetProgramParameterName.LinkStatus, out status);
-            if (status != (int)All.True)
-            {
-                throw new Exception(GL.GetProgramInfoLog(program));
-            }
 
-            // Dispatch
-            GL.UseProgram(program);
 
-            int numPolynomials = batch.Count;
-            int localSize = 128;
-            int groups = (numPolynomials + localSize - 1) / localSize;
 
-            GL.DispatchCompute(groups, 1, 1);
+            projectionMatrix = GetProjectionMatrix();
+            computeProgram = CompileAndLinkComputeShader();
+            vertexProgram = CompileAndLinkVertexAndFragmetShaders("shader-c.vert", "shader-c.frag");
+            projLocation = GL.GetUniformLocation(vertexProgram, "projection");
 
-            // Ensure GPU finished writing SSBOs
-            GL.MemoryBarrier(MemoryBarrierFlags.ShaderStorageBarrierBit);
-
-            */
-
+            SizeChanged();
         }
 
         private void PaintUsingComputeShaders()
@@ -177,8 +167,43 @@ namespace PolyFract.Gui
             GL.BindBuffer(BufferTarget.UniformBuffer, ubo);
             GL.BufferSubData(BufferTarget.UniformBuffer, IntPtr.Zero, Marshal.SizeOf<ComputeShaderConfig>(), ref computeShaderConfig);
 
+            //compute
+            GL.UseProgram(vertexProgram);
             int localSizeX = 256;
             GL.DispatchCompute(solver.polynomialsCount / localSizeX + 1, 1, 1);
+            GL.MemoryBarrier(MemoryBarrierFlags.ShaderStorageBarrierBit);
+
+            //draw
+            GL.Clear(ClearBufferMask.ColorBufferBit);
+            GL.UseProgram(vertexProgram);
+            GL.BindVertexArray(pointsBuffer);
+            GL.DrawArrays(PrimitiveType.Points, 0, solver.rootsCount);
+            glControl.SwapBuffers();
+        }
+
+        private int CompileAndLinkComputeShader()
+        {
+            // Compile compute shader
+            int computeShader = GL.CreateShader(ShaderType.ComputeShader);
+            string source = File.ReadAllText("solver.comp");
+            GL.ShaderSource(computeShader, source);
+            GL.CompileShader(computeShader);
+            GL.GetShader(computeShader, ShaderParameter.CompileStatus, out int status);
+            if (status != (int)All.True)
+            {
+                throw new Exception(GL.GetShaderInfoLog(computeShader));
+            }
+
+            int program = GL.CreateProgram();
+            GL.AttachShader(program, computeShader);
+            GL.LinkProgram(program);
+            GL.GetProgram(program, GetProgramParameterName.LinkStatus, out status);
+            if (status != (int)All.True)
+            {
+                throw new Exception(GL.GetProgramInfoLog(program));
+            }
+
+            return program;
         }
 
         private void PaintUsingCpuComputedRoots()
@@ -197,7 +222,7 @@ namespace PolyFract.Gui
             GL.BufferSubData(BufferTarget.ArrayBuffer, solver.rootsCount * structSize, solver.coeffValues.Length * structSize, solver.coeffValues);
 
             GL.Clear(ClearBufferMask.ColorBufferBit);
-            GL.UseProgram(shaderProgram);
+            GL.UseProgram(vertexProgram);
             GL.BindVertexArray(vao);
             GL.UniformMatrix4(projLocation, false, ref projectionMatrix);
             GL.DrawArrays(PrimitiveType.Points, 0, solver.rootsCount + solver.coeffValues.Length);
@@ -243,8 +268,8 @@ namespace PolyFract.Gui
             GL.VertexAttribPointer(1, 3, VertexAttribPointerType.Float, false, structSize, Marshal.OffsetOf<CompactClomplexFloatWithColor>("colorR"));
 
             projectionMatrix = GetProjectionMatrix();
-            shaderProgram = CompileAndLinkShaders();
-            projLocation = GL.GetUniformLocation(shaderProgram, "projection");
+            vertexProgram = CompileAndLinkVertexAndFragmetShaders("shader.vert", "shader.frag");
+            projLocation = GL.GetUniformLocation(vertexProgram, "projection");
 
             SizeChanged();
         }
@@ -274,10 +299,10 @@ namespace PolyFract.Gui
             return matrix;
         }
 
-        public static int CompileAndLinkShaders()
+        public static int CompileAndLinkVertexAndFragmetShaders(string vertFile, string fragFile)
         {
-            string vertexSource = File.ReadAllText("shader.vert");
-            string fragmentSource = File.ReadAllText("shader.frag");
+            string vertexSource = File.ReadAllText(vertFile);
+            string fragmentSource = File.ReadAllText(fragFile);
 
             // Compile vertex shader
             int vertexShader = GL.CreateShader(ShaderType.VertexShader);

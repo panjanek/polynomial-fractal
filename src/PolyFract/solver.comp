@@ -1,16 +1,42 @@
-﻿layout(local_size_x = 256) in;
+﻿#version 430
 
-layout(std140, binding = 2) uniform GlobalSettings {
-    Settings settings;
+layout(local_size_x = 256) in;
+
+struct ComputeShaderConfig {
+    int order;
+    int coeffValuesCount;
+    float coeffsValues_r[16];
+    float coeffsValues_i[16];
+};
+
+struct CompactComplexFloatWithColor {
+    float r;
+    float i;
+    float colorR;
+    float colorG;
+    float colorB;
+};
+
+// input buffer
+layout(std430, binding = 0) buffer ConfigBuffer {
+    ComputeShaderConfig config;
+};
+
+// Output buffer containing point positions + colors
+layout(std430, binding = 1) buffer OutputBuffer {
+    CompactComplexFloatWithColor points[];
 };
 
 void main()
 {
     uint idx = gl_GlobalInvocationID.x;
 
-    if (idx >= 100000u)
+    if (idx >= 100u)
         return;
 
-    // Use idx
-    // Use settings.a, settings.mode, etc.
+    points[idx].r = cos(float(idx) * 0.01);
+    points[idx].i = sin(float(idx) * 0.01);
+    points[idx].colorR = 0.8;
+    points[idx].colorG = 0.5;
+    points[idx].colorB = 0.3;
 }
