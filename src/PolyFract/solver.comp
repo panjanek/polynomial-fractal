@@ -1,0 +1,16 @@
+﻿layout(local_size_x = 256) in;
+
+layout(std140, binding = 2) uniform GlobalSettings {
+    Settings settings;
+};
+
+void main()
+{
+    uint idx = gl_GlobalInvocationID.x;
+
+    if (idx >= 100000u)
+        return;
+
+    // Use idx
+    // Use settings.a, settings.mode, etc.
+}

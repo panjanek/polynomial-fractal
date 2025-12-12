@@ -2,6 +2,7 @@
 using System.Runtime.InteropServices;
 using System.Windows.Controls.Ribbon;
 using System.Windows.Media.TextFormatting;
+using PolyFract.Gui;
 
 namespace PolyFract.Maths
 {
@@ -28,6 +29,8 @@ namespace PolyFract.Maths
             for (int i = 0; i < order + 1; i++)
                 polynomialsCount *= coefficientsValuesCount;
             rootsCount = polynomialsCount * order;
+
+            
 
             int threadCount = Environment.ProcessorCount;
             if (polynomialsCount < 10 * threadCount)

@@ -1,4 +1,5 @@
 ﻿using System.Drawing.Imaging;
+using System.IO;
 using System.Numerics;
 using System.Reflection.Metadata.Ecma335;
 using System.Runtime.InteropServices;
@@ -55,7 +56,11 @@ namespace PolyFract.Gui
 
         private int vbo;
 
+        private int ubo;
+
         private Matrix4 projectionMatrix;
+
+        private ComputeShaderConfig computeShaderConfig;
 
         public OpenGlSurface(Panel placeholder)
         {
@@ -75,9 +80,10 @@ namespace PolyFract.Gui
             glControl.Dock = DockStyle.Fill;
             host.Child = glControl;
             placeholder.Children.Add(host);
-            ComputeShaderSupported = false;
             glControl.Paint += GlControl_Paint;
             mouseProxy = new WinFormsMouseProxy(glControl);
+
+            ComputeShaderSupported = false;
         }
 
         public void Draw(Solver solver, Complex[] coefficients, double intensity)
@@ -104,9 +110,75 @@ namespace PolyFract.Gui
             frameCounter++;
         }
 
+        public void ResetForComputeShaders()
+        {
+            int polySsbo = GL.GenBuffer();
+            int rootSsbo = GL.GenBuffer();
+            GL.BindBuffer(BufferTarget.ShaderStorageBuffer, polySsbo);
+
+            var a = Marshal.SizeOf<ComputeShaderConfig>();
+            int ubo = GL.GenBuffer();
+            GL.BindBuffer(BufferTarget.UniformBuffer, ubo);
+            GL.BufferData(BufferTarget.UniformBuffer, Marshal.SizeOf<ComputeShaderConfig>(), IntPtr.Zero, BufferUsageHint.DynamicDraw);
+            GL.BindBufferBase(BufferRangeTarget.UniformBuffer, 2, ubo);
+
+            /*
+            int shader = GL.CreateShader(ShaderType.ComputeShader);
+            string source = File.ReadAllText("solver.comp");
+            GL.ShaderSource(shader, source);
+            GL.CompileShader(shader);
+
+            // Check compilation
+            GL.GetShader(shader, ShaderParameter.CompileStatus, out int status);
+            if (status != (int)All.True)
+            {
+                throw new Exception(GL.GetShaderInfoLog(shader));
+            }
+
+            int program = GL.CreateProgram();
+            GL.AttachShader(program, shader);
+            GL.LinkProgram(program);
+
+            GL.GetProgram(program, GetProgramParameterName.LinkStatus, out status);
+            if (status != (int)All.True)
+            {
+                throw new Exception(GL.GetProgramInfoLog(program));
+            }
+
+            // Dispatch
+            GL.UseProgram(program);
+
+            int numPolynomials = batch.Count;
+            int localSize = 128;
+            int groups = (numPolynomials + localSize - 1) / localSize;
+
+            GL.DispatchCompute(groups, 1, 1);
+
+            // Ensure GPU finished writing SSBOs
+            GL.MemoryBarrier(MemoryBarrierFlags.ShaderStorageBarrierBit);
+
+            */
+
+        }
+
         private void PaintUsingComputeShaders()
         {
+            unsafe
+            {
+                computeShaderConfig.order = solver.order;
+                computeShaderConfig.coeffValuesCount = solver.coefficientsValuesCount;
+                for (int i = 0; i < solver.coeffValues.Length; i++)
+                {
+                    computeShaderConfig.coeffsValues_r[i] = solver.coeffValues[i].r;
+                    computeShaderConfig.coeffsValues_i[i] = solver.coeffValues[i].i;
+                }
+            }
 
+            GL.BindBuffer(BufferTarget.UniformBuffer, ubo);
+            GL.BufferSubData(BufferTarget.UniformBuffer, IntPtr.Zero, Marshal.SizeOf<ComputeShaderConfig>(), ref computeShaderConfig);
+
+            int localSizeX = 256;
+            GL.DispatchCompute(solver.polynomialsCount / localSizeX + 1, 1, 1);
         }
 
         private void PaintUsingCpuComputedRoots()
@@ -144,17 +216,10 @@ namespace PolyFract.Gui
             GL.BlendEquation(OpenTK.Graphics.OpenGL.BlendEquationMode.FuncAdd);
             GL.Enable(EnableCap.PointSprite);
 
-
             if (ComputeShaderSupported)
                 ResetForComputeShaders();
             else
                 ResetForCpuComputedRoots();
-
-        }
-
-        public void ResetForComputeShaders()
-        {
-
         }
 
         public void ResetForCpuComputedRoots()
@@ -211,74 +276,8 @@ namespace PolyFract.Gui
 
         public static int CompileAndLinkShaders()
         {
-            string vertexSource = @"
-                #version 330 core
-
-                layout (location = 0) in vec2 aPosition;
-                layout (location = 1) in vec3 aColor;
-
-                uniform mat4 projection;
-
-                out vec3 vColor;
-
-                void main()
-                {
-                    vColor = aColor;
-                    if (aColor.r >= 255) {
-                        gl_PointSize = 15.0;
-                    } else {
-                        gl_PointSize = 7.0;
-                    }
-
-                    gl_Position = projection * vec4(aPosition, 0.0, 1.0);
-                }
-                ";
-
-            string fragmentSource = @"
-                    #version 330 core
-
-                    in vec3 vColor;
-                    out vec4 outputColor;
-
-                    void main()
-                    {
-                        vec2 uv = gl_PointCoord * 2.0 - 1.0; 
-                        float r = length(uv); 
-
-                        if (vColor.r >= 255) {
-                            if (r > 1.0)
-                                discard;
-                            if (r < 0.5) 
-                                outputColor = vec4(1.0, 0.0, 0.0, 1.0);
-                            else
-                                outputColor = vec4(vColor, 1);
-                        }
-                        else {
-                            if (r > 1.0)
-                                discard;
-
-                            //use with GL.BlendFunc(BlendingFactor.One, BlendingFactor.One);
-                            /*
-                            float inputAlpha = smoothstep(1.0, 0.0, r);
-                            inputAlpha = inputAlpha;
-                            vec3 linear = pow(vColor.rgb, vec3(2.2));  // to linear
-                            float a = inputAlpha * 0.2;
-                            vec3 premul = linear * a;
-                            outputColor = vec4(pow(premul, vec3(1.0/2.2)), a); // back to sRGB
-                            */
-
-                            //this is good with GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.One);
-                            float alpha = smoothstep(1.0, 0.0, r);
-                            alpha = alpha*alpha;
-                            outputColor = vec4(vColor*alpha, alpha);
-
-                            //this makes sense with GL.BlendFunc(BlendingFactor.One, BlendingFactor.OneMinusSrcAlpha);
-                            //float alpha = 1.0 - smoothstep(0.0, 1.0, r);  
-                            //outputColor = vec4(vColor*alpha, alpha);
-                        }
-
-                    }
-                    ";
+            string vertexSource = File.ReadAllText("shader.vert");
+            string fragmentSource = File.ReadAllText("shader.frag");
 
             // Compile vertex shader
             int vertexShader = GL.CreateShader(ShaderType.VertexShader);
@@ -362,12 +361,12 @@ namespace PolyFract.Gui
         }
     }
 
-    [StructLayout(LayoutKind.Sequential)]
-    public unsafe struct CompactClomplexFloatWithColor
+    [StructLayout(LayoutKind.Sequential, Pack = 16)]
+    public unsafe struct ComputeShaderConfig
     {
-        int order;
-        int coeffValuesCount;
-        fixed float coeffsValues_r[10];
-        fixed float coeffsValues_i[10];
+        public int order;
+        public int coeffValuesCount;
+        public fixed float coeffsValues_r[16];
+        public fixed float coeffsValues_i[16];
     }
 }
