@@ -41,6 +41,11 @@ float mag2(float xr, float xi)
     return xr * xr + xi * xi;
 }
 
+double mag2d(double xr, double xi) 
+{
+    return xr * xr + xi * xi;
+}
+
 float mag(float xr, float xi)
 {
     return sqrt(mag2(xr, xi));
@@ -121,52 +126,52 @@ void evaluate_poly(in float poly_r[32],
                    in int poly_len,
                    inout CompactComplexFloatWithColor _z[32])
 {
-    float _monic_r[32];
-    float _monic_i[32];
-    float _newZ_r[32];
-    float _newZ_i[32];
+    double _monic_r[32];
+    double _monic_i[32];
+    double _newZ_r[32];
+    double _newZ_i[32];
 
-    float _zd_r[32];
-    float _zd_i[32];
+    double _zd_r[32];
+    double _zd_i[32];
 
     if (poly_len < 2)
         return;
 
     uint n = poly_len - 1;
-    float a0_r = poly_r[0];
-    float a0_i = poly_i[0];
+    double a0_r = poly_r[0];
+    double a0_i = poly_i[0];
     if (a0_r == 0 && a0_i == 0)
         return;
 
-    float a0_mag2 = a0_r * a0_r + a0_i * a0_i;
-    float inv_a0_mag2 = 1.0 / a0_mag2;
+    double a0_mag2 = a0_r * a0_r + a0_i * a0_i;
+    double inv_a0_mag2 = 1.0 / a0_mag2;
 
     _monic_r[0] = 1;
     _monic_i[0] = 0;
     for (int i = 1; i <= n; ++i) {
-        float pr = poly_r[i];
-        float pi = poly_i[i];
-        float num_r = pr * a0_r + pi * a0_i;
-        float num_i = pi * a0_r - pr * a0_i;
+        double pr = poly_r[i];
+        double pi = poly_i[i];
+        double num_r = pr * a0_r + pi * a0_i;
+        double num_i = pi * a0_r - pr * a0_i;
         _monic_r[i] = num_r * inv_a0_mag2;
         _monic_i[i] = num_i * inv_a0_mag2;
     }
 
-    float maxAbs = 0.0;
+    double maxAbs = 0.0;
     for (int i = 1; i <= n; i++)
     {
-        float m2 = mag2(_monic_r[i], _monic_i[i]);
+        double m2 = mag2d(_monic_r[i], _monic_i[i]);
         if (m2 > maxAbs * maxAbs) 
             maxAbs = sqrt(m2);
     }
-    float r = 1.0 + maxAbs;
+    double r = 1.0 + maxAbs;
 
     float twoPiOverN = 2.0 * M_PI / n;
     for (int k = 0; k < n; k++)
     {
         float angle = twoPiOverN * k;
-        _zd_r[k] = r * cos(angle);
-        _zd_i[k] = r * sin(angle);
+        _zd_r[k] = r * double(cos(angle));
+        _zd_i[k] = r * double(sin(angle));
     }
 
     for (int iter = 0; iter < MaxIterations; iter++)
@@ -174,44 +179,44 @@ void evaluate_poly(in float poly_r[32],
         double maxDelta2 = 0.0;
         for (int i = 0; i < n; i++)
         {
-            float zi_r = _zd_r[i];
-            float zi_i = _zd_i[i];
+            double zi_r = _zd_r[i];
+            double zi_i = _zd_i[i];
 
-            float p_r = _monic_r[0];
-            float p_i = _monic_i[0];
+            double p_r = _monic_r[0];
+            double p_i = _monic_i[0];
             for (int k = 1; k <= n; k++)
             {
-                float p_r_tmp = p_r * zi_r - p_i * zi_i + _monic_r[k];
-                float p_i_tmp = p_r * zi_i + p_i * zi_r + _monic_i[k];
+                double p_r_tmp = p_r * zi_r - p_i * zi_i + _monic_r[k];
+                double p_i_tmp = p_r * zi_i + p_i * zi_r + _monic_i[k];
                 p_r = p_r_tmp;
                 p_i = p_i_tmp;
             }
 
-            float denom_r = 1;
-            float denom_i = 0;
+            double denom_r = 1;
+            double denom_i = 0;
             for (int j = 0; j < n; j++)
             {
                 if (j == i)
                     continue;
-                float mult_r = zi_r - _zd_r[j];
-                float mult_i = zi_i - _zd_i[j];
-                float denom_r_tmp = denom_r * mult_r - denom_i * mult_i;
-                float denom_i_tmp = denom_r * mult_i + denom_i * mult_r;
+                double mult_r = zi_r - _zd_r[j];
+                double mult_i = zi_i - _zd_i[j];
+                double denom_r_tmp = denom_r * mult_r - denom_i * mult_i;
+                double denom_i_tmp = denom_r * mult_i + denom_i * mult_r;
                 denom_r = denom_r_tmp;
                 denom_i = denom_i_tmp;
             }
 
-            float div = denom_r * denom_r + denom_i * denom_i;
-            float delta_r = (p_r * denom_r + p_i * denom_i) / div;
-            float delta_i = (p_i * denom_r - p_r * denom_i) / div;
+            double div = denom_r * denom_r + denom_i * denom_i;
+            double delta_r = (p_r * denom_r + p_i * denom_i) / div;
+            double delta_i = (p_i * denom_r - p_r * denom_i) / div;
 
-            float ziNew_r = zi_r - delta_r;
-            float ziNew_i = zi_i - delta_i;
+            double ziNew_r = zi_r - delta_r;
+            double ziNew_i = zi_i - delta_i;
 
             _newZ_r[i] = ziNew_r;
             _newZ_i[i] = ziNew_i;
 
-            float d2 = mag2(delta_r, delta_i);
+            double d2 = double(mag2(float(delta_r), float(delta_i)));
             if (d2 > maxDelta2) maxDelta2 = d2;
         }
 
@@ -226,8 +231,8 @@ void evaluate_poly(in float poly_r[32],
 
     for (int i = 0; i < n; i++)
     {
-        _z[i].r = _zd_r[i];
-        _z[i].i = _zd_i[i];
+        _z[i].r = float(_zd_r[i]);
+        _z[i].i = float(_zd_i[i]);
         float a = angle_at(poly_r, poly_i, poly_len, _z[i].r, _z[i].i);
         float h = (255 * (M_PI + a)) / (2 * M_PI);
         float r,g,b;
