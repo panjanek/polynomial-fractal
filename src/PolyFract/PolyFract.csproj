@@ -35,6 +35,9 @@
     <None Update="shader.vert">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Update="solver-d.comp">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="solver.comp">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

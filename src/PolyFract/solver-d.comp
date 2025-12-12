@@ -125,6 +125,9 @@ void evaluate_poly(in float poly_r[32],
     float _newZ_r[32];
     float _newZ_i[32];
 
+    float _zd_r[32];
+    float _zd_i[32];
+
     if (poly_len < 2)
         return;
 
@@ -161,8 +164,8 @@ void evaluate_poly(in float poly_r[32],
     for (int k = 0; k < n; k++)
     {
         float angle = twoPiOverN * k;
-        _z[k].r = r * cos(angle);
-        _z[k].i = r * sin(angle);
+        _zd_r[k] = r * cos(angle);
+        _zd_i[k] = r * sin(angle);
     }
 
     for (int iter = 0; iter < MaxIterations; iter++)
@@ -170,8 +173,8 @@ void evaluate_poly(in float poly_r[32],
         double maxDelta2 = 0.0;
         for (int i = 0; i < n; i++)
         {
-            float zi_r = _z[i].r;
-            float zi_i = _z[i].i;
+            float zi_r = _zd_r[i];
+            float zi_i = _zd_i[i];
 
             float p_r = _monic_r[0];
             float p_i = _monic_i[0];
@@ -189,8 +192,8 @@ void evaluate_poly(in float poly_r[32],
             {
                 if (j == i)
                     continue;
-                float mult_r = zi_r - _z[j].r;
-                float mult_i = zi_i - _z[j].i;
+                float mult_r = zi_r - _zd_r[j];
+                float mult_i = zi_i - _zd_i[j];
                 float denom_r_tmp = denom_r * mult_r - denom_i * mult_i;
                 float denom_i_tmp = denom_r * mult_i + denom_i * mult_r;
                 denom_r = denom_r_tmp;
@@ -213,8 +216,8 @@ void evaluate_poly(in float poly_r[32],
 
         for (int i = 0; i < n; i++)
         {
-            _z[i].r = _newZ_r[i];
-            _z[i].i = _newZ_i[i];
+            _zd_r[i] = _newZ_r[i];
+            _zd_i[i] = _newZ_i[i];
         }
 
         if (maxDelta2 < (Tolerance * Tolerance)) break;
@@ -222,6 +225,8 @@ void evaluate_poly(in float poly_r[32],
 
     for (int i = 0; i < n; i++)
     {
+        _z[i].r = _zd_r[i];
+        _z[i].i = _zd_i[i];
         float a = angle_at(poly_r, poly_i, poly_len, _z[i].r, _z[i].i);
         float h = (255 * (M_PI + a)) / (2 * M_PI);
         float r,g,b;

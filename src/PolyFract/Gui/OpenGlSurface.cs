@@ -6,11 +6,13 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows;
 using System.Windows.Forms.Integration;
+using System.Windows.Threading;
 using OpenTK.GLControl;
 using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
 using PolyFract.Maths;
+using Application = System.Windows.Application;
 using HorizontalAlignment = System.Windows.HorizontalAlignment;
 using Panel = System.Windows.Controls.Panel;
 using Vector2 = OpenTK.Mathematics.Vector2;
@@ -66,6 +68,8 @@ namespace PolyFract.Gui
 
         private ComputeShaderConfig computeShaderConfig;
 
+        bool uiPending;
+
         public OpenGlSurface(Panel placeholder)
         {
             this.placeholder = placeholder;
@@ -93,6 +97,81 @@ namespace PolyFract.Gui
         public void Draw(Solver solver, Complex[] coefficients, double intensity)
         {
             this.solver = solver;
+
+
+            // schedule drawing for ui thread
+            if (Application.Current?.Dispatcher != null && !uiPending)
+            {
+                uiPending = true;
+                try
+                {
+                    Application.Current.Dispatcher.BeginInvoke(
+                        DispatcherPriority.Background,
+                        (Action)(() =>
+                        {
+
+                            try
+                            {
+                                if (solver != null)
+                                {
+                                    if (pointsCount == 0 || pointsCount != solver.rootsCount + solver.coeffValues.Length)
+                                    {
+                                        ResetGl();
+                                    }
+
+
+                                    RunShaderComputations();
+                                    frameCounter++;
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                Console.WriteLine(ex);
+                            }
+                            finally
+                            {
+                                uiPending = false;
+                            }
+                        }));
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex);
+                }
+            }
+        }
+
+        public void RunShaderComputations()
+        {
+            //prepare config for compute shader
+            unsafe
+            {
+                computeShaderConfig.order = solver.order;
+                computeShaderConfig.coeffValuesCount = solver.coefficientsValuesCount;
+                computeShaderConfig.polysCount = solver.polynomialsCount;
+                for (int i = 0; i < solver.coeffValues.Length; i++)
+                {
+                    computeShaderConfig.coeffsValues_r[i] = solver.coeffValues[i].r;
+                    computeShaderConfig.coeffsValues_i[i] = solver.coeffValues[i].i;
+                }
+            }
+
+            //upload config
+            GL.BindBuffer(BufferTarget.ShaderStorageBuffer, ubo);
+            GL.BufferSubData(
+                BufferTarget.ShaderStorageBuffer,
+                IntPtr.Zero,
+                Marshal.SizeOf<ComputeShaderConfig>(),
+                ref computeShaderConfig
+            );
+
+            //compute
+            GL.UseProgram(computeProgram);
+            int localSizeX = 256;
+            int instanceCount = solver.polynomialsCount + solver.coefficientsValuesCount;
+            GL.DispatchCompute((instanceCount + localSizeX - 1) / localSizeX, 1, 1);
+            GL.MemoryBarrier(MemoryBarrierFlags.ShaderStorageBarrierBit);
+
             glControl.Invalidate();
         }
 
@@ -100,11 +179,6 @@ namespace PolyFract.Gui
         {
             if (solver == null)
                 return;
-   
-            if (pointsCount == 0 || pointsCount != solver.rootsCount + solver.coeffValues.Length)
-            { 
-                ResetGl();
-            }
 
             if (ComputeShaderSupported)
                 PaintUsingComputeShaders();
@@ -132,9 +206,8 @@ namespace PolyFract.Gui
             // create buffer for data emited from compute shader
             GL.GenBuffers(1, out pointsBuffer);
             GL.BindBuffer(BufferTarget.ShaderStorageBuffer, pointsBuffer);
-            int totalPoints = solver.rootsCount + solver.coefficientsValuesCount;
-            int elementSize = Marshal.SizeOf<CompactClomplexFloatWithColor>();
-            int sizeBytes = totalPoints * elementSize;
+            pointsCount = solver.rootsCount + solver.coefficientsValuesCount;
+            int sizeBytes = pointsCount * Marshal.SizeOf<CompactClomplexFloatWithColor>();
             GL.BufferData(BufferTarget.ShaderStorageBuffer,
                           sizeBytes,
                           IntPtr.Zero,
@@ -142,7 +215,7 @@ namespace PolyFract.Gui
             GL.BindBufferBase(BufferRangeTarget.ShaderStorageBuffer, 1, pointsBuffer);
 
             projectionMatrix = GetProjectionMatrix();
-            computeProgram = CompileAndLinkComputeShader("solver.comp");
+            computeProgram = CompileAndLinkComputeShader("solver-d.comp");
             vertexProgram = CompileAndLinkVertexAndFragmetShaders("shader-c.vert", "shader-c.frag");
             projLocation = GL.GetUniformLocation(vertexProgram, "projection");
             if (projLocation == -1)
@@ -153,34 +226,6 @@ namespace PolyFract.Gui
 
         private void PaintUsingComputeShaders()
         {
-            //prepare config for compute shader
-            unsafe
-            {
-                computeShaderConfig.order = solver.order;
-                computeShaderConfig.coeffValuesCount = solver.coefficientsValuesCount;
-                computeShaderConfig.polysCount = solver.polynomialsCount;
-                for (int i = 0; i < solver.coeffValues.Length; i++)
-                {
-                    computeShaderConfig.coeffsValues_r[i] = solver.coeffValues[i].r;
-                    computeShaderConfig.coeffsValues_i[i] = solver.coeffValues[i].i;
-                }
-            }
-            
-            //upload config
-            GL.BindBuffer(BufferTarget.ShaderStorageBuffer, ubo);
-            GL.BufferSubData(
-                BufferTarget.ShaderStorageBuffer,
-                IntPtr.Zero,
-                Marshal.SizeOf<ComputeShaderConfig>(),
-                ref computeShaderConfig
-            );
-
-            //compute
-            GL.UseProgram(computeProgram);
-            int localSizeX = 256;
-            GL.DispatchCompute(localSizeX + (solver.polynomialsCount + 1) / localSizeX, 1, 1);
-            GL.MemoryBarrier(MemoryBarrierFlags.ShaderStorageBarrierBit);
-
             //draw
             GL.Clear(ClearBufferMask.ColorBufferBit);
             GL.UseProgram(vertexProgram);
