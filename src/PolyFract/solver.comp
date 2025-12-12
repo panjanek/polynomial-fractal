@@ -32,12 +32,88 @@ const float M_PI        = 3.14159265358979323846;
 const int MaxIterations = 32;
 const float Tolerance   = 1e-10;
 const float ErrorMargin = 0.01;
+const int ErrorMarker   = 1000000;
 
 
 float mag2(float xr, float xi) 
 {
     return xr * xr + xi * xi;
 }
+
+float mag(float xr, float xi)
+{
+    return sqrt(mag2(xr, xi));
+}
+
+float fast_atan2(float y, float x)
+{
+    float absY = abs(y) + 1e-10f;
+
+    float angle;
+    if (x >= 0)
+    {
+        float r = (x - absY) / (x + absY);
+        angle = (M_PI / 4) - (0.9675 * r);
+    }
+    else
+    {
+        float r = (x + absY) / (absY - x);
+        angle = (3 * M_PI / 4) - (0.9675 * r);
+    }
+
+    return (y < 0) ? -angle : angle;
+}
+
+float angle_at(in float poly_r[32], 
+               in float poly_i[32],
+               in int poly_len, 
+               in float x_r,
+               in float x_i)
+{
+    int n = poly_len - 1;
+    float d_r = 0;
+    float d_i = 0;
+
+    for (int i = 0; i < n; i++)
+    {
+        float d_r_tmp = d_r * x_r - d_i * x_i + poly_r[i] * (n - i);
+        float d_i_tmp = d_r * x_i + d_i * x_r + poly_i[i] * (n - 1);
+        d_r = d_r_tmp;
+        d_i = d_i_tmp;
+    }
+
+    return fast_atan2(d_i, d_r);
+}
+
+
+void hsv_to_rgb(in float h, out float r, out float g, out float b)
+{
+    if (h < 0)
+        h = 0;
+
+    if (h > 255)
+        h = 255;
+
+    int x = int(h * 6);
+    int sector = x >> 8;
+    int frac = x & 255;
+
+    int p = 0;
+    int q = 255 - frac;
+    int t = frac;
+
+    switch (sector)
+    {
+        case 0: r = 255; g = t; b = 0; return;
+        case 1: r = q; g = 255; b = 0; return;
+        case 2: r = 0; g = 255; b = t; return;
+        case 3: r = 0; g = q; b = 255; return;
+        case 4: r = t; g = 0; b = 255; return;
+        default:
+        case 5: r = 255; g = 0; b = q; return;
+    }
+}
+
 
 void evaluate_poly(in float poly_r[32], 
                    in float poly_i[32],
@@ -144,6 +220,43 @@ void evaluate_poly(in float poly_r[32],
         if (maxDelta2 < (Tolerance * Tolerance)) break;
     }
 
+    for (int i = 0; i < n; i++)
+    {
+        float a = angle_at(poly_r, poly_i, poly_len, _z[i].r, _z[i].i);
+        float h = (255 * (M_PI + a)) / (2 * M_PI);
+        float r,g,b;
+        hsv_to_rgb(h, r, g, b);
+        _z[i].colorR = r / 255.0;
+        _z[i].colorG = g / 255.0;
+        _z[i].colorB = b / 255.0;
+    }
+
+    for (int i = 0; i < n; i++)
+    {
+        float r_r = _z[i].r;
+        float r_i = _z[i].i;
+
+        float v_r = poly_r[0];
+        float v_i = poly_i[0];
+        for (int j = 1; j <= n; j++)
+        {
+            float v_r_tmp = v_r * r_r - v_i * r_i + poly_r[j];
+            float v_i_tmp = v_r * r_i + v_i * r_r + poly_i[j];
+            v_r = v_r_tmp;
+            v_i = v_i_tmp;
+        }
+
+        float v_m = mag(v_i, v_r);
+        if (v_m > ErrorMargin)
+        {
+            _z[i].r = ErrorMarker;
+            _z[i].i = ErrorMarker;
+            _z[i].colorR = 0;
+            _z[i].colorG = 0;
+            _z[i].colorB = 0;
+        }
+    }
+
 }
 
 
@@ -183,9 +296,9 @@ void main()
             uint pointIdx = polyIdx * config.order + i; 
             points[pointIdx].r = _z[i].r; //idx*0.0001*cos(float(idx) * 0.1);
             points[pointIdx].i = _z[i].i; //idx*0.0001*sin(float(idx) * 0.1);
-            points[pointIdx].colorR = 0.8;
-            points[pointIdx].colorG = 0.5;
-            points[pointIdx].colorB = 0.3;
+            points[pointIdx].colorR = _z[i].colorR;
+            points[pointIdx].colorG = _z[i].colorG;
+            points[pointIdx].colorB = _z[i].colorB;
         }
 
     } else if (idx < config.polysCount + config.coeffValuesCount) {
