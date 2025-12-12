@@ -25,6 +25,8 @@ namespace PolyFract.Gui
 
         public string Name => "opengl";
 
+        public static bool ComputeShaderSupported { get; set; }
+
         private readonly Panel placeholder;
 
         private readonly WindowsFormsHost host;
@@ -73,6 +75,7 @@ namespace PolyFract.Gui
             glControl.Dock = DockStyle.Fill;
             host.Child = glControl;
             placeholder.Children.Add(host);
+            ComputeShaderSupported = false;
             glControl.Paint += GlControl_Paint;
             mouseProxy = new WinFormsMouseProxy(glControl);
         }
@@ -87,13 +90,27 @@ namespace PolyFract.Gui
         {
             if (solver == null)
                 return;
-
-            
+   
             if (pointsCount == 0 || pointsCount != solver.rootsCount + solver.coeffValues.Length)
             { 
                 ResetGl();
             }
 
+            if (ComputeShaderSupported)
+                PaintUsingComputeShaders();
+            else
+                PaintUsingCpuComputedRoots();
+
+            frameCounter++;
+        }
+
+        private void PaintUsingComputeShaders()
+        {
+
+        }
+
+        private void PaintUsingCpuComputedRoots()
+        {
             GL.BindBuffer(BufferTarget.ArrayBuffer, vbo);
 
             //copy roots coordinated to GPU
@@ -114,7 +131,6 @@ namespace PolyFract.Gui
             GL.DrawArrays(PrimitiveType.Points, 0, solver.rootsCount + solver.coeffValues.Length);
 
             glControl.SwapBuffers();
-            frameCounter++;
         }
 
         private void ResetGl()
@@ -128,6 +144,21 @@ namespace PolyFract.Gui
             GL.BlendEquation(OpenTK.Graphics.OpenGL.BlendEquationMode.FuncAdd);
             GL.Enable(EnableCap.PointSprite);
 
+
+            if (ComputeShaderSupported)
+                ResetForComputeShaders();
+            else
+                ResetForCpuComputedRoots();
+
+        }
+
+        public void ResetForComputeShaders()
+        {
+
+        }
+
+        public void ResetForCpuComputedRoots()
+        {
             vao = GL.GenVertexArray();
             vbo = GL.GenBuffer();
             GL.BindVertexArray(vao);
@@ -137,7 +168,7 @@ namespace PolyFract.Gui
             pointsCount = solver.rootsCount + solver.coeffValues.Length;
             int structSize = Marshal.SizeOf<CompactClomplexFloatWithColor>();
             GL.BufferData(BufferTarget.ArrayBuffer, this.pointsCount * structSize, nint.Zero, BufferUsageHint.DynamicDraw);
-            
+
             // Position attribute (location 0)
             GL.EnableVertexAttribArray(0);
             GL.VertexAttribPointer(0, 2, VertexAttribPointerType.Float, false, structSize, 0);
@@ -149,6 +180,7 @@ namespace PolyFract.Gui
             projectionMatrix = GetProjectionMatrix();
             shaderProgram = CompileAndLinkShaders();
             projLocation = GL.GetUniformLocation(shaderProgram, "projection");
+
             SizeChanged();
         }
 
@@ -328,5 +360,14 @@ namespace PolyFract.Gui
                 bmp.Save(fileName, ImageFormat.Png);
             }
         }
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct CompactClomplexFloatWithColor
+    {
+        int order;
+        int coeffValuesCount;
+        fixed float coeffsValues_r[10];
+        fixed float coeffsValues_i[10];
     }
 }
