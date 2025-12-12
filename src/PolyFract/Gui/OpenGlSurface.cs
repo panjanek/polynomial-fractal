@@ -87,7 +87,7 @@ namespace PolyFract.Gui
             glControl.Paint += GlControl_Paint;
             mouseProxy = new WinFormsMouseProxy(glControl);
 
-            ComputeShaderSupported = false;
+            ComputeShaderSupported = true;
         }
 
         public void Draw(Solver solver, Complex[] coefficients, double intensity)
@@ -125,8 +125,8 @@ namespace PolyFract.Gui
             GL.BufferData(BufferTarget.UniformBuffer, Marshal.SizeOf<ComputeShaderConfig>(), IntPtr.Zero, BufferUsageHint.DynamicDraw);
             GL.BindBufferBase(BufferRangeTarget.UniformBuffer, 2, ubo);
 
-            //GL.GenVertexArrays(1, out vao);
-            //GL.BindVertexArray(vao);
+            GL.GenVertexArrays(1, out vao);
+            GL.BindVertexArray(vao);
 
 
             GL.GenBuffers(1, out pointsBuffer);
@@ -144,9 +144,11 @@ namespace PolyFract.Gui
 
 
             projectionMatrix = GetProjectionMatrix();
-            computeProgram = CompileAndLinkComputeShader();
+            computeProgram = CompileAndLinkComputeShader("solver.comp");
             vertexProgram = CompileAndLinkVertexAndFragmetShaders("shader-c.vert", "shader-c.frag");
             projLocation = GL.GetUniformLocation(vertexProgram, "projection");
+            if (projLocation == -1)
+                throw new Exception("Uniform 'projection' not found. Shader optimized it out?");
 
             SizeChanged();
         }
@@ -168,24 +170,26 @@ namespace PolyFract.Gui
             GL.BufferSubData(BufferTarget.UniformBuffer, IntPtr.Zero, Marshal.SizeOf<ComputeShaderConfig>(), ref computeShaderConfig);
 
             //compute
-            GL.UseProgram(vertexProgram);
+            GL.UseProgram(computeProgram);
             int localSizeX = 256;
             GL.DispatchCompute(solver.polynomialsCount / localSizeX + 1, 1, 1);
             GL.MemoryBarrier(MemoryBarrierFlags.ShaderStorageBarrierBit);
 
+
             //draw
             GL.Clear(ClearBufferMask.ColorBufferBit);
             GL.UseProgram(vertexProgram);
-            GL.BindVertexArray(pointsBuffer);
+            GL.UniformMatrix4(projLocation, false, ref projectionMatrix);
+            GL.BindVertexArray(vao);
             GL.DrawArrays(PrimitiveType.Points, 0, solver.rootsCount);
             glControl.SwapBuffers();
         }
 
-        private int CompileAndLinkComputeShader()
+        private int CompileAndLinkComputeShader(string compFile)
         {
             // Compile compute shader
             int computeShader = GL.CreateShader(ShaderType.ComputeShader);
-            string source = File.ReadAllText("solver.comp");
+            string source = File.ReadAllText(compFile);
             GL.ShaderSource(computeShader, source);
             GL.CompileShader(computeShader);
             GL.GetShader(computeShader, ShaderParameter.CompileStatus, out int status);

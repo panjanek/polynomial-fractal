@@ -31,11 +31,11 @@ void main()
 {
     uint idx = gl_GlobalInvocationID.x;
 
-    if (idx >= 100u)
+    if (idx > 10000u)
         return;
 
-    points[idx].r = cos(float(idx) * 0.01);
-    points[idx].i = sin(float(idx) * 0.01);
+    points[idx].r = idx*0.001*cos(float(idx) * 0.1);
+    points[idx].i = idx*0.001*sin(float(idx) * 0.1);
     points[idx].colorR = 0.8;
     points[idx].colorG = 0.5;
     points[idx].colorB = 0.3;
