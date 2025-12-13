@@ -14,6 +14,7 @@ using MessageBox = System.Windows.MessageBox;
 using Point = System.Windows.Point;
 
 // TODO:
+// - local_size_x from commandline
 // - time correction on +/-
 
 namespace PolyFract
@@ -123,11 +124,9 @@ namespace PolyFract
             infoTimer.Start();
 
             //CompositionTarget.Rendering += CompositionTarget_Rendering;
-
             System.Timers.Timer systemTimer = new System.Timers.Timer() { Interval = 0.01 };
             systemTimer.Elapsed += SystemTimer_Elapsed;
             systemTimer.Start();
-
         }
 
         private void SystemTimer_Elapsed(object? sender, System.Timers.ElapsedEventArgs e)
@@ -154,17 +153,6 @@ namespace PolyFract
                 }), DispatcherPriority.Render);
             }
         }
-
-        /*
-        private void CompositionTarget_Rendering(object? sender, EventArgs e)
-        {
-
-            {
-                isOccupied = true;
-                WorkerStep();
-                isOccupied = false;
-            }
-        }*/
 
         private void WorkerStep()
         {

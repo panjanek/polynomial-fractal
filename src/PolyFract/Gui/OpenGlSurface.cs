@@ -232,8 +232,9 @@ namespace PolyFract.Gui
                 GL.GenBuffers(1, out emitedPointsBuffer);
                 GL.BindBuffer(BufferTarget.ShaderStorageBuffer, emitedPointsBuffer);
                 pointsCount = solver.rootsCount + solver.coefficientsValuesCount;
-                int shaderPointStrideSize = 32;
-                int sizeBytes = pointsCount * shaderPointStrideSize;
+                int shaderPointStrideSize = 32; // this is stride size for struct declared in shaders only struct CompactComplexFloatWithColor { vec2 position; vec4 color; }
+            ;
+            int sizeBytes = pointsCount * shaderPointStrideSize;
                 GL.BufferData(BufferTarget.ShaderStorageBuffer, sizeBytes, IntPtr.Zero, BufferUsageHint.DynamicDraw);
                 GL.BindBufferBase(BufferRangeTarget.ShaderStorageBuffer, 1, emitedPointsBuffer);
             }
@@ -284,8 +285,6 @@ namespace PolyFract.Gui
             var matrix = translate * ortho;
             return matrix;
         }
-
-
 
         public void SaveToFile(string fileName)
         {

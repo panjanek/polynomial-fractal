@@ -15,7 +15,7 @@ struct CompactComplexFloatWithColor {
     vec4 color;
 };
 
-// input buffer
+// input buffer - only configuration
 layout(std430, binding = 0) buffer ConfigBuffer {
     ComputeShaderConfig config;
 };
@@ -27,7 +27,7 @@ layout(std430, binding = 1) buffer OutputBuffer {
 
 const float M_PI        = 3.14159265358979323846;
 const int MaxIterations = 32;
-const float Tolerance   = 1e-10;
+const float Tolerance   = 1e-08;
 const float ErrorMargin = 0.001;
 const int ErrorMarker   = 1000;
 
@@ -260,13 +260,7 @@ void main()
         for(int i=0; i<config.order; i++)
         {
             uint pointIdx = polyIdx * config.order + i; 
-            //points[pointIdx].r = _z[i].r; //idx*0.0001*cos(float(idx) * 0.1);
-            //points[pointIdx].i = _z[i].i; //idx*0.0001*sin(float(idx) * 0.1);
-            points[pointIdx].position = _z[i].position;
-            points[pointIdx].color = _z[i].color;
-            //points[pointIdx].colorR = 0;
-            //points[pointIdx].colorG = _z[i].colorG;
-            //points[pointIdx].colorB = _z[i].colorB;
+            points[pointIdx] = _z[i];
         }
 
     } else if (idx < config.polysCount + config.coeffValuesCount) {
