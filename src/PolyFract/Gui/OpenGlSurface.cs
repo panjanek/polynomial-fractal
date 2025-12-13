@@ -1,6 +1,7 @@
 ﻿using System.Drawing.Imaging;
 using System.IO;
 using System.Numerics;
+using System.Reflection;
 using System.Reflection.Metadata.Ecma335;
 using System.Runtime.InteropServices;
 using System.Threading;
@@ -108,22 +109,22 @@ namespace PolyFract.Gui
             GL.BufferData(BufferTarget.ShaderStorageBuffer, Marshal.SizeOf<ComputeShaderConfig>(), IntPtr.Zero, BufferUsageHint.DynamicDraw);
             GL.BindBufferBase(BufferRangeTarget.ShaderStorageBuffer, 0, ubo);
             GL.GetInteger((OpenTK.Graphics.OpenGL.GetIndexedPName)All.MaxComputeWorkGroupCount, 0, out maxGroupsX);
-            UseComputeShader = true;
 
             try
             {
-                computeProgram = CompileAndLinkComputeShader("solver.comp");
-                renderForComputeProgram = CompileAndLinkRenderShader("shader-c.vert", "shader-c.frag");
+                computeProgram = ShaderUtil.CompileAndLinkComputeShader("solver.comp");
+                renderForComputeProgram = ShaderUtil.CompileAndLinkRenderShader("shader-c.vert", "shader-c.frag");
                 projLocationCompute = GL.GetUniformLocation(renderForComputeProgram, "projection");
                 if (projLocationCompute == -1)
                     throw new Exception("Uniform 'projection' not found. Shader optimized it out?");
+                UseComputeShader = true;
             }
             catch (Exception ex)
             {
                 UseComputeShader = false;
             }
 
-            renderForBufferProgram = CompileAndLinkRenderShader("shader.vert", "shader.frag");
+            renderForBufferProgram = ShaderUtil.CompileAndLinkRenderShader("shader.vert", "shader.frag");
             projLocationForBuffer = GL.GetUniformLocation(renderForBufferProgram, "projection");
             if (projLocationForBuffer == -1)
                 throw new Exception("Uniform 'projection' not found. Shader optimized it out?");
@@ -300,83 +301,7 @@ namespace PolyFract.Gui
             return matrix;
         }
 
-        private static int CompileAndLinkComputeShader(string compFile)
-        {
-            // Compile compute shader
-            int computeShader = GL.CreateShader(ShaderType.ComputeShader);
-            string source = File.ReadAllText(compFile);
-            GL.ShaderSource(computeShader, source);
-            GL.CompileShader(computeShader);
-            GL.GetShader(computeShader, ShaderParameter.CompileStatus, out int status);
-            if (status != (int)All.True)
-            {
-                var log = GL.GetShaderInfoLog(computeShader);
-                throw new Exception(log);
-            }
 
-            int program = GL.CreateProgram();
-            GL.AttachShader(program, computeShader);
-            GL.LinkProgram(program);
-            GL.GetProgram(program, GetProgramParameterName.LinkStatus, out status);
-            if (status != (int)All.True)
-            {
-                throw new Exception(GL.GetProgramInfoLog(program));
-            }
-
-            return program;
-        }
-
-        public static int CompileAndLinkRenderShader(string vertFile, string fragFile)
-        {
-            string vertexSource = File.ReadAllText(vertFile);
-            string fragmentSource = File.ReadAllText(fragFile);
-
-            // Compile vertex shader
-            int vertexShader = GL.CreateShader(ShaderType.VertexShader);
-            GL.ShaderSource(vertexShader, vertexSource);
-            GL.CompileShader(vertexShader);
-
-            GL.GetShader(vertexShader, ShaderParameter.CompileStatus, out int vStatus);
-            if (vStatus != (int)All.True)
-            {
-                string log = GL.GetShaderInfoLog(vertexShader);
-                throw new Exception("Vertex shader compilation failed:\n" + log);
-            }
-
-            // Compile fragment shader
-            int fragmentShader = GL.CreateShader(ShaderType.FragmentShader);
-            GL.ShaderSource(fragmentShader, fragmentSource);
-            GL.CompileShader(fragmentShader);
-
-            GL.GetShader(fragmentShader, ShaderParameter.CompileStatus, out int fStatus);
-            if (fStatus != (int)All.True)
-            {
-                string log = GL.GetShaderInfoLog(fragmentShader);
-                throw new Exception("Fragment shader compilation failed:\n" + log);
-            }
-
-            // Create program and link
-            int program = GL.CreateProgram();
-            GL.AttachShader(program, vertexShader);
-            GL.AttachShader(program, fragmentShader);
-
-            GL.LinkProgram(program);
-
-            GL.GetProgram(program, GetProgramParameterName.LinkStatus, out int linkStatus);
-            if (linkStatus != (int)All.True)
-            {
-                string log = GL.GetProgramInfoLog(program);
-                throw new Exception("Shader program linking failed:\n" + log);
-            }
-
-            // Shaders can be detached and deleted after linking
-            GL.DetachShader(program, vertexShader);
-            GL.DetachShader(program, fragmentShader);
-            GL.DeleteShader(vertexShader);
-            GL.DeleteShader(fragmentShader);
-
-            return program;
-        }
 
         public void SaveToFile(string fileName)
         {

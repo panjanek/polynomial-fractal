@@ -12,6 +12,36 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="shader-c.frag" />
+    <None Remove="shader-c.vert" />
+    <None Remove="shader.frag" />
+    <None Remove="shader.vert" />
+    <None Remove="solver-d.comp" />
+    <None Remove="solver.comp" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="shaders\shader-c.frag">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="shaders\shader-c.vert">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="shaders\shader.frag">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="shaders\shader.vert">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="shaders\solver-d.comp">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="shaders\solver.comp">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Microsoft.Windows.Compatibility" Version="10.0.0" />
     <PackageReference Include="OpenTK" Version="4.9.4" />
     <PackageReference Include="OpenTK.GLControl" Version="4.0.2" />
@@ -20,27 +50,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\PolyFractFastSolver\PolyFractFastSolver.vcxproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Update="shader-c.vert">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="shader-c.frag">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="shader.frag">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="shader.vert">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="solver-d.comp">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="solver.comp">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
   </ItemGroup>
 
 </Project>
