@@ -123,7 +123,7 @@ namespace PolyFract
 
         private void CompositionTarget_Rendering(object? sender, EventArgs e)
         {
-            if (!isOccupied)
+            //if (!isOccupied)
             {
                 isOccupied = true;
                 WorkerStep();
