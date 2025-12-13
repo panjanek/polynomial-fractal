@@ -29,9 +29,9 @@ layout(std430, binding = 1) buffer OutputBuffer {
 };
 
 const float M_PI        = 3.14159265358979323846;
-const int MaxIterations = 48;
+const int MaxIterations = 42;
 const float Tolerance   = 1e-10;
-const float ErrorMargin = 0.0001;
+const float ErrorMargin = 0.001;
 const int ErrorMarker   = 1000;
 
 
@@ -271,7 +271,6 @@ void main()
     uint rootsCount = config.polysCount * config.order; 
     if (idx >=0 && idx < config.polysCount) {
 
-
         // create poly from number
         uint polyIdx = idx;
         for (int j = 0; j < poly_len; j++)
@@ -279,7 +278,7 @@ void main()
             uint coeffIdx = polyIdx % config.coeffValuesCount;
             polyIdx = polyIdx / config.coeffValuesCount;
             poly_r[j] = config.coeffsValues_r[coeffIdx];
-            poly_r[j] = config.coeffsValues_i[coeffIdx];
+            poly_i[j] = config.coeffsValues_i[coeffIdx];
         }
 
         evaluate_poly(poly_r, poly_i, config.order+1, _z);

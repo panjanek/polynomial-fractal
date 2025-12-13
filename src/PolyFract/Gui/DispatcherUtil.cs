@@ -12,7 +12,7 @@ namespace PolyFract.Gui
     public static class DispatcherUtil
     {
         private static bool uiPending;
-        public static void DispatchToUi(Action action)
+        public static void DispatchToUi(DispatcherPriority priority, Action action)
         {
             if (System.Windows.Application.Current?.Dispatcher != null && !uiPending)
             {
@@ -20,7 +20,7 @@ namespace PolyFract.Gui
                 try
                 {
                     System.Windows.Application.Current.Dispatcher.BeginInvoke(
-                    DispatcherPriority.Background,
+                    priority,
                     (Action)(() =>
                     {
 

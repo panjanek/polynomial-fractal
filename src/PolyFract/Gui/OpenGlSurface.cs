@@ -39,6 +39,20 @@ namespace PolyFract.Gui
 
         private readonly WinFormsMouseProxy mouseProxy;
 
+        private readonly int computeProgram;
+
+        private readonly int renderForComputeProgram;
+
+        private readonly int renderForBufferProgram;
+
+        private readonly int ubo;
+
+        private readonly int projLocationCompute;
+
+        private readonly int projLocationForBuffer;
+
+        private readonly int maxGroupsX;
+
         private int frameCounter = 0;
 
         private Complex origin = Complex.Zero;
@@ -47,27 +61,13 @@ namespace PolyFract.Gui
 
         private Solver solver;
 
-        private int computeProgram;
-
-        private int renderForComputeProgram;
-
-        private int renderForBufferProgram;
-
         private int pointsCount;
-
-        private int projLocationCompute;
-
-        private int projLocationForBuffer;
 
         private int dummyVao;
 
         private int vao;
 
         private int vbo;
-
-        private int ubo;
-
-        private int pointsBuffer;
 
         private Matrix4 projectionMatrix;
 
@@ -92,8 +92,7 @@ namespace PolyFract.Gui
             host.Child = glControl;
             placeholder.Children.Add(host);
             glControl.Paint += GlControl_Paint;
-            placeholder.KeyDown += Placeholder_KeyDown
-                ;
+            placeholder.KeyDown += Placeholder_KeyDown;
             mouseProxy = new WinFormsMouseProxy(glControl);
 
             //setup required features
@@ -108,12 +107,21 @@ namespace PolyFract.Gui
             GL.BindBuffer(BufferTarget.ShaderStorageBuffer, ubo);
             GL.BufferData(BufferTarget.ShaderStorageBuffer, Marshal.SizeOf<ComputeShaderConfig>(), IntPtr.Zero, BufferUsageHint.DynamicDraw);
             GL.BindBufferBase(BufferRangeTarget.ShaderStorageBuffer, 0, ubo);
+            GL.GetInteger((OpenTK.Graphics.OpenGL.GetIndexedPName)All.MaxComputeWorkGroupCount, 0, out maxGroupsX);
+            UseComputeShader = true;
 
-            computeProgram = CompileAndLinkComputeShader("solver.comp");
-            renderForComputeProgram = CompileAndLinkRenderShader("shader-c.vert", "shader-c.frag");
-            projLocationCompute = GL.GetUniformLocation(renderForComputeProgram, "projection");
-            if (projLocationCompute == -1)
-                throw new Exception("Uniform 'projection' not found. Shader optimized it out?");
+            try
+            {
+                computeProgram = CompileAndLinkComputeShader("solver.comp");
+                renderForComputeProgram = CompileAndLinkRenderShader("shader-c.vert", "shader-c.frag");
+                projLocationCompute = GL.GetUniformLocation(renderForComputeProgram, "projection");
+                if (projLocationCompute == -1)
+                    throw new Exception("Uniform 'projection' not found. Shader optimized it out?");
+            }
+            catch (Exception ex)
+            {
+                UseComputeShader = false;
+            }
 
             renderForBufferProgram = CompileAndLinkRenderShader("shader.vert", "shader.frag");
             projLocationForBuffer = GL.GetUniformLocation(renderForBufferProgram, "projection");
@@ -133,7 +141,9 @@ namespace PolyFract.Gui
         public void Draw(Solver solver, Complex[] coefficients, double intensity)
         {
             this.solver = solver;
-            DispatcherUtil.DispatchToUi(() =>
+
+            /*
+            DispatcherUtil.DispatchToUi(DispatcherPriority.Normal, () =>
             {
                 if (pointsCount == 0 || pointsCount != solver.rootsCount + solver.coeffValues.Length)
                 {
@@ -147,6 +157,17 @@ namespace PolyFract.Gui
 
                 glControl.Invalidate();
             });
+            */
+
+            if (pointsCount == 0 || pointsCount != solver.rootsCount + solver.coeffValues.Length)
+            {
+                SetupBuffers();
+            }
+
+            if (UseComputeShader)
+                RunShaderComputations();
+            else
+                CopyCpuDataToGpu();
 
             glControl.Invalidate();
         }
@@ -194,7 +215,10 @@ namespace PolyFract.Gui
             //compute
             GL.UseProgram(computeProgram);
             int instanceCount = solver.polynomialsCount + solver.coefficientsValuesCount;
-            GL.DispatchCompute((instanceCount + LocalSizeX - 1) / LocalSizeX, 1, 1);
+            int dispatchGroupsX = (instanceCount + LocalSizeX - 1) / LocalSizeX;
+            if (dispatchGroupsX > maxGroupsX)
+                dispatchGroupsX = maxGroupsX;
+            GL.DispatchCompute(dispatchGroupsX, 1, 1);
             GL.MemoryBarrier(MemoryBarrierFlags.ShaderStorageBarrierBit);
         }
 
@@ -220,6 +244,7 @@ namespace PolyFract.Gui
                 GL.BindVertexArray(dummyVao);
 
                 // create buffer for data emited from compute shader
+                int pointsBuffer;
                 GL.GenBuffers(1, out pointsBuffer);
                 GL.BindBuffer(BufferTarget.ShaderStorageBuffer, pointsBuffer);
                 pointsCount = solver.rootsCount + solver.coefficientsValuesCount;

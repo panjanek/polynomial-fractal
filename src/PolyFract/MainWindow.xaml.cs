@@ -2,6 +2,7 @@
 using System.Numerics;
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Media;
 using System.Windows.Threading;
 using PolyFract.Gui;
 using PolyFract.Maths;
@@ -123,12 +124,10 @@ namespace PolyFract
             infoTimer.Tick += InfoTimer_Tick;
             infoTimer.Start();
 
-            var renderTimer = new System.Timers.Timer(12);
-            renderTimer.Elapsed += RenderTimer_Elapsed;
-            renderTimer.Start();
+            CompositionTarget.Rendering += CompositionTarget_Rendering;
         }
 
-        private void RenderTimer_Elapsed(object? sender, System.Timers.ElapsedEventArgs e)
+        private void CompositionTarget_Rendering(object? sender, EventArgs e)
         {
             if (!isOccupied)
             {
@@ -318,12 +317,12 @@ namespace PolyFract
                 var originStr = $"r={renderer.Origin.Real.ToString("0.0000")},i={renderer.Origin.Imaginary.ToString("0.0000")}";
                 long pixelsCount = MathUtil.IntegerPower(coefficients.Length, order) * order;
                 Title = $"PolyFract. " +
+                        $"fps:{fps.ToString("0.0")}/{cps.ToString("0.0")} " +
                         $"{(contextMenu.Paused ? "[pause] " : "")} " +
                         $"pixels:{pixelsCount} " +
                         $"polys:{MathUtil.IntegerPower(coefficients.Length, order)} " +
                         $"t:{GetTime().ToString("0.000")} " +
                         $"frameCount:{renderer.FrameCounter}/{cycleCounter} " +
-                        $"fps:{fps.ToString("0.0")}/{cps.ToString("0.0")} " +
                         $"zoom:{renderer.Zoom.ToString("0.00")} " +
                         $"{(string.IsNullOrWhiteSpace(recordingDir) ? "" : $"recording to:{recordingDir}")} " +
                         $"order: {order} " +
