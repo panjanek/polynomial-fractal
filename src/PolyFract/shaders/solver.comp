@@ -195,6 +195,118 @@ void find_roots(in float poly_r[32],
 }
 
 
+void find_roots_aberth(
+    in float poly_r[32],
+    in float poly_i[32],
+    in int   poly_len,
+    inout CompactComplexFloatWithColor _z[32])
+{
+    if (poly_len < 2)
+        return;
+
+    const int MAX_N = 32;
+    const int ITERS = 20;   
+
+    int n = poly_len - 1;
+
+    float a0_r = poly_r[0];
+    float a0_i = poly_i[0];
+    float inv_a0 = 1.0 / (a0_r * a0_r + a0_i * a0_i);
+
+    vec2 a[MAX_N];
+    a[0] = vec2(1.0, 0.0);
+
+    for (int i = 1; i <= n; ++i)
+    {
+        float pr = poly_r[i];
+        float pi = poly_i[i];
+
+        // a[i] = poly[i] / a0
+        a[i] = vec2(
+            (pr * a0_r + pi * a0_i) * inv_a0,
+            (pi * a0_r - pr * a0_i) * inv_a0
+        );
+    }
+
+    float maxCoeff = 0.0;
+    for (int i = 1; i <= n; ++i)
+        maxCoeff = max(maxCoeff, dot(a[i], a[i]));
+
+    float r = 1.0 + sqrt(maxCoeff);
+
+    float theta = 6.28318530718 / float(n);
+    float cs = cos(theta);
+    float sn = sin(theta);
+
+    vec2 z[MAX_N];
+    vec2 w = vec2(r, 0.0);
+
+    for (int i = 0; i < n; ++i)
+    {
+        z[i] = w;
+        w = vec2(
+            w.x * cs - w.y * sn,
+            w.x * sn + w.y * cs
+        );
+    }
+
+    for (int iter = 0; iter < ITERS; ++iter)
+    {
+        for (int i = 0; i < n; ++i)
+        {
+            vec2 zi = z[i];
+
+            vec2 p  = a[0];
+            vec2 dp = vec2(0.0);
+
+            for (int k = 1; k <= n; ++k)
+            {
+                dp = vec2(
+                    dp.x * zi.x - dp.y * zi.y,
+                    dp.x * zi.y + dp.y * zi.x
+                ) + p;
+
+                p = vec2(
+                    p.x * zi.x - p.y * zi.y,
+                    p.x * zi.y + p.y * zi.x
+                ) + a[k];
+            }
+
+            vec2 sum = vec2(0.0);
+
+            for (int j = 0; j < n; ++j)
+            {
+                if (j == i) continue;
+
+                vec2 d = zi - z[j];
+                float inv = 1.0 / (d.x * d.x + d.y * d.y + 1e-8);
+
+                sum += vec2(d.x, -d.y) * inv;
+            }
+
+            vec2 denom = dp - p * sum;
+
+            float invd = 1.0 / (denom.x * denom.x + denom.y * denom.y + 1e-4);
+            vec2 delta = vec2(
+                (p.x * denom.x + p.y * denom.y) * invd,
+                (p.y * denom.x - p.x * denom.y) * invd
+            );
+
+            z[i] = zi - 0.85*delta;
+        }
+    }
+
+    for (int i = 0; i < n; ++i)
+        _z[i].position = z[i];
+}
+
+
+
+
+
+
+
+
 void post_process(in float poly_r[32], 
                   in float poly_i[32],
                   in int poly_len,
@@ -260,7 +372,7 @@ void main()
             poly_i[j] = config.coeffsValues_i[coeffIdx];
         }
 
-        find_roots(poly_r, poly_i, config.order+1, _z);
+        find_roots_aberth(poly_r, poly_i, config.order+1, _z);
         post_process(poly_r, poly_i, config.order+1, _z);
 
         polyIdx = idx;
