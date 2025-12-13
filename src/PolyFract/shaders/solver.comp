@@ -140,7 +140,7 @@ void find_roots(in float poly_r[32],
 
     for (int iter = 0; iter < MaxIterations; iter++)
     {
-        double maxDelta2 = 0.0;
+        double maxDelta2 = 0.0;     //in this implementation this must be double
         for (int i = 0; i < n; i++)
         {
             float zi_r = _z[i].position.x;
@@ -252,7 +252,7 @@ void find_roots2(
 
     for (int iter = 0; iter < MaxIterations; ++iter)
     {
-        double maxDelta2 = 0.0;
+        float maxDelta2 = 0.0; //in this implementation this works
 
         for (int i = 0; i < n; ++i)
         {
@@ -298,6 +298,41 @@ void find_roots2(
 
     for (int i = 0; i < n; ++i)
         _z[i].position = z[i];
+
+    // compute colors from deriviative value at given root
+    for (int i = 0; i < n; i++)
+    {
+        float a = angle_at(poly_r, poly_i, poly_len, _z[i].position.x, _z[i].position.y);
+        float h = (a + M_PI) / (2 * M_PI);
+        _z[i].color.rgb = hue_to_rgb(h);
+    }
+
+    // remove errors by checking if p(root) is (more or less) zero
+    for (int i = 0; i < n; i++)
+    {
+        float r_r = _z[i].position.x;
+        float r_i = _z[i].position.y;
+
+        float v_r = poly_r[0];
+        float v_i = poly_i[0];
+        for (int j = 1; j <= n; j++)
+        {
+            float v_r_tmp = v_r * r_r - v_i * r_i + poly_r[j];
+            float v_i_tmp = v_r * r_i + v_i * r_r + poly_i[j];
+            v_r = v_r_tmp;
+            v_i = v_i_tmp;
+        }
+
+        float v_m = mag(v_i, v_r);
+        if (v_m > ErrorMargin)
+        {
+            _z[i].position.x = ErrorMarker;
+            _z[i].position.y = ErrorMarker;
+            _z[i].color.r = 0;
+            _z[i].color.g = 0;
+            _z[i].color.b = 0;
+        }
+    }
 }
 
 
@@ -373,7 +408,7 @@ void main()
         }
 
         find_roots2(poly_r, poly_i, config.order+1, _z);
-        post_process(poly_r, poly_i, config.order+1, _z);
+        //post_process(poly_r, poly_i, config.order+1, _z);
 
         polyIdx = idx;
         for(int i=0; i<config.order; i++)
