@@ -12,6 +12,7 @@ Inspired by this youtube video by 2swap: https://www.youtube.com/watch?v=9HIy5dJ
 * Configurable with right click context menu
 * Solver implemented in compute shader (fallback to native code if OpenGL not available)
 * OpenGL rendering
+* Durand–Kerner (Weierstrass) method of root finding
 * Seriously, watch the video.
 
 ## Example captures
