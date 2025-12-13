@@ -1,4 +1,6 @@
 ﻿#version 430
+#extension GL_ARB_gpu_shader_fp64 : enable
+#pragma optionNV(fastmath on)
 
 layout(local_size_x = 16) in;
 
@@ -44,42 +46,41 @@ float mag(float xr, float xi)
 
 float fast_atan2(float y, float x)
 {
-    float absY = abs(y) + 1e-10f;
+    float ax = abs(x);
+    float ay = abs(y);
 
-    float angle;
-    if (x >= 0)
-    {
-        float r = (x - absY) / (x + absY);
-        angle = (M_PI / 4) - (0.9675 * r);
-    }
-    else
-    {
-        float r = (x + absY) / (absY - x);
-        angle = (3 * M_PI / 4) - (0.9675 * r);
-    }
+    float m = min(ax, ay) / max(ax, ay);
+    float s = m * m;
 
-    return (y < 0) ? -angle : angle;
+    float a = (((-0.04649647 * s + 0.15931422) * s - 0.32762277) * s * m + m);
+
+    a = (ay > ax) ? (1.57079637 - a) : a;
+    a = (x < 0.0) ? (3.14159274 - a) : a;
+
+    return a * sign(y);
 }
 
-float angle_at(in float poly_r[32], 
-               in float poly_i[32],
-               in int poly_len, 
-               in float x_r,
-               in float x_i)
+
+float angle_at(
+    in float poly_r[32],
+    in float poly_i[32],
+    in int   poly_len,
+    in float x_r,
+    in float x_i)
 {
     int n = poly_len - 1;
-    float d_r = 0;
-    float d_i = 0;
-
-    for (int i = 0; i < n; i++)
+    vec2 d = vec2(0.0);
+    vec2 x = vec2(x_r, x_i);
+    float k = float(n);
+    for (int i = 0; i < n; ++i)
     {
-        float d_r_tmp = d_r * x_r - d_i * x_i + poly_r[i] * (n - i);
-        float d_i_tmp = d_r * x_i + d_i * x_r + poly_i[i] * (n - 1);
-        d_r = d_r_tmp;
-        d_i = d_i_tmp;
+        vec2 a = vec2(poly_r[i], poly_i[i]) * k;
+        // d = d * x + a
+        d = vec2(d.x * x.x - d.y * x.y, d.x * x.y + d.y * x.x) + a;
+        k -= 1.0;
     }
 
-    return fast_atan2(d_i, d_r);
+    return fast_atan2(d.y, d.x);
 }
 
 vec3 hue_to_rgb(float h)
@@ -90,7 +91,7 @@ vec3 hue_to_rgb(float h)
     return clamp(p - 1.0, 0.0, 1.0);
 }
 
-void evaluate_poly(in float poly_r[32], 
+void find_roots(in float poly_r[32], 
                    in float poly_i[32],
                    in int poly_len,
                    inout CompactComplexFloatWithColor _z[32])
@@ -142,7 +143,7 @@ void evaluate_poly(in float poly_r[32],
 
     for (int iter = 0; iter < MaxIterations; iter++)
     {
-        double maxDelta2 = 0.0;
+        float maxDelta2 = 0.0;
         for (int i = 0; i < n; i++)
         {
             float zi_r = _z[i].position.x;
@@ -254,7 +255,7 @@ void main()
             poly_i[j] = config.coeffsValues_i[coeffIdx];
         }
 
-        evaluate_poly(poly_r, poly_i, config.order+1, _z);
+        find_roots(poly_r, poly_i, config.order+1, _z);
 
         polyIdx = idx;
         for(int i=0; i<config.order; i++)
