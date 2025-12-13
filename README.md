@@ -6,12 +6,14 @@ Inspired by this youtube video by 2swap: https://www.youtube.com/watch?v=9HIy5dJ
 ## Features
 * Any order of polynomial
 * Any number of coefficients contraints
-* Up to 1mln roots in the points cloud
+* 1mln+ roots rendered smoothly (60fps on modern GPUs)
 * Draggable and zoomable surface
 * Draggable coefficients
 * Configurable with right click context menu
 * Solver implemented in compute shader (fallback to native code if OpenGL not available)
 * OpenGL rendering
+* Durand–Kerner (Weierstrass) method of root finding
+* Seriously, watch the video.
 
 ## Example captures
 
