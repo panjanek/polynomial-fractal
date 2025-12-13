@@ -1,5 +1,8 @@
 ﻿#version 430
 
+#pragma optimize(on)
+
+
 layout(local_size_x = 16) in;
 
 struct ComputeShaderConfig {
@@ -125,7 +128,7 @@ void find_roots2(
     float cs = cos(theta);
     float sn = sin(theta);
 
-    vec2 z[32];
+    mediump vec2 z[32];
     vec2 w = vec2(r, 0.0);
 
     for (int i = 0; i < n; ++i)
@@ -143,7 +146,7 @@ void find_roots2(
 
         for (int i = 0; i < n; ++i)
         {
-            vec2 zi = z[i];
+            mediump vec2 zi = z[i];
 
             vec2 p = a[0];
             for (int k = 1; k <= n; ++k)
