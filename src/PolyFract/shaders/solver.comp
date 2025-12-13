@@ -190,10 +190,18 @@ void find_roots(in float poly_r[32],
             _z[i].position.y = _newZ_i[i];
         }
 
-        if (maxDelta2 <= (Tolerance * Tolerance)) break;
+        if (maxDelta2 < (Tolerance * Tolerance)) break;
     }
+}
 
+
+void post_process(in float poly_r[32], 
+                  in float poly_i[32],
+                  in int poly_len,
+                  inout CompactComplexFloatWithColor _z[32])
+{
     // compute colors from deriviative value at given root
+    uint n = poly_len - 1;
     for (int i = 0; i < n; i++)
     {
         float a = angle_at(poly_r, poly_i, poly_len, _z[i].position.x, _z[i].position.y);
@@ -253,6 +261,7 @@ void main()
         }
 
         find_roots(poly_r, poly_i, config.order+1, _z);
+        post_process(poly_r, poly_i, config.order+1, _z);
 
         polyIdx = idx;
         for(int i=0; i<config.order; i++)
