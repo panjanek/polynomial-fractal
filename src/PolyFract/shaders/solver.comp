@@ -195,6 +195,118 @@ void find_roots(in float poly_r[32],
 }
 
 
+
+
+
+
+
+
+void find_roots2(
+    in float poly_r[32],
+    in float poly_i[32],
+    in int   poly_len,
+    inout CompactComplexFloatWithColor _z[32])
+{
+    if (poly_len < 2)
+        return;
+
+    int n = poly_len - 1;
+
+    vec2 a[32];
+
+    vec2 a0 = vec2(poly_r[0], poly_i[0]);
+    float a0_inv = 1.0 / dot(a0, a0);
+
+    a[0] = vec2(1.0, 0.0);
+
+    for (int i = 1; i <= n; ++i)
+    {
+        vec2 p = vec2(poly_r[i], poly_i[i]);
+        a[i] = vec2(
+            p.x * a0.x + p.y * a0.y,
+            p.y * a0.x - p.x * a0.y
+        ) * a0_inv;
+    }
+
+    float maxCoeff2 = 0.0;
+    for (int i = 1; i <= n; ++i)
+        maxCoeff2 = max(maxCoeff2, dot(a[i], a[i]));
+
+    float r = 1.0 + sqrt(maxCoeff2);
+
+    float theta = 6.28318530718 / float(n);
+    float cs = cos(theta);
+    float sn = sin(theta);
+
+    vec2 z[32];
+    vec2 w = vec2(r, 0.0);
+
+    for (int i = 0; i < n; ++i)
+    {
+        z[i] = w;
+        w = vec2(
+            w.x * cs - w.y * sn,
+            w.x * sn + w.y * cs
+        );
+    }
+
+    for (int iter = 0; iter < MaxIterations; ++iter)
+    {
+        double maxDelta2 = 0.0;
+
+        for (int i = 0; i < n; ++i)
+        {
+            vec2 zi = z[i];
+
+            vec2 p = a[0];
+            for (int k = 1; k <= n; ++k)
+            {
+                p = vec2(
+                    p.x * zi.x - p.y * zi.y,
+                    p.x * zi.y + p.y * zi.x
+                ) + a[k];
+            }
+
+            vec2 denom = vec2(1.0, 0.0);
+
+            for (int j = 0; j < n; ++j)
+            {
+                if (j == i) continue;
+
+                vec2 d = zi - z[j];
+                denom = vec2(
+                    denom.x * d.x - denom.y * d.y,
+                    denom.x * d.y + denom.y * d.x
+                );
+            }
+
+            float inv = 1.0 / dot(denom, denom);
+
+            vec2 delta = vec2(
+                p.x * denom.x + p.y * denom.y,
+                p.y * denom.x - p.x * denom.y
+            ) * inv;
+
+            z[i] = zi - delta;
+
+            maxDelta2 = max(maxDelta2, dot(delta, delta));
+        }
+
+        if (maxDelta2 < (Tolerance * Tolerance))
+            break;
+    }
+
+    for (int i = 0; i < n; ++i)
+        _z[i].position = z[i];
+}
+
+
+
+
+
+
+
+
 void post_process(in float poly_r[32], 
                   in float poly_i[32],
                   in int poly_len,
@@ -260,7 +372,7 @@ void main()
             poly_i[j] = config.coeffsValues_i[coeffIdx];
         }
 
-        find_roots(poly_r, poly_i, config.order+1, _z);
+        find_roots2(poly_r, poly_i, config.order+1, _z);
         post_process(poly_r, poly_i, config.order+1, _z);
 
         polyIdx = idx;
