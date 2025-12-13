@@ -15,7 +15,7 @@ namespace PolyFract.Gui
         string Name { get; }
 
         System.Windows.Controls.Panel MouseEventSource { get; }
-        void Draw(Solver solver, Complex[] coefficients, double intensity);
+        void Draw(Solver solver, Complex[] coefficients);
 
         void SizeChanged();
 

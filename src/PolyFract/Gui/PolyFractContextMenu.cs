@@ -40,8 +40,6 @@ namespace PolyFract.Gui
 
         private readonly MenuItem menuOrder = new MenuItem { };
 
-        private readonly MenuItem menuIntensity = new MenuItem { };
-
         private readonly MenuItem menuShowCoeff = new MenuItem { Header = "Show coefficients markers", IsCheckable = true, IsChecked = true };
 
         private readonly MenuItem menuReset = new MenuItem { Header = "Reset to defaults" };
@@ -51,8 +49,6 @@ namespace PolyFract.Gui
         public Action<BasePreset, string> PresetSelected { get; set; }
 
         public Action Reset { get; set; }
-
-        public Action<double> IntensityChanged { get; set; }
 
         public Action<int> CoefficientCountChanged { get; set; }
 
@@ -100,14 +96,12 @@ namespace PolyFract.Gui
             menu.Items.Add(menuCopyPos);
             menu.Items.Add(menuCoeffCount);
             menu.Items.Add(menuOrder);
-            menu.Items.Add(menuIntensity);
             menu.Items.Add(menuShowCoeff);
             menu.Items.Add(menuReset);
 
             menuCopyPos.Click += MenuCopyPos_Click;
             menuCoeffCount.Click += MenuCoeffCount_Click;
             menuOrder.Click += MenuOrder_Click;
-            menuIntensity.Click += MenuIntensity_Click;
             menuReset.Click += MenuReset_Click;
             menuCapture.Click += MenuCapture_Click;
             menuRecord.Click += MenuRecord_Click;
@@ -211,23 +205,6 @@ namespace PolyFract.Gui
                 Reset();
         }
 
-        private void MenuIntensity_Click(object sender, RoutedEventArgs e)
-        {
-            var txt = GuiUtil.ShowInputDialog("Enter pixel intensity: 1-100%", "Color intensity");
-            if (string.IsNullOrWhiteSpace(txt))
-                return;
-            if (int.TryParse(txt, out var newIntensity))
-            {
-                if (newIntensity >= 1 && newIntensity <= 100)
-                    if (IntensityChanged != null)
-                        IntensityChanged(newIntensity * 0.01);
-                else
-                    MessageBox.Show("Invalid value!");
-            }
-            else
-                MessageBox.Show("Not a number!");
-        }
-
         private void MenuOrder_Click(object sender, RoutedEventArgs e)
         {
             var txt = GuiUtil.ShowInputDialog("Enter polynomial order. Mind that pixel count grows exponentialy", "Polynomial order");
@@ -262,10 +239,9 @@ namespace PolyFract.Gui
                 CopyPosClicked();
         }
 
-        public void UpdateContextMenu(int coefficientsCount, double intensity, int order, BasePreset preset)
+        public void UpdateContextMenu(int coefficientsCount, int order, BasePreset preset)
         {
             menuCoeffCount.Header = $"Number of coefficients values (A/S) [{coefficientsCount}]";
-            menuIntensity.Header = $"Colors intensity (O/P)  [{(int)System.Math.Round(intensity * 100)}%]";
             menuOrder.Header = $"Polynomial order (Q/W) [{order}]";
             menuPreset.Header = $"Preset [{preset?.Name}]";
             var testAutoPov = preset?.GetPOV(0);

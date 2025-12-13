@@ -91,12 +91,6 @@ namespace PolyFract
                 UpdateContextMenu();
             };
 
-            contextMenu.IntensityChanged = newIntensity =>
-            {
-                renderer.Intensity = newIntensity;
-                UpdateContextMenu();
-            };
-
             contextMenu.CoefficientCountChanged = newCoefficientCount => {
                 var pixelsCount = MathUtil.IntegerPower(newCoefficientCount, order);
                 if (pixelsCount > MaxPixelCount)
@@ -197,7 +191,6 @@ namespace PolyFract
             currentPreset = preset;
             order = preset.Order;
             dt = preset.DT;
-            renderer.Intensity = preset.Intensity;
             coefficients = currentPreset.GetCoefficients(GetTime());
             tStart = DateTime.Now;
             contextMenu.SetCheckboxes(null, true, true, false);
@@ -209,7 +202,6 @@ namespace PolyFract
             ApplyPreset(BasePreset.AllPresets[0]);
             coefficients = [new Complex(-1, 0), new Complex(1, 0)];
             contextMenu.SetCheckboxes(true, null, null, null);
-            renderer.Intensity = 1.0;
             renderer.SetProjection(Complex.Zero, DefaultZoom);
             recordingDir = null;
             UpdateContextMenu();
@@ -246,14 +238,6 @@ namespace PolyFract
                     break;
                 case Key.C:
                     CopyCoordinatesToClipboard(Mouse.GetPosition(placeholder));
-                    break;
-                case Key.O:
-                    if (renderer.Intensity > 0.01)
-                        renderer.Intensity -= 0.01;
-                    break;
-                case Key.P:
-                    if (renderer.Intensity < 1.0)
-                        renderer.Intensity += 0.01;
                     break;
                 case Key.D1: 
                     ApplyPreset(BasePreset.AllPresets[0]); 
@@ -327,8 +311,7 @@ namespace PolyFract
                         $"{(string.IsNullOrWhiteSpace(recordingDir) ? "" : $"recording to:{recordingDir}")} " +
                         $"order: {order} " +
                         $"coeffsCount: {coefficients.Length} "+
-                        $"threads: {Environment.ProcessorCount} " +
-                        $"errors: {solver?.GetErrorsCount()} ({(100.0 * solver?.GetErrorsCount() / pixelsCount)?.ToString("0.00000")}%) "+
+                        (OpenGlSurface.UseComputeShader ? " " : ($"errors: {solver?.GetErrorsCount()} ({(100.0 * solver?.GetErrorsCount() / pixelsCount)?.ToString("0.00000")}%) "))+
                         $"solver: {(OpenGlSurface.UseComputeShader ? "[shader]" : (Polynomials.IsNativeLibAvailable ? "[native]" : "[managed]"))} "+
                         $"renderer: [{renderer.RendererName}]";
             }
@@ -338,6 +321,6 @@ namespace PolyFract
             lastCheckTime = now;
         }
 
-        private void UpdateContextMenu() => contextMenu.UpdateContextMenu(coefficients.Length, renderer.Intensity, order, currentPreset);
+        private void UpdateContextMenu() => contextMenu.UpdateContextMenu(coefficients.Length, order, currentPreset);
     }
 }

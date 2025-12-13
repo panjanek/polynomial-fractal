@@ -138,7 +138,7 @@ namespace PolyFract.Gui
             }
         }
 
-        public void Draw(Solver solver, Complex[] coefficients, double intensity)
+        public void Draw(Solver solver, Complex[] coefficients)
         {
             this.solver = solver;
 

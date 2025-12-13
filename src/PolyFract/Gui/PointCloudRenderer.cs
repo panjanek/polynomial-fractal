@@ -19,8 +19,6 @@ namespace PolyFract.Gui
 
         public string RendererName => surface?.Name;
 
-        public double Intensity { get; set; } = 0.5;
-
         public Action DraggedOrZoommed { get; set; }
 
         public Action<int, Complex> CoefficientChanged;
@@ -148,7 +146,7 @@ namespace PolyFract.Gui
         public void Draw(Solver solver, Complex[] coefficients)
         {
             this.coefficients = coefficients;
-            surface.Draw(solver, coefficients, Intensity);
+            surface.Draw(solver, coefficients);
         }
 
         public void SaveToFile(string fileName) =>  surface.SaveToFile(fileName);

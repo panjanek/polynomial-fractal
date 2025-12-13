@@ -103,43 +103,18 @@ namespace PolyFract.Gui
             }
         }
 
-        public void Draw(Solver solver, Complex[] coefficients, double intensity)
+        public void Draw(Solver solver, Complex[] coefficients)
         {
             // schedule drawing for ui thread
-            if (Application.Current?.Dispatcher != null && !uiPending)
+            DispatcherUtil.DispatchToUi(DispatcherPriority.ApplicationIdle, () =>
             {
-                uiPending = true;
-                try
+                if (solver != null)
                 {
-                    Application.Current.Dispatcher.BeginInvoke(
-                        DispatcherPriority.Background,
-                        (Action)(() =>
-                        {
-
-                            try
-                            {
-                                if (solver != null)
-                                {
-                                    CalculatePixelCoords(solver);
-                                    InternalDraw(solver, coefficients, intensity);
-                                    frameCounter++;
-                                }
-                            }
-                            catch (Exception ex)
-                            {
-                                Console.WriteLine(ex);
-                            }
-                            finally
-                            {
-                                uiPending = false;
-                            }
-                        }));
+                    CalculatePixelCoords(solver);
+                    InternalDraw(solver, coefficients);
+                    frameCounter++;
                 }
-                catch (Exception ex)
-                {
-                    Console.WriteLine(ex);
-                }
-            }
+            });
         }
 
         private void CalculatePixelCoords(Solver solver)
@@ -169,9 +144,8 @@ namespace PolyFract.Gui
             });
         }
 
-        private void InternalDraw(Solver solver, Complex[] coefficients, double intensity)
+        private void InternalDraw(Solver solver, Complex[] coefficients)
         {
-            int intensityInt = (int)System.Math.Round(255 * intensity);
             bitmap.Lock();
             unsafe
             {
@@ -184,7 +158,7 @@ namespace PolyFract.Gui
                     {
                         var pixel = thread.pixels[i];
                         if (pixel.x != Polynomials.ErrorMarker)
-                            AddGlyph(pBackBuffer, pixel.x, pixel.y, rootMarkerInt, pixel.r, pixel.g, pixel.b, intensityInt);
+                            AddGlyph(pBackBuffer, pixel.x, pixel.y, rootMarkerInt, pixel.r, pixel.g, pixel.b);
                     }
                 }
                 ;
@@ -192,7 +166,7 @@ namespace PolyFract.Gui
                 foreach (var coef in coefficients)
                 {
                     (int cx, int cy) = GuiUtil.ToPixelCoordinates(coef, bitmap.PixelWidth, bitmap.PixelHeight, origin, zoom);
-                    AddGlyph(pBackBuffer, cx, cy, coeffMarkerInt, Colors.Red, 255, true);
+                    AddGlyph(pBackBuffer, cx, cy, coeffMarkerInt, Colors.Red, true);
                 }
             }
 
@@ -200,12 +174,12 @@ namespace PolyFract.Gui
             bitmap.Unlock();
         }
 
-        private unsafe void AddGlyph(byte* pBackBuffer, int cx, int cy, int[,] map, System.Windows.Media.Color color, int intensity = 255, bool overwrite = false)
+        private unsafe void AddGlyph(byte* pBackBuffer, int cx, int cy, int[,] map, System.Windows.Media.Color color, bool overwrite = false)
         {
-            AddGlyph(pBackBuffer, cx, cy, map, color.R, color.G, color.B, intensity, overwrite);
+            AddGlyph(pBackBuffer, cx, cy, map, color.R, color.G, color.B, overwrite);
         }
 
-        private unsafe void AddGlyph(byte* pBackBuffer, int cx, int cy, int[,] map, int r, int g, int b, int intensity = 255, bool overwrite = false)
+        private unsafe void AddGlyph(byte* pBackBuffer, int cx, int cy, int[,] map, int r, int g, int b, bool overwrite = false)
         {
             for (int mx = 0; mx < map.GetLength(0); mx++)
             {
@@ -217,9 +191,9 @@ namespace PolyFract.Gui
                     if (x >= 0 && y >= 0 && x < bitmap.PixelWidth && y < bitmap.PixelHeight)
                     {
                         int coord = y * bitmap.PixelWidth + x << 2;
-                        var cr = (r * strength * intensity) >> 16;
-                        var cg = (g * strength * intensity) >> 16;
-                        var cb = (b * strength * intensity) >> 16;
+                        var cr = (r * strength) >> 8;
+                        var cg = (g * strength) >> 8;
+                        var cb = (b * strength) >> 8;
                         AddPixel(pBackBuffer, coord, cr, cg, cb, overwrite);
                     }
                 }
