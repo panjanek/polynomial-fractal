@@ -23,7 +23,7 @@ namespace PolyFract.Gui
 {
     public class OpenGlSurface : ISurface
     {
-        private const int LocalSizeX = 8;
+        private const int LocalSizeX = 16;
         public Panel MouseEventSource => this.mouseProxy;
 
         public int FrameCounter => frameCounter;
@@ -142,24 +142,6 @@ namespace PolyFract.Gui
         public void Draw(Solver solver, Complex[] coefficients)
         {
             this.solver = solver;
-
-            /*
-            DispatcherUtil.DispatchToUi(DispatcherPriority.Normal, () =>
-            {
-                if (pointsCount == 0 || pointsCount != solver.rootsCount + solver.coeffValues.Length)
-                {
-                    SetupBuffers();
-                }
-
-                if (UseComputeShader)
-                    RunShaderComputations();
-                else
-                    CopyCpuDataToGpu();
-
-                glControl.Invalidate();
-            });
-            */
-
             if (pointsCount == 0 || pointsCount != solver.rootsCount + solver.coeffValues.Length)
             {
                 SetupBuffers();

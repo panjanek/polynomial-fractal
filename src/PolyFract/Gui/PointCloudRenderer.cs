@@ -15,7 +15,7 @@ namespace PolyFract.Gui
     {
         public const int MarkerRadius = 8;
 
-        public const double ZoomingSpeed = 0.0002;
+        public const double ZoomingSpeed = 0.0005;
 
         public string RendererName => surface?.Name;
 

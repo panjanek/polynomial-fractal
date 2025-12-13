@@ -151,7 +151,7 @@ namespace PolyFract
                     }
 
                     uiPending = false;
-                }), DispatcherPriority.Background);
+                }), DispatcherPriority.Render);
             }
         }
 

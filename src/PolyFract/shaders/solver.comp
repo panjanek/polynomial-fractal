@@ -1,6 +1,6 @@
 ﻿#version 430
 
-layout(local_size_x = 8) in;
+layout(local_size_x = 16) in;
 
 struct ComputeShaderConfig {
     int order;
