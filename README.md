@@ -1,15 +1,16 @@
 # Polynomial Fractal Visualisation
-C# (polynomials solving in c++ native code) program with GUI to visualize roots of polynomials with constrained coefficients.
+GPU-accelerated (with compute shader) .NET GUI application (WPF) for visalisation roots of polynomials with constrained coefficients.
 
 Inspired by this youtube video by 2swap: https://www.youtube.com/watch?v=9HIy5dJE-zQ&t=3s
 
 ## Features
 * Any order of polynomial
 * Any number of coefficients contraints
+* Up to 1mln roots in the points cloud
 * Draggable and zoomable surface
 * Draggable coefficients
 * Configurable with right click context menu
-* Native code optimized solver (CPU)
+* Solver implemented in compute shader (fallback to native code if OpenGL not available)
 * OpenGL rendering
 
 ## Example captures
