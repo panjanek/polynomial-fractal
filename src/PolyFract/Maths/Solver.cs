@@ -80,7 +80,7 @@ namespace PolyFract.Maths
                 coeffValues[c].colorB = 255.0f;
             }
 
-            if (OpenGlSurface.ComputeShaderSupported)
+            if (OpenGlSurface.UseComputeShader) // if shader computing enabled, skip solving completely
                 return;
 
             foreach (var thread in threads)
@@ -135,7 +135,6 @@ namespace PolyFract.Maths
         {
             if (Polynomials.IsNativeLibAvailable)
             {
-
                 Polynomials.FindRootsForPolys(
                           //actual parameters
                           from,

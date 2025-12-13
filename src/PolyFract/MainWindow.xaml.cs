@@ -330,7 +330,7 @@ namespace PolyFract
                         $"coeffsCount: {coefficients.Length} "+
                         $"threads: {Environment.ProcessorCount} " +
                         $"errors: {solver?.GetErrorsCount()} ({(100.0 * solver?.GetErrorsCount() / pixelsCount)?.ToString("0.00000")}%) "+
-                        $"solver: {(Polynomials.IsNativeLibAvailable ? "[native]" : "[managed]")} "+
+                        $"solver: {(OpenGlSurface.UseComputeShader ? "[shader]" : (Polynomials.IsNativeLibAvailable ? "[native]" : "[managed]"))} "+
                         $"renderer: [{renderer.RendererName}]";
             }
 

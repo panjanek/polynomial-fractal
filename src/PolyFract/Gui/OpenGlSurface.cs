@@ -22,13 +22,14 @@ namespace PolyFract.Gui
 {
     public class OpenGlSurface : ISurface
     {
+        private const int LocalSizeX = 8;
         public Panel MouseEventSource => this.mouseProxy;
 
         public int FrameCounter => frameCounter;
 
         public string Name => "opengl";
 
-        public static bool ComputeShaderSupported { get; set; }
+        public static bool UseComputeShader { get; set; }
 
         private readonly Panel placeholder;
 
@@ -46,15 +47,19 @@ namespace PolyFract.Gui
 
         private Solver solver;
 
-        private Complex[] coefficients;
-
         private int computeProgram;
 
-        private int vertexProgram;
+        private int renderForComputeProgram;
+
+        private int renderForBufferProgram;
 
         private int pointsCount;
 
-        private int projLocation;
+        private int projLocationCompute;
+
+        private int projLocationForBuffer;
+
+        private int dummyVao;
 
         private int vao;
 
@@ -67,8 +72,6 @@ namespace PolyFract.Gui
         private Matrix4 projectionMatrix;
 
         private ComputeShaderConfig computeShaderConfig;
-
-        bool uiPending;
 
         public OpenGlSurface(Panel placeholder)
         {
@@ -89,56 +92,79 @@ namespace PolyFract.Gui
             host.Child = glControl;
             placeholder.Children.Add(host);
             glControl.Paint += GlControl_Paint;
+            placeholder.KeyDown += Placeholder_KeyDown
+                ;
             mouseProxy = new WinFormsMouseProxy(glControl);
 
-            ComputeShaderSupported = true;
+            //setup required features
+            GL.Enable(EnableCap.ProgramPointSize);
+            GL.Enable(EnableCap.Blend);
+            GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.One);
+            GL.BlendEquation(OpenTK.Graphics.OpenGL.BlendEquationMode.FuncAdd);
+            GL.Enable(EnableCap.PointSprite);
+
+            // allocate space for ComputeShaderConfig passed to each compute shader
+            ubo = GL.GenBuffer();
+            GL.BindBuffer(BufferTarget.ShaderStorageBuffer, ubo);
+            GL.BufferData(BufferTarget.ShaderStorageBuffer, Marshal.SizeOf<ComputeShaderConfig>(), IntPtr.Zero, BufferUsageHint.DynamicDraw);
+            GL.BindBufferBase(BufferRangeTarget.ShaderStorageBuffer, 0, ubo);
+
+            computeProgram = CompileAndLinkComputeShader("solver.comp");
+            renderForComputeProgram = CompileAndLinkRenderShader("shader-c.vert", "shader-c.frag");
+            projLocationCompute = GL.GetUniformLocation(renderForComputeProgram, "projection");
+            if (projLocationCompute == -1)
+                throw new Exception("Uniform 'projection' not found. Shader optimized it out?");
+
+            renderForBufferProgram = CompileAndLinkRenderShader("shader.vert", "shader.frag");
+            projLocationForBuffer = GL.GetUniformLocation(renderForBufferProgram, "projection");
+            if (projLocationForBuffer == -1)
+                throw new Exception("Uniform 'projection' not found. Shader optimized it out?");
+        }
+
+        private void Placeholder_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+        {
+            if (e.Key == System.Windows.Input.Key.G)
+            {
+                UseComputeShader = !UseComputeShader;
+                SetupBuffers();
+            }
         }
 
         public void Draw(Solver solver, Complex[] coefficients, double intensity)
         {
             this.solver = solver;
-
-
-            // schedule drawing for ui thread
-            if (Application.Current?.Dispatcher != null && !uiPending)
+            DispatcherUtil.DispatchToUi(() =>
             {
-                uiPending = true;
-                try
+                if (pointsCount == 0 || pointsCount != solver.rootsCount + solver.coeffValues.Length)
                 {
-                    Application.Current.Dispatcher.BeginInvoke(
-                        DispatcherPriority.Background,
-                        (Action)(() =>
-                        {
-
-                            try
-                            {
-                                if (solver != null)
-                                {
-                                    if (pointsCount == 0 || pointsCount != solver.rootsCount + solver.coeffValues.Length)
-                                    {
-                                        ResetGl();
-                                    }
-
-
-                                    RunShaderComputations();
-                                    frameCounter++;
-                                }
-                            }
-                            catch (Exception ex)
-                            {
-                                Console.WriteLine(ex);
-                            }
-                            finally
-                            {
-                                uiPending = false;
-                            }
-                        }));
+                    SetupBuffers();
                 }
-                catch (Exception ex)
-                {
-                    Console.WriteLine(ex);
-                }
+
+                if (UseComputeShader)
+                    RunShaderComputations();
+                else
+                    CopyCpuDataToGpu();
+
+                glControl.Invalidate();
+            });
+
+            glControl.Invalidate();
+        }
+
+        private void CopyCpuDataToGpu()
+        {
+            GL.BindBuffer(BufferTarget.ArrayBuffer, vbo);
+
+            //copy roots coordinates to GPU
+            nint structSize = Marshal.SizeOf<CompactClomplexFloatWithColor>();
+            foreach (var thread in solver.threads)
+            {
+                nint offset = thread.from * thread.order;
+                GL.BufferSubData(BufferTarget.ArrayBuffer, offset * structSize, thread.roots.Length * structSize, thread.roots);
             }
+
+            //copy coeff values to GPU to draw them as bigger circles in shader
+            GL.BufferSubData(BufferTarget.ArrayBuffer, solver.rootsCount * structSize, solver.coeffValues.Length * structSize, solver.coeffValues);            
         }
 
         public void RunShaderComputations()
@@ -167,75 +193,89 @@ namespace PolyFract.Gui
 
             //compute
             GL.UseProgram(computeProgram);
-            int localSizeX = 256;
             int instanceCount = solver.polynomialsCount + solver.coefficientsValuesCount;
-            GL.DispatchCompute((instanceCount + localSizeX - 1) / localSizeX, 1, 1);
+            GL.DispatchCompute((instanceCount + LocalSizeX - 1) / LocalSizeX, 1, 1);
             GL.MemoryBarrier(MemoryBarrierFlags.ShaderStorageBarrierBit);
-
-            glControl.Invalidate();
         }
 
         private void GlControl_Paint(object? sender, PaintEventArgs e)
         {
-            if (solver == null)
-                return;
-
-            if (ComputeShaderSupported)
-                PaintUsingComputeShaders();
-            else
-                PaintUsingCpuComputedRoots();
-
+            GL.Clear(ClearBufferMask.ColorBufferBit);
+            GL.UseProgram(UseComputeShader ? renderForComputeProgram : renderForBufferProgram);
+            GL.BindVertexArray(UseComputeShader ? dummyVao : vao);
+            projectionMatrix = GetProjectionMatrix();
+            GL.UniformMatrix4(UseComputeShader ? projLocationCompute : projLocationForBuffer, false, ref projectionMatrix);
+            GL.DrawArrays(PrimitiveType.Points, 0, pointsCount);
+            glControl.SwapBuffers();
             frameCounter++;
         }
 
-        public void ResetForComputeShaders()
+        private void SetupBuffers()
         {
-            // allocate space for ComputeShaderConfig passed to each compute shader
-            ubo = GL.GenBuffer();
-            GL.BindBuffer(BufferTarget.ShaderStorageBuffer, ubo);
-            GL.BufferData(BufferTarget.ShaderStorageBuffer,
-                          Marshal.SizeOf<ComputeShaderConfig>(),
-                          IntPtr.Zero,
-                          BufferUsageHint.DynamicDraw);
-            GL.BindBufferBase(BufferRangeTarget.ShaderStorageBuffer, 0, ubo);
+            pointsCount = solver.rootsCount + solver.coeffValues.Length;
+            if (UseComputeShader)
+            {
+                // create dummy vao
+                GL.GenVertexArrays(1, out dummyVao);
+                GL.BindVertexArray(dummyVao);
 
-            // create dummy vao
-            GL.GenVertexArrays(1, out vao);
-            GL.BindVertexArray(vao);
+                // create buffer for data emited from compute shader
+                GL.GenBuffers(1, out pointsBuffer);
+                GL.BindBuffer(BufferTarget.ShaderStorageBuffer, pointsBuffer);
+                pointsCount = solver.rootsCount + solver.coefficientsValuesCount;
+                int sizeBytes = pointsCount * Marshal.SizeOf<CompactClomplexFloatWithColor>();
+                GL.BufferData(BufferTarget.ShaderStorageBuffer, sizeBytes, IntPtr.Zero, BufferUsageHint.DynamicDraw);
+                GL.BindBufferBase(BufferRangeTarget.ShaderStorageBuffer, 1, pointsBuffer);
+            }
+            else
+            {
+                vao = GL.GenVertexArray();
+                vbo = GL.GenBuffer();
+                GL.BindVertexArray(vao);
+                GL.BindBuffer(BufferTarget.ArrayBuffer, vbo);
 
-            // create buffer for data emited from compute shader
-            GL.GenBuffers(1, out pointsBuffer);
-            GL.BindBuffer(BufferTarget.ShaderStorageBuffer, pointsBuffer);
-            pointsCount = solver.rootsCount + solver.coefficientsValuesCount;
-            int sizeBytes = pointsCount * Marshal.SizeOf<CompactClomplexFloatWithColor>();
-            GL.BufferData(BufferTarget.ShaderStorageBuffer,
-                          sizeBytes,
-                          IntPtr.Zero,
-                          BufferUsageHint.DynamicDraw);
-            GL.BindBufferBase(BufferRangeTarget.ShaderStorageBuffer, 1, pointsBuffer);
+                // Init VAO buffer to current point count
+                int structSize = Marshal.SizeOf<CompactClomplexFloatWithColor>();
+                GL.BufferData(BufferTarget.ArrayBuffer, this.pointsCount * structSize, nint.Zero, BufferUsageHint.DynamicDraw);
 
-            projectionMatrix = GetProjectionMatrix();
-            computeProgram = CompileAndLinkComputeShader("solver-d.comp");
-            vertexProgram = CompileAndLinkVertexAndFragmetShaders("shader-c.vert", "shader-c.frag");
-            projLocation = GL.GetUniformLocation(vertexProgram, "projection");
-            if (projLocation == -1)
-                throw new Exception("Uniform 'projection' not found. Shader optimized it out?");
+                // Position attribute (location 0)
+                GL.EnableVertexAttribArray(0);
+                GL.VertexAttribPointer(0, 2, VertexAttribPointerType.Float, false, structSize, 0);
 
+                // Color attribute (location 1)
+                GL.EnableVertexAttribArray(1);
+                GL.VertexAttribPointer(1, 3, VertexAttribPointerType.Float, false, structSize, Marshal.OffsetOf<CompactClomplexFloatWithColor>("colorR"));
+            }
+
+            GL.Viewport(0, 0, glControl.Width, glControl.Height);
+            glControl.Invalidate();
+        }
+
+        public void SetProjection(Complex origin, double zoom)
+        {
+            this.origin = origin;
+            this.zoom = zoom;
             SizeChanged();
         }
 
-        private void PaintUsingComputeShaders()
+        public void SizeChanged()
         {
-            //draw
-            GL.Clear(ClearBufferMask.ColorBufferBit);
-            GL.UseProgram(vertexProgram);
-            GL.UniformMatrix4(projLocation, false, ref projectionMatrix);
-            GL.BindVertexArray(vao);
-            GL.DrawArrays(PrimitiveType.Points, 0, solver.rootsCount + solver.coefficientsValuesCount);
-            glControl.SwapBuffers();
+            GL.Viewport(0, 0, glControl.Width, glControl.Height);
+            glControl.Invalidate();
         }
 
-        private int CompileAndLinkComputeShader(string compFile)
+        private Matrix4 GetProjectionMatrix()
+        {
+            // rescale by windows display scale setting to match WPF coordinates
+            var w = (float)((glControl.Width / GuiUtil.Dpi.DpiScaleX) / zoom) / 2;
+            var h = (float)((glControl.Height / GuiUtil.Dpi.DpiScaleY) / zoom) / 2;
+            var translate = Matrix4.CreateTranslation((float)-origin.Real, (float)-origin.Imaginary, 0.0f);
+            var ortho = Matrix4.CreateOrthographicOffCenter(-w, w, -h, h, -1f, 1f);
+            var matrix = translate * ortho;
+            return matrix;
+        }
+
+        private static int CompileAndLinkComputeShader(string compFile)
         {
             // Compile compute shader
             int computeShader = GL.CreateShader(ShaderType.ComputeShader);
@@ -261,100 +301,7 @@ namespace PolyFract.Gui
             return program;
         }
 
-        private void PaintUsingCpuComputedRoots()
-        {
-            GL.BindBuffer(BufferTarget.ArrayBuffer, vbo);
-
-            //copy roots coordinated to GPU
-            nint structSize = Marshal.SizeOf<CompactClomplexFloatWithColor>();
-            foreach (var thread in solver.threads)
-            {
-                nint offset = thread.from * thread.order;
-                GL.BufferSubData(BufferTarget.ArrayBuffer, offset * structSize, thread.roots.Length * structSize, thread.roots);
-            }
-
-            //copy coeff values to GPU to draw them as bigger circles in shader
-            GL.BufferSubData(BufferTarget.ArrayBuffer, solver.rootsCount * structSize, solver.coeffValues.Length * structSize, solver.coeffValues);
-
-            GL.Clear(ClearBufferMask.ColorBufferBit);
-            GL.UseProgram(vertexProgram);
-            GL.BindVertexArray(vao);
-            GL.UniformMatrix4(projLocation, false, ref projectionMatrix);
-            GL.DrawArrays(PrimitiveType.Points, 0, solver.rootsCount + solver.coeffValues.Length);
-
-            glControl.SwapBuffers();
-        }
-
-        private void ResetGl()
-        {
-            GL.Enable(EnableCap.ProgramPointSize);
-            GL.Enable(EnableCap.Blend);
-            GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.One);
-            //GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);   // meh
-            //GL.BlendFunc(BlendingFactor.One, BlendingFactor.OneMinusSrcAlpha);
-            //GL.BlendFunc(BlendingFactor.One, BlendingFactor.One);   
-            GL.BlendEquation(OpenTK.Graphics.OpenGL.BlendEquationMode.FuncAdd);
-            GL.Enable(EnableCap.PointSprite);
-
-            if (ComputeShaderSupported)
-                ResetForComputeShaders();
-            else
-                ResetForCpuComputedRoots();
-        }
-
-        public void ResetForCpuComputedRoots()
-        {
-            vao = GL.GenVertexArray();
-            vbo = GL.GenBuffer();
-            GL.BindVertexArray(vao);
-            GL.BindBuffer(BufferTarget.ArrayBuffer, vbo);
-
-            // Init VAO buffer to current point count
-            pointsCount = solver.rootsCount + solver.coeffValues.Length;
-            int structSize = Marshal.SizeOf<CompactClomplexFloatWithColor>();
-            GL.BufferData(BufferTarget.ArrayBuffer, this.pointsCount * structSize, nint.Zero, BufferUsageHint.DynamicDraw);
-
-            // Position attribute (location 0)
-            GL.EnableVertexAttribArray(0);
-            GL.VertexAttribPointer(0, 2, VertexAttribPointerType.Float, false, structSize, 0);
-
-            // Color attribute (location 1)
-            GL.EnableVertexAttribArray(1);
-            GL.VertexAttribPointer(1, 3, VertexAttribPointerType.Float, false, structSize, Marshal.OffsetOf<CompactClomplexFloatWithColor>("colorR"));
-
-            projectionMatrix = GetProjectionMatrix();
-            vertexProgram = CompileAndLinkVertexAndFragmetShaders("shader.vert", "shader.frag");
-            projLocation = GL.GetUniformLocation(vertexProgram, "projection");
-
-            SizeChanged();
-        }
-
-        public void SetProjection(Complex origin, double zoom)
-        {
-            this.origin = origin;
-            this.zoom = zoom;
-            SizeChanged();
-        }
-
-        public void SizeChanged()
-        {
-            GL.Viewport(0, 0, glControl.Width, glControl.Height);
-            projectionMatrix = GetProjectionMatrix();
-            glControl.Invalidate();
-        }
-
-        private Matrix4 GetProjectionMatrix()
-        {
-            // rescale by windows display scale setting to match WPF coordinates
-            var w = (float)((glControl.Width / GuiUtil.Dpi.DpiScaleX) / zoom) / 2;
-            var h = (float)((glControl.Height / GuiUtil.Dpi.DpiScaleY) / zoom) / 2;
-            var translate = Matrix4.CreateTranslation((float)-origin.Real, (float)-origin.Imaginary, 0.0f);
-            var ortho = Matrix4.CreateOrthographicOffCenter(-w, w, -h, h, -1f, 1f);
-            var matrix = translate * ortho;
-            return matrix;
-        }
-
-        public static int CompileAndLinkVertexAndFragmetShaders(string vertFile, string fragFile)
+        public static int CompileAndLinkRenderShader(string vertFile, string fragFile)
         {
             string vertexSource = File.ReadAllText(vertFile);
             string fragmentSource = File.ReadAllText(fragFile);
