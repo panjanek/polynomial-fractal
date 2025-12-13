@@ -103,8 +103,8 @@ namespace PolyFract.Gui
             GL.BlendEquation(OpenTK.Graphics.OpenGL.BlendEquationMode.FuncAdd);
             GL.Enable(EnableCap.PointSprite);
 
-            // allocate space for ComputeShaderConfig passed to each compute shader
-            ubo = GL.GenBuffer();
+             // allocate space for ComputeShaderConfig passed to each compute shader
+             ubo = GL.GenBuffer();
             GL.BindBuffer(BufferTarget.ShaderStorageBuffer, ubo);
             GL.BufferData(BufferTarget.ShaderStorageBuffer, Marshal.SizeOf<ComputeShaderConfig>(), IntPtr.Zero, BufferUsageHint.DynamicDraw);
             GL.BindBufferBase(BufferRangeTarget.ShaderStorageBuffer, 0, ubo);

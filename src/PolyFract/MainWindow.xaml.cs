@@ -1,8 +1,10 @@
 ﻿using System.Data;
+using System.Diagnostics;
 using System.Numerics;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using System.Windows.Threading;
 using PolyFract.Gui;
 using PolyFract.Maths;
@@ -57,6 +59,8 @@ namespace PolyFract
         private Solver solver;
 
         private bool isOccupied;
+
+        private bool uiPending;
 
         public MainWindow()
             : base()
@@ -118,18 +122,49 @@ namespace PolyFract
             infoTimer.Tick += InfoTimer_Tick;
             infoTimer.Start();
 
-            CompositionTarget.Rendering += CompositionTarget_Rendering;
+            //CompositionTarget.Rendering += CompositionTarget_Rendering;
+
+            System.Timers.Timer systemTimer = new System.Timers.Timer() { Interval = 0.01 };
+            systemTimer.Elapsed += SystemTimer_Elapsed;
+            systemTimer.Start();
+
         }
 
+        private void SystemTimer_Elapsed(object? sender, System.Timers.ElapsedEventArgs e)
+        {
+            if (!uiPending)
+            {
+                uiPending = true;
+                Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    try
+                    {
+                        WorkerStep();
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine(ex);
+                    }
+                    finally
+                    {
+                        uiPending = false;
+                    }
+
+                    uiPending = false;
+                }), DispatcherPriority.Background);
+            }
+        }
+
+        /*
         private void CompositionTarget_Rendering(object? sender, EventArgs e)
         {
-            //if (!isOccupied)
+
             {
                 isOccupied = true;
                 WorkerStep();
                 isOccupied = false;
             }
-        }
+        }*/
 
         private void WorkerStep()
         {
