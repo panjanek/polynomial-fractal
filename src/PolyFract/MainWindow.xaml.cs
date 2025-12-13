@@ -66,6 +66,9 @@ namespace PolyFract
         public MainWindow()
             : base()
         {
+            string[] args = Environment.GetCommandLineArgs();
+            if (args.Length > 1)
+                int.TryParse(args[1], out ShaderUtil.LocalSizeX);
             InitializeComponent();
             Polynomials.InitNative();
         }
@@ -335,7 +338,7 @@ namespace PolyFract
                         $"order: {order} " +
                         $"coeffsCount: {coefficients.Length} "+
                         (OpenGlSurface.UseComputeShader ? " " : ($"errors: {solver?.GetErrorsCount()} ({(100.0 * solver?.GetErrorsCount() / pixelsCount)?.ToString("0.00000")}%) "))+
-                        $"solver: {(OpenGlSurface.UseComputeShader ? "[shader]" : (Polynomials.IsNativeLibAvailable ? "[native]" : "[managed]"))} "+
+                        $"solver: {(OpenGlSurface.UseComputeShader ? $"[shader] lsx:{ShaderUtil.LocalSizeX}" : (Polynomials.IsNativeLibAvailable ? "[native]" : "[managed]"))} "+
                         $"renderer: [{renderer.RendererName}]";
             }
 

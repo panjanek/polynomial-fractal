@@ -23,7 +23,6 @@ namespace PolyFract.Gui
 {
     public class OpenGlSurface : ISurface
     {
-        private const int LocalSizeX = 16;
         public Panel MouseEventSource => this.mouseProxy;
 
         public int FrameCounter => frameCounter;
@@ -200,7 +199,7 @@ namespace PolyFract.Gui
             //compute
             GL.UseProgram(computeProgram);
             int instanceCount = solver.polynomialsCount + solver.coefficientsValuesCount;
-            int dispatchGroupsX = (instanceCount + LocalSizeX - 1) / LocalSizeX;
+            int dispatchGroupsX = (instanceCount + ShaderUtil.LocalSizeX - 1) / ShaderUtil.LocalSizeX;
             if (dispatchGroupsX > maxGroupsX)
                 dispatchGroupsX = maxGroupsX;
             GL.DispatchCompute(dispatchGroupsX, 1, 1);

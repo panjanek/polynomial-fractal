@@ -11,10 +11,13 @@ namespace PolyFract.Gui
 {
     public static class ShaderUtil
     {
+        // 16, 32, 64, 128, 256 - depending on GPU architecture. Can be set as first commandline parameter
+        public static int LocalSizeX = 16;
         public static int CompileAndLinkComputeShader(string compFile)
         {
             // Compile compute shader
             string source = LoadShaderCode(compFile);
+            source = source.Replace("{LocalSizeX}", LocalSizeX.ToString());
             int computeShader = GL.CreateShader(ShaderType.ComputeShader);
             GL.ShaderSource(computeShader, source);
             GL.CompileShader(computeShader);

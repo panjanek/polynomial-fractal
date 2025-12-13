@@ -3,7 +3,7 @@
 #pragma optimize(on)
 
 
-layout(local_size_x = 16) in;
+layout(local_size_x = {LocalSizeX}) in;
 
 struct ComputeShaderConfig {
     int order;
