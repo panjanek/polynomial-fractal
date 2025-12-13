@@ -70,6 +70,8 @@ namespace PolyFract.Gui
 
         private int vbo;
 
+        public int emitedPointsBuffer;
+
         private Matrix4 projectionMatrix;
 
         private ComputeShaderConfig computeShaderConfig;
@@ -104,7 +106,7 @@ namespace PolyFract.Gui
             GL.Enable(EnableCap.PointSprite);
 
              // allocate space for ComputeShaderConfig passed to each compute shader
-             ubo = GL.GenBuffer();
+            ubo = GL.GenBuffer();
             GL.BindBuffer(BufferTarget.ShaderStorageBuffer, ubo);
             GL.BufferData(BufferTarget.ShaderStorageBuffer, Marshal.SizeOf<ComputeShaderConfig>(), IntPtr.Zero, BufferUsageHint.DynamicDraw);
             GL.BindBufferBase(BufferRangeTarget.ShaderStorageBuffer, 0, ubo);
@@ -227,13 +229,13 @@ namespace PolyFract.Gui
                 GL.BindVertexArray(dummyVao);
 
                 // create buffer for data emited from compute shader
-                int pointsBuffer;
-                GL.GenBuffers(1, out pointsBuffer);
-                GL.BindBuffer(BufferTarget.ShaderStorageBuffer, pointsBuffer);
+                GL.GenBuffers(1, out emitedPointsBuffer);
+                GL.BindBuffer(BufferTarget.ShaderStorageBuffer, emitedPointsBuffer);
                 pointsCount = solver.rootsCount + solver.coefficientsValuesCount;
-                int sizeBytes = pointsCount * Marshal.SizeOf<CompactClomplexFloatWithColor>();
+                int shaderPointStrideSize = 32;
+                int sizeBytes = pointsCount * shaderPointStrideSize;
                 GL.BufferData(BufferTarget.ShaderStorageBuffer, sizeBytes, IntPtr.Zero, BufferUsageHint.DynamicDraw);
-                GL.BindBufferBase(BufferRangeTarget.ShaderStorageBuffer, 1, pointsBuffer);
+                GL.BindBufferBase(BufferRangeTarget.ShaderStorageBuffer, 1, emitedPointsBuffer);
             }
             else
             {

@@ -370,3 +370,4 @@ public struct CompactClomplexFloatWithColor
     public float colorG;
     public float colorB;
 }
+

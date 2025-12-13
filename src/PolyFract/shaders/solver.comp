@@ -11,11 +11,8 @@ struct ComputeShaderConfig {
 };
 
 struct CompactComplexFloatWithColor {
-    float r;
-    float i;
-    float colorR;
-    float colorG;
-    float colorB;
+    vec2 position;
+    vec4 color;
 };
 
 // input buffer
@@ -29,7 +26,7 @@ layout(std430, binding = 1) buffer OutputBuffer {
 };
 
 const float M_PI        = 3.14159265358979323846;
-const int MaxIterations = 42;
+const int MaxIterations = 32;
 const float Tolerance   = 1e-10;
 const float ErrorMargin = 0.001;
 const int ErrorMarker   = 1000;
@@ -85,35 +82,13 @@ float angle_at(in float poly_r[32],
     return fast_atan2(d_i, d_r);
 }
 
-
-void hsv_to_rgb(in float h, out float r, out float g, out float b)
+vec3 hue_to_rgb(float h)
 {
-    if (h < 0)
-        h = 0;
-
-    if (h > 255)
-        h = 255;
-
-    int x = int(h * 6);
-    int sector = x >> 8;
-    int frac = x & 255;
-
-    int p = 0;
-    int q = 255 - frac;
-    int t = frac;
-
-    switch (sector)
-    {
-        case 0: r = 255; g = t; b = 0; return;
-        case 1: r = q; g = 255; b = 0; return;
-        case 2: r = 0; g = 255; b = t; return;
-        case 3: r = 0; g = q; b = 255; return;
-        case 4: r = t; g = 0; b = 255; return;
-        default:
-        case 5: r = 255; g = 0; b = q; return;
-    }
+    // 6-sector hue wheel
+    vec3 k = vec3(0.0, 4.0, 2.0);
+    vec3 p = abs(fract(h + k / 6.0) * 6.0 - 3.0);
+    return clamp(p - 1.0, 0.0, 1.0);
 }
-
 
 void evaluate_poly(in float poly_r[32], 
                    in float poly_i[32],
@@ -161,8 +136,8 @@ void evaluate_poly(in float poly_r[32],
     for (int k = 0; k < n; k++)
     {
         float angle = twoPiOverN * k;
-        _z[k].r = r * cos(angle);
-        _z[k].i = r * sin(angle);
+        _z[k].position.x = r * cos(angle);
+        _z[k].position.y = r * sin(angle);
     }
 
     for (int iter = 0; iter < MaxIterations; iter++)
@@ -170,8 +145,8 @@ void evaluate_poly(in float poly_r[32],
         double maxDelta2 = 0.0;
         for (int i = 0; i < n; i++)
         {
-            float zi_r = _z[i].r;
-            float zi_i = _z[i].i;
+            float zi_r = _z[i].position.x;
+            float zi_i = _z[i].position.y;
 
             float p_r = _monic_r[0];
             float p_i = _monic_i[0];
@@ -189,8 +164,8 @@ void evaluate_poly(in float poly_r[32],
             {
                 if (j == i)
                     continue;
-                float mult_r = zi_r - _z[j].r;
-                float mult_i = zi_i - _z[j].i;
+                float mult_r = zi_r - _z[j].position.x;
+                float mult_i = zi_i - _z[j].position.y;
                 float denom_r_tmp = denom_r * mult_r - denom_i * mult_i;
                 float denom_i_tmp = denom_r * mult_i + denom_i * mult_r;
                 denom_r = denom_r_tmp;
@@ -213,28 +188,26 @@ void evaluate_poly(in float poly_r[32],
 
         for (int i = 0; i < n; i++)
         {
-            _z[i].r = _newZ_r[i];
-            _z[i].i = _newZ_i[i];
+            _z[i].position.x = _newZ_r[i];
+            _z[i].position.y = _newZ_i[i];
         }
 
         if (maxDelta2 < (Tolerance * Tolerance)) break;
     }
 
+    // compute colors from deriviative value at given root
     for (int i = 0; i < n; i++)
     {
-        float a = angle_at(poly_r, poly_i, poly_len, _z[i].r, _z[i].i);
-        float h = (255 * (M_PI + a)) / (2 * M_PI);
-        float r,g,b;
-        hsv_to_rgb(h, r, g, b);
-        _z[i].colorR = r / 255.0;
-        _z[i].colorG = g / 255.0;
-        _z[i].colorB = b / 255.0;
+        float a = angle_at(poly_r, poly_i, poly_len, _z[i].position.x, _z[i].position.y);
+        float h = (a + M_PI) / (2 * M_PI);
+        _z[i].color.rgb = hue_to_rgb(h);
     }
 
+    // remove errors by checking if p(root) is (more or less) zero
     for (int i = 0; i < n; i++)
     {
-        float r_r = _z[i].r;
-        float r_i = _z[i].i;
+        float r_r = _z[i].position.x;
+        float r_i = _z[i].position.y;
 
         float v_r = poly_r[0];
         float v_i = poly_i[0];
@@ -249,11 +222,11 @@ void evaluate_poly(in float poly_r[32],
         float v_m = mag(v_i, v_r);
         if (v_m > ErrorMargin)
         {
-            _z[i].r = ErrorMarker;
-            _z[i].i = ErrorMarker;
-            _z[i].colorR = 0;
-            _z[i].colorG = 0;
-            _z[i].colorB = 0;
+            _z[i].position.x = ErrorMarker;
+            _z[i].position.y = ErrorMarker;
+            _z[i].color.r = 0;
+            _z[i].color.g = 0;
+            _z[i].color.b = 0;
         }
     }
 }
@@ -287,19 +260,21 @@ void main()
         for(int i=0; i<config.order; i++)
         {
             uint pointIdx = polyIdx * config.order + i; 
-            points[pointIdx].r = _z[i].r; //idx*0.0001*cos(float(idx) * 0.1);
-            points[pointIdx].i = _z[i].i; //idx*0.0001*sin(float(idx) * 0.1);
-            points[pointIdx].colorR = _z[i].colorR;
-            points[pointIdx].colorG = _z[i].colorG;
-            points[pointIdx].colorB = _z[i].colorB;
+            //points[pointIdx].r = _z[i].r; //idx*0.0001*cos(float(idx) * 0.1);
+            //points[pointIdx].i = _z[i].i; //idx*0.0001*sin(float(idx) * 0.1);
+            points[pointIdx].position = _z[i].position;
+            points[pointIdx].color = _z[i].color;
+            //points[pointIdx].colorR = 0;
+            //points[pointIdx].colorG = _z[i].colorG;
+            //points[pointIdx].colorB = _z[i].colorB;
         }
 
     } else if (idx < config.polysCount + config.coeffValuesCount) {
         uint coeffIdx = idx - config.polysCount;
-        points[rootsCount + coeffIdx].r = config.coeffsValues_r[coeffIdx];
-        points[rootsCount + coeffIdx].i = config.coeffsValues_i[coeffIdx];
-        points[rootsCount + coeffIdx].colorR = 255.0;
-        points[rootsCount + coeffIdx].colorG = 255.0;
-        points[rootsCount + coeffIdx].colorB = 255.0;  
+        points[rootsCount + coeffIdx].position.x = config.coeffsValues_r[coeffIdx];
+        points[rootsCount + coeffIdx].position.y = config.coeffsValues_i[coeffIdx];
+        points[rootsCount + coeffIdx].color.r = 255.0;
+        points[rootsCount + coeffIdx].color.g = 255.0;
+        points[rootsCount + coeffIdx].color.b = 255.0;  
     }
 }
