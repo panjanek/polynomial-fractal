@@ -1,4 +1,5 @@
-﻿using System.Drawing.Imaging;
+﻿using System.Diagnostics.SymbolStore;
+using System.Drawing.Imaging;
 using System.IO;
 using System.Numerics;
 using System.Reflection;
@@ -315,6 +316,21 @@ namespace PolyFract.Gui
                 System.Runtime.InteropServices.Marshal.Copy(pixels, 0, data.Scan0, pixels.Length);
                 bmp.UnlockBits(data);
                 bmp.Save(fileName, ImageFormat.Png);
+            }
+        }
+
+        public static string GlVendor
+        {
+            get
+            {
+                try
+                {
+                    return GL.GetString(StringName.Vendor);
+                }
+                catch
+                {
+                    return null;
+                }
             }
         }
     }

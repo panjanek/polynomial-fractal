@@ -338,7 +338,7 @@ namespace PolyFract
                         $"order: {order} " +
                         $"coeffsCount: {coefficients.Length} "+
                         (OpenGlSurface.UseComputeShader ? " " : ($"errors: {solver?.GetErrorsCount()} ({(100.0 * solver?.GetErrorsCount() / pixelsCount)?.ToString("0.00000")}%) "))+
-                        $"solver: {(OpenGlSurface.UseComputeShader ? $"[shader] lsx:{ShaderUtil.LocalSizeX}" : (Polynomials.IsNativeLibAvailable ? "[native]" : "[managed]"))} "+
+                        $"solver: {(OpenGlSurface.UseComputeShader ? $"[shader/{OpenGlSurface.GlVendor}/lsx{ShaderUtil.LocalSizeX}]" : (Polynomials.IsNativeLibAvailable ? "[native]" : "[managed]"))} "+
                         $"renderer: [{renderer.RendererName}]";
             }
 
