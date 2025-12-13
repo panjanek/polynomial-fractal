@@ -88,10 +88,10 @@ vec3 hue_to_rgb(float h)
     return clamp(p - 1.0, 0.0, 1.0);
 }
 
-void evaluate_poly(in float poly_r[32], 
-                   in float poly_i[32],
-                   in int poly_len,
-                   inout CompactComplexFloatWithColor _z[32])
+void find_roots(in float poly_r[32], 
+                in float poly_i[32],
+                in int poly_len,
+                inout CompactComplexFloatWithColor _z[32])
 {
     float _monic_r[32];
     float _monic_i[32];
@@ -252,7 +252,7 @@ void main()
             poly_i[j] = config.coeffsValues_i[coeffIdx];
         }
 
-        evaluate_poly(poly_r, poly_i, config.order+1, _z);
+        find_roots(poly_r, poly_i, config.order+1, _z);
 
         polyIdx = idx;
         for(int i=0; i<config.order; i++)
