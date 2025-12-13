@@ -58,25 +58,26 @@ float fast_atan2(float y, float x)
     return a * sign(y);
 }
 
-float angle_at(in float poly_r[32], 
-               in float poly_i[32],
-               in int poly_len, 
-               in float x_r,
-               in float x_i)
+float angle_at(
+    in float poly_r[32],
+    in float poly_i[32],
+    in int   poly_len,
+    in float x_r,
+    in float x_i)
 {
     int n = poly_len - 1;
-    float d_r = 0;
-    float d_i = 0;
-
-    for (int i = 0; i < n; i++)
+    vec2 d = vec2(0.0);
+    vec2 x = vec2(x_r, x_i);
+    float k = float(n);
+    for (int i = 0; i < n; ++i)
     {
-        float d_r_tmp = d_r * x_r - d_i * x_i + poly_r[i] * (n - i);
-        float d_i_tmp = d_r * x_i + d_i * x_r + poly_i[i] * (n - 1);
-        d_r = d_r_tmp;
-        d_i = d_i_tmp;
+        vec2 a = vec2(poly_r[i], poly_i[i]) * k;
+        // d = d * x + a
+        d = vec2(d.x * x.x - d.y * x.y, d.x * x.y + d.y * x.x) + a;
+        k -= 1.0;
     }
 
-    return fast_atan2(d_i, d_r);
+    return fast_atan2(d.y, d.x);
 }
 
 vec3 hue_to_rgb(float h)
