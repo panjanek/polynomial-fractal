@@ -33,9 +33,6 @@
     <EmbeddedResource Include="shaders\shader.vert">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </EmbeddedResource>
-    <EmbeddedResource Include="shaders\solver-d.comp">
-      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
-    </EmbeddedResource>
     <EmbeddedResource Include="shaders\solver.comp">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </EmbeddedResource>

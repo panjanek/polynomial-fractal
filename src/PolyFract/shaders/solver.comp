@@ -190,7 +190,7 @@ void evaluate_poly(in float poly_r[32],
             _z[i].position.y = _newZ_i[i];
         }
 
-        if (maxDelta2 < (Tolerance * Tolerance)) break;
+        if (maxDelta2 <= (Tolerance * Tolerance)) break;
     }
 
     // compute colors from deriviative value at given root
