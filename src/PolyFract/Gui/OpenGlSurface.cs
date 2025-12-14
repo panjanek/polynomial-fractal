@@ -143,6 +143,9 @@ namespace PolyFract.Gui
 
         public void Draw(Solver solver, Complex[] coefficients)
         {
+            if (Application.Current.MainWindow.WindowState == System.Windows.WindowState.Minimized)
+                return;
+
             this.solver = solver;
             if (pointsCount == 0 || pointsCount != solver.rootsCount + solver.coeffValues.Length)
             {
@@ -271,6 +274,12 @@ namespace PolyFract.Gui
 
         public void SizeChanged()
         {
+            if (glControl.Width <= 0 || glControl.Height <= 0)
+                return;
+
+            if (!glControl.Context.IsCurrent)
+                glControl.MakeCurrent();
+
             GL.Viewport(0, 0, glControl.Width, glControl.Height);
             glControl.Invalidate();
         }
