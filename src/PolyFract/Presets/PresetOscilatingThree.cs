@@ -13,11 +13,9 @@ namespace PolyFract.Presets
     {
         public override string Name => "Oscillating Three";
 
-        public override int Order => 8;
+        public override int Order => 9;
 
         public override double DT => 0.01;
-
-        public override double Intensity => 1.0;
 
         private List<PointOfView> povMovement = [
             new PointOfView(new Complex(0, 0), 300, 0),

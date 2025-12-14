@@ -16,8 +16,6 @@ namespace PolyFract.Presets
 
         public override double DT => 0.01;
 
-        public override double Intensity => 1.0;
-
         public override Complex[] GetCoefficients(double t)
         {
             double alpha = System.Math.PI / 2 + 10*t;

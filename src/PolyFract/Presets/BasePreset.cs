@@ -20,8 +20,6 @@ namespace PolyFract.Presets
 
         public abstract double DT { get; }
 
-        public abstract double Intensity { get; }
-
         public abstract Complex[] GetCoefficients(double t);
 
         public abstract PointOfView GetPOV(double t);

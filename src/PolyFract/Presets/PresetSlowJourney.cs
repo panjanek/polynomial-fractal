@@ -7,11 +7,9 @@ namespace PolyFract.Presets
     {
         public override string Name => "Slow Journey";
 
-        public override int Order => 15;
+        public override int Order => 16;
 
         public override double DT => 0.01;
-
-        public override double Intensity => 0.15;
 
         private List<PointOfView> povMovement = [
                             new PointOfView(new Complex(0,0), 300, 0),
