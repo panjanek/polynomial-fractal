@@ -11,6 +11,7 @@ struct ComputeShaderConfig {
     int polysCount;
     float coeffsValues_r[16];
     float coeffsValues_i[16];
+    int coeffsVisible;
 };
 
 struct CompactComplexFloatWithColor {
@@ -262,8 +263,8 @@ void main()
         uint coeffIdx = idx - config.polysCount;
         points[rootsCount + coeffIdx].position.x = config.coeffsValues_r[coeffIdx];
         points[rootsCount + coeffIdx].position.y = config.coeffsValues_i[coeffIdx];
-        points[rootsCount + coeffIdx].color.r = 255.0;
-        points[rootsCount + coeffIdx].color.g = 255.0;
-        points[rootsCount + coeffIdx].color.b = 255.0;  
+        points[rootsCount + coeffIdx].color.r = (config.coeffsVisible > 0) ? 255.0 : 0;
+        points[rootsCount + coeffIdx].color.g = (config.coeffsVisible > 0) ? 255.0 : 0;
+        points[rootsCount + coeffIdx].color.b = (config.coeffsVisible > 0) ? 255.0 : 0;
     }
 }

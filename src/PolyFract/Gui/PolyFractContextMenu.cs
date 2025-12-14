@@ -34,11 +34,11 @@ namespace PolyFract.Gui
 
         private readonly MenuItem menuAutoPOV = new MenuItem { Header = "Automatic POV movement", IsCheckable = true };
 
-        private readonly MenuItem menuCopyPos = new MenuItem { Header = "Copy coordinates (C)" };
-
         private readonly MenuItem menuCoeffCount = new MenuItem { };
 
         private readonly MenuItem menuOrder = new MenuItem { };
+
+        private readonly MenuItem menuSolver = new MenuItem { Header = "Toggle solver [G]" };
 
         private readonly MenuItem menuShowCoeff = new MenuItem { Header = "Show coefficients markers", IsCheckable = true, IsChecked = true };
 
@@ -57,8 +57,6 @@ namespace PolyFract.Gui
         public Action<string> SaveCapture { get; set; }
 
         public Action<string> ToggleRecording { get; set; }
-
-        public Action CopyPosClicked { get; set; }
 
         public Point LastRightClick { get; set; }
 
@@ -93,25 +91,26 @@ namespace PolyFract.Gui
             menu.Items.Add(menuRecord);
             menu.Items.Add(menuAutoCoeff);
             menu.Items.Add(menuAutoPOV);
-            menu.Items.Add(menuCopyPos);
             menu.Items.Add(menuCoeffCount);
             menu.Items.Add(menuOrder);
+            menu.Items.Add(menuSolver);
             menu.Items.Add(menuShowCoeff);
             menu.Items.Add(menuReset);
 
-            menuCopyPos.Click += MenuCopyPos_Click;
             menuCoeffCount.Click += MenuCoeffCount_Click;
             menuOrder.Click += MenuOrder_Click;
-            menuReset.Click += MenuReset_Click;
+            menuReset.Click += (s, e) => { if (Reset != null) Reset(); };
             menuCapture.Click += MenuCapture_Click;
             menuRecord.Click += MenuRecord_Click;
             menuPaused.Click += Checkbox_Click;
             menuAutoPOV.Click += Checkbox_Click;
             menuAutoCoeff.Click += Checkbox_Click;
             menuShowCoeff.Click += Checkbox_Click;
+            menuSolver.Click += (s, e) => { GuiUtil.EmitKeyDownEvent(placeholder, Key.G); };
             mouseSource.PreviewMouseRightButtonDown += Placeholder_PreviewMouseRightButtonDown;
             Checkbox_Click(this);
         }
+
 
         private void Checkbox_Click(object sender, RoutedEventArgs e = null)
         {
@@ -187,7 +186,7 @@ namespace PolyFract.Gui
                     if (PresetSelected != null)
                     {
                         PresetSelected(selectedPreset, dialog.FileName);
-                        
+
                     }
                 }
             }
@@ -197,12 +196,6 @@ namespace PolyFract.Gui
                 if (PresetSelected != null)
                     PresetSelected(selectedPreset, null);
             }
-        }
-
-        private void MenuReset_Click(object sender, RoutedEventArgs e)
-        {
-            if (Reset != null)
-                Reset();
         }
 
         private void MenuOrder_Click(object sender, RoutedEventArgs e)
@@ -233,17 +226,12 @@ namespace PolyFract.Gui
                 MessageBox.Show("Not a number!");
         }
 
-        private void MenuCopyPos_Click(object sender, RoutedEventArgs e)
-        {
-            if (CopyPosClicked != null)
-                CopyPosClicked();
-        }
-
         public void UpdateContextMenu(int coefficientsCount, int order, BasePreset preset)
         {
             menuCoeffCount.Header = $"Number of coefficients values (A/S) [{coefficientsCount}]";
             menuOrder.Header = $"Polynomial order (Q/W) [{order}]";
             menuPreset.Header = $"Preset [{preset?.Name}]";
+            menuSolver.Header = $"Toggle solver (G) [{(OpenGlSurface.UseComputeShader ? "gpu" : "cpu")}]";
             var testAutoPov = preset?.GetPOV(0);
             if (testAutoPov == null)
             {

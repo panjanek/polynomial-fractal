@@ -6,11 +6,13 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
 using Application = System.Windows.Application;
 using Button = System.Windows.Controls.Button;
 using HorizontalAlignment = System.Windows.HorizontalAlignment;
 using Orientation = System.Windows.Controls.Orientation;
+using Panel = System.Windows.Controls.Panel;
 using TextBox = System.Windows.Controls.TextBox;
 
 namespace PolyFract.Gui
@@ -121,6 +123,14 @@ namespace PolyFract.Gui
 
             // Show input dialog
             return dialog.ShowDialog() == true ? input.Text : null;
+        }
+
+        public static void EmitKeyDownEvent(Panel target, System.Windows.Input.Key key)
+        {
+            var pres = PresentationSource.FromVisual(target);
+            var args = new System.Windows.Input.KeyEventArgs(System.Windows.Input.Keyboard.PrimaryDevice, pres, 0, key);
+            args.RoutedEvent = UIElement.KeyDownEvent;
+            target.RaiseEvent(args);
         }
     }
 }

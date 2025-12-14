@@ -111,7 +111,6 @@ namespace PolyFract
             };
 
             contextMenu.Reset = () => SetDefaultValues();
-            contextMenu.CopyPosClicked = () => CopyCoordinatesToClipboard(contextMenu.LastRightClick);
             contextMenu.ToggleRecording = recordingDir => this.recordingDir = recordingDir;
             contextMenu.SaveCapture = captFileName => renderer.SaveToFile(captFileName);
             contextMenu.PresetSelected = (p, recDir) =>
@@ -176,6 +175,7 @@ namespace PolyFract
                 solver = new Solver(coefficients.Length, order);
 
             solver.Solve(coefficients);
+            solver.coeffsVisible = contextMenu.ShowCoeff;
             cycleCounter++;
 
             renderer.Draw(solver, contextMenu.ShowCoeff ? coefficients : []);
@@ -338,7 +338,7 @@ namespace PolyFract
                         $"order: {order} " +
                         $"coeffsCount: {coefficients.Length} "+
                         (OpenGlSurface.UseComputeShader ? " " : ($"errors: {solver?.GetErrorsCount()} ({(100.0 * solver?.GetErrorsCount() / pixelsCount)?.ToString("0.00000")}%) "))+
-                        $"solver: {(OpenGlSurface.UseComputeShader ? $"[shader/{OpenGlSurface.GlVendor}/lsx{ShaderUtil.LocalSizeX}]" : (Polynomials.IsNativeLibAvailable ? "[native]" : "[managed]"))} "+
+                        $"solver: {(OpenGlSurface.UseComputeShader ? $"[gpu/shader/{OpenGlSurface.GlVendor}/lsx{ShaderUtil.LocalSizeX}]" : (Polynomials.IsNativeLibAvailable ? "[cpu/native]" : "[cpu/managed]"))} "+
                         $"renderer: [{renderer.RendererName}]";
             }
 

@@ -16,6 +16,8 @@ namespace PolyFract.Maths
 
         public int rootsCount;
 
+        public bool coeffsVisible;
+
         public CompactClomplexFloatWithColor[] coeffValues;
 
         public ThreadContext[] threads;

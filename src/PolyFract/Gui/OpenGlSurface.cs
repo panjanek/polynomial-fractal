@@ -181,6 +181,7 @@ namespace PolyFract.Gui
                 computeShaderConfig.order = solver.order;
                 computeShaderConfig.coeffValuesCount = solver.coefficientsValuesCount;
                 computeShaderConfig.polysCount = solver.polynomialsCount;
+                computeShaderConfig.coeffsVisible = solver.coeffsVisible ? 1 : 0;
                 for (int i = 0; i < solver.coeffValues.Length; i++)
                 {
                     computeShaderConfig.coeffsValues_r[i] = solver.coeffValues[i].r;
@@ -343,5 +344,6 @@ namespace PolyFract.Gui
         public int polysCount;
         public fixed float coeffsValues_r[16];
         public fixed float coeffsValues_i[16];
+        public int coeffsVisible;
     }
 }
