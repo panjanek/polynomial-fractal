@@ -38,6 +38,8 @@ namespace PolyFract
 
         private DateTime tStart = DateTime.Now;
 
+        private DateTime tPaused = DateTime.Now;
+
         //combine PNGs into video: ffmpeg -f image2 -framerate 60 -i frame_%05d.png -r 60 -vcodec libx264 -pix_fmt yuv420p out.mp4 -y
         //cut: ffmpeg -ss 00:00:50 -t 00:00:50 -i vert60.mp4 -c copy tiktok.mp4
         //add audio: ffmpeg -i slow2.mp4 -ss 7 -i tetsuo.mp3 -t 220 -c copy -map 0:v:0 -map 1:a:0 slow2-audio.mp4
@@ -58,8 +60,6 @@ namespace PolyFract
         private FullscreenWindow fullscreen;
 
         private Solver solver;
-
-        private bool isOccupied;
 
         private bool uiPending;
 
@@ -112,6 +112,7 @@ namespace PolyFract
 
             contextMenu.Reset = () => SetDefaultValues();
             contextMenu.ToggleRecording = recordingDir => this.recordingDir = recordingDir;
+            contextMenu.TogglePaused = PausedChanged;
             contextMenu.SaveCapture = captFileName => renderer.SaveToFile(captFileName);
             contextMenu.PresetSelected = (p, recDir) =>
             {
@@ -183,7 +184,8 @@ namespace PolyFract
 
         private double GetTime()
         {
-            return (DateTime.Now - tStart).TotalSeconds * dt;
+            var timeReference = contextMenu.Paused ? tPaused : DateTime.Now;
+            return (timeReference - tStart).TotalSeconds * dt;
         }
 
         private void CopyCoordinatesToClipboard(Point clikPoint)
@@ -239,12 +241,13 @@ namespace PolyFract
             {
                 case Key.Space:
                     contextMenu.SetCheckboxes(null, null, null, !contextMenu.Paused);
+                    PausedChanged();
                     break;
                 case Key.OemMinus:
-                    dt = dt * 0.9; 
+                    SetSpeed(dt * 0.9);
                     break;
                 case Key.OemPlus:
-                    dt = dt * 1.1; 
+                    SetSpeed(dt * 1.1); 
                     break;
                 case Key.Q:
                     if (order > 2)
@@ -290,6 +293,20 @@ namespace PolyFract
             }
 
             UpdateContextMenu();
+        }
+
+        private void SetSpeed(double newDt)
+        {
+            tStart = DateTime.Now - (DateTime.Now - tStart) * dt / newDt;
+            dt = newDt;
+        }
+
+        private void PausedChanged()
+        {
+            if (contextMenu.Paused)
+                tPaused = DateTime.Now;
+            else
+                tStart += (DateTime.Now - tPaused);
         }
 
         private void ToggleFullscreen()

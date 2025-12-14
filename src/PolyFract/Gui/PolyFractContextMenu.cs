@@ -24,11 +24,11 @@ namespace PolyFract.Gui
 
         private readonly MenuItem menuPreset = new MenuItem { };
 
-        private readonly MenuItem menuCapture = new MenuItem { Header = "Save screen capture" };
+        private readonly MenuItem menuCapture = new MenuItem { Header = "Save screen capture (P)" };
 
         private readonly MenuItem menuRecord = new MenuItem { Header = "Record frames to folder", IsCheckable = true };
 
-        private readonly MenuItem menuPaused = new MenuItem { Header = "Paused", IsCheckable = true, IsChecked = true };
+        private readonly MenuItem menuPaused = new MenuItem { Header = "Paused (Space)", IsCheckable = true, IsChecked = true };
 
         private readonly MenuItem menuAutoCoeff = new MenuItem { Header = "Automatic coefficients movement", IsCheckable = true };
 
@@ -38,7 +38,7 @@ namespace PolyFract.Gui
 
         private readonly MenuItem menuOrder = new MenuItem { };
 
-        private readonly MenuItem menuSolver = new MenuItem { Header = "Toggle solver [G]" };
+        private readonly MenuItem menuSolver = new MenuItem { Header = "Toggle solver (G)" };
 
         private readonly MenuItem menuShowCoeff = new MenuItem { Header = "Show coefficients markers", IsCheckable = true, IsChecked = true };
 
@@ -57,6 +57,8 @@ namespace PolyFract.Gui
         public Action<string> SaveCapture { get; set; }
 
         public Action<string> ToggleRecording { get; set; }
+
+        public Action TogglePaused { get; set; }
 
         public Point LastRightClick { get; set; }
 
@@ -103,14 +105,23 @@ namespace PolyFract.Gui
             menuCapture.Click += MenuCapture_Click;
             menuRecord.Click += MenuRecord_Click;
             menuPaused.Click += Checkbox_Click;
+            menuPaused.Click += (s, e) => { if (TogglePaused != null) TogglePaused(); };
             menuAutoPOV.Click += Checkbox_Click;
             menuAutoCoeff.Click += Checkbox_Click;
             menuShowCoeff.Click += Checkbox_Click;
             menuSolver.Click += (s, e) => { GuiUtil.EmitKeyDownEvent(placeholder, Key.G); };
             mouseSource.PreviewMouseRightButtonDown += Placeholder_PreviewMouseRightButtonDown;
             Checkbox_Click(this);
+            placeholder.KeyDown += Placeholder_KeyDown;
         }
 
+        private void Placeholder_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+        {
+            if (e.Key == Key.P) {
+                MenuCapture_Click(this, null);
+                e.Handled = true;
+            }
+        }
 
         private void Checkbox_Click(object sender, RoutedEventArgs e = null)
         {
