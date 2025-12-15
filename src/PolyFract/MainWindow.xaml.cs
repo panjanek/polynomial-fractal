@@ -14,8 +14,7 @@ using MessageBox = System.Windows.MessageBox;
 using Point = System.Windows.Point;
 
 // TODO:
-// - local_size_x from commandline
-// - time correction on +/-
+// - key handler to context menu
 
 namespace PolyFract
 {
@@ -159,18 +158,15 @@ namespace PolyFract
 
         private void WorkerStep()
         {
-            if (!contextMenu.Paused)
+            if (contextMenu.AutoPOV)
             {
-                if (contextMenu.AutoPOV)
-                {
-                    var newPOV = currentPreset.GetPOV(GetTime());
-                    if (newPOV != null)
-                        renderer.SetProjection(newPOV.Origin, newPOV.Zoom);
-                }
-
-                if (contextMenu.AutoCoeff)
-                    coefficients = currentPreset.GetCoefficients(GetTime());
+                var newPOV = currentPreset.GetPOV(GetTime());
+                if (newPOV != null)
+                    renderer.SetProjection(newPOV.Origin, newPOV.Zoom);
             }
+
+            if (contextMenu.AutoCoeff)
+                coefficients = currentPreset.GetCoefficients(GetTime());
 
             if (solver == null || solver.coefficientsValuesCount != coefficients.Length || solver.order != order)
                 solver = new Solver(coefficients.Length, order);
