@@ -3,6 +3,8 @@ GPU-accelerated (with compute shader) .NET GUI application (WPF) for visalisatio
 
 Inspired by this youtube video by 2swap: https://www.youtube.com/watch?v=9HIy5dJE-zQ&t=3s
 
+Generarated visualisation: https://www.youtube.com/watch?v=WTvoVu-XlrU
+
 ## Features
 * Any order of polynomial
 * Any number of coefficients contraints
