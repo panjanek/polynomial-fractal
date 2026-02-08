@@ -12,11 +12,11 @@ namespace PolyFract.Presets
     {
         public override string Name => "Another Journey";
 
-        public override int Order => 7;   //11
+        public override int Order => 11;   //11
 
         public override double DT => 0.01;
 
-        private const double Speed = 3;   //0.03 -> 0.01
+        private const double Speed = 0.05;   //0.1
 
         public override Complex[] GetCoefficients(double t)
         {
