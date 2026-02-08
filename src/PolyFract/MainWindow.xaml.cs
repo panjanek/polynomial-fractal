@@ -42,7 +42,14 @@ namespace PolyFract
         //combine PNGs into video: ffmpeg -f image2 -framerate 60 -i frame_%05d.png -r 60 -vcodec libx264 -pix_fmt yuv420p out.mp4 -y
         //cut: ffmpeg -ss 00:00:50 -t 00:00:50 -i vert60.mp4 -c copy tiktok.mp4
         //add audio: ffmpeg -i slow2.mp4 -ss 7 -i tetsuo.mp3 -t 220 -c copy -map 0:v:0 -map 1:a:0 slow2-audio.mp4
+
+        //combine PNGs into video:
+        //mp4: ffmpeg -f image2 -framerate 60 -i rec/frame_%05d.png -r 60 -vcodec libx264 -preset veryslow -crf 12 -profile:v high -pix_fmt yuv420p out.mp4 -y
+        //gif: ffmpeg -framerate 60 -ss2 -i rec/frame_%05d.png -vf "select='not(mod(n,2))',setpts=N/FRAME_RATE/TB" -t 5 -r 20 simple2.gif
+        //reduce bitrate:  ffmpeg -i in.mp4 -c:v libx264 -b:v 4236000 -pass 2 -c:a aac -b:a 128k out.mp4
         private string recordingDir = "";
+
+        private int? recFrameNr;
 
         private DateTime lastCheckTime;
 
@@ -120,6 +127,29 @@ namespace PolyFract
                 recordingDir = recDir;
             };
 
+            renderer.NewFrame = () =>
+            {
+                if (recordingDir != null)
+                {
+                    var recDir = recordingDir;
+                    if (!recFrameNr.HasValue && !string.IsNullOrWhiteSpace(recDir))
+                    {
+                        recFrameNr = 0;
+                    }
+
+                    if (recFrameNr.HasValue && string.IsNullOrWhiteSpace(recDir))
+                        recFrameNr = null;
+
+                    if (recFrameNr.HasValue && !string.IsNullOrWhiteSpace(recDir))
+                    {
+                        string recFilename = $"{recDir}\\frame_{recFrameNr.Value.ToString("00000")}.png";
+                        renderer.SaveToFile(recFilename);
+                        recFrameNr = recFrameNr.Value + 1;
+                    }
+                }
+            };
+
+
             SetDefaultValues();
             DispatcherTimer infoTimer = new DispatcherTimer() { Interval = TimeSpan.FromSeconds(1.0) };
             infoTimer.Tick += InfoTimer_Tick;
@@ -176,6 +206,7 @@ namespace PolyFract
             cycleCounter++;
 
             renderer.Draw(solver, contextMenu.ShowCoeff ? coefficients : []);
+
         }
 
         private double GetTime()
@@ -283,6 +314,8 @@ namespace PolyFract
                     ToggleFullscreen();
                     break;
                 case Key.Escape:
+                    recordingDir = null;
+                    recFrameNr = null;
                     if (fullscreen != null)
                         ToggleFullscreen();
                     break;

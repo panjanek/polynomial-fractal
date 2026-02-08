@@ -28,6 +28,8 @@ namespace PolyFract.Gui
 
         public int FrameCounter => frameCounter;
 
+        public Action NewFrame { get; set; }
+
         public string Name => "opengl";
 
         public static bool UseComputeShader { get; set; }
@@ -221,6 +223,8 @@ namespace PolyFract.Gui
             GL.DrawArrays(PrimitiveType.Points, 0, pointsCount);
             glControl.SwapBuffers();
             frameCounter++;
+            if (NewFrame != null)
+                NewFrame();
         }
 
         private void SetupBuffers()

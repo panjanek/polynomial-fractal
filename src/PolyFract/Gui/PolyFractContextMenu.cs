@@ -173,7 +173,6 @@ namespace PolyFract.Gui
                 menu.Placement = System.Windows.Controls.Primitives.PlacementMode.AbsolutePoint;
                 menu.HorizontalOffset = WinFormsMouseProxy.ProxyPoint.Value.X;
                 menu.VerticalOffset = WinFormsMouseProxy.ProxyPoint.Value.Y;
-
             }
             else
             {

@@ -24,6 +24,8 @@ namespace PolyFract.Gui
 
         public string Name => "wpf";
 
+        public Action NewFrame { get; set; }
+
         public System.Windows.Controls.Panel MouseEventSource => this.placeholder;
 
         private readonly Image image;

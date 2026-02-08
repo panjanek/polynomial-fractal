@@ -18,7 +18,7 @@ namespace PolyFract.Presets
 
         public override Complex[] GetCoefficients(double t)
         {
-            double alpha = System.Math.PI / 2 + 10*t;
+            double alpha = System.Math.PI / 2 + 2*t;
             var coeff = new Complex[2];
             coeff[0] = new Complex(-1, 0);
             coeff[1] = new Complex(1 * System.Math.Sin(alpha), 1 * System.Math.Cos(alpha));

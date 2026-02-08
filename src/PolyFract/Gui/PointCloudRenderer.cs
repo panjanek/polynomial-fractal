@@ -19,6 +19,8 @@ namespace PolyFract.Gui
 
         public string RendererName => surface?.Name;
 
+        public Action NewFrame { get; set; }
+
         public Action DraggedOrZoommed { get; set; }
 
         public Action<int, Complex> CoefficientChanged;
@@ -50,6 +52,8 @@ namespace PolyFract.Gui
                 Console.WriteLine("Could not init OpenGL, fallback to WPF Writable bitmap.");
                 surface = new WpfSurface(placeholder);
             }
+
+            surface.NewFrame = () => { if (this.NewFrame != null) this.NewFrame(); };
             
             placeholder.SizeChanged += Placeholder_SizeChanged;
             var dragging = new DraggingHandler(surface.MouseEventSource, mouse =>
